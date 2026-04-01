@@ -1,3 +1,11 @@
+> ⚠️ **重要提示**: 本文档内容已整合到 [COMPLETE_MANUAL.md](COMPLETE_MANUAL.md)  
+> 建议优先阅读新手册获取更全面、更准确的信息
+> 
+> **整合日期**: 2026-04-01  
+> **替代文档**: [COMPLETE_MANUAL.md](COMPLETE_MANUAL.md) 第 3 章 - 配置指南
+
+---
+
 # 模型配置拆分指南
 
 ## 📋 功能概述
@@ -447,7 +455,7 @@ python presentation/gui_app.py --config config.test2.yaml
 
 - [配置管理快速指南](CONFIGURATION_GUIDE.md)
 - [配置检查功能](CONFIG_CHECKER_GUIDE.md)
-- [API 参考文档](../api/API_REFERENCE.md)
+- [API 参考文档](../api/MODEL_CONFIG_API.md)
 
 ## 🎉 总结
 

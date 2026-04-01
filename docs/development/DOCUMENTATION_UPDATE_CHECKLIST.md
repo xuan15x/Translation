@@ -90,7 +90,7 @@
 
 - [ ] `docs/guides/QUICKSTART.md` - 快速入门指南
 - [ ] `docs/guides/BEST_PRACTICES.md` - 最佳实践
-- [ ] `docs/api/API_REFERENCE.md` - API 参考文档
+- [ ] `docs/api/MODEL_CONFIG_API.md` - API 参考文档
 - [ ] 相关的功能模块文档
 - [ ] 添加新功能的使用示例
 

@@ -571,7 +571,7 @@ review_base_url: "https://api.openai.com/v1"
 ### 官方文档
 - [配置管理快速指南](CONFIGURATION_GUIDE.md)
 - [配置检查功能](CONFIG_CHECKER_GUIDE.md)
-- [API 参考文档](../api/API_REFERENCE.md)
+- [API 参考文档](../api/MODEL_CONFIG_API.md)
 - [架构设计文档](../architecture/ARCHITECTURE.md)
 
 ### 示例文件

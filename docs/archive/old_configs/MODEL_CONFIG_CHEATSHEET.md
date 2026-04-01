@@ -1,3 +1,11 @@
+> ⚠️ **重要提示**: 本文档内容已整合到 [COMPLETE_MANUAL.md](COMPLETE_MANUAL.md)  
+> 建议优先阅读新手册获取更全面、更准确的信息
+> 
+> **整合日期**: 2026-04-01  
+> **替代文档**: [COMPLETE_MANUAL.md](COMPLETE_MANUAL.md) 第 3 章 - 配置指南
+
+---
+
 # 模型配置拆分 - 快速参考卡片
 
 ## 🚀 快速开始

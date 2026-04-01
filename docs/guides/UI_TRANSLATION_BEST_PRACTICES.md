@@ -374,7 +374,7 @@ class ContextAwareTranslator:
 ## 🔗 相关文档
 
 - [高级翻译功能总览](ADVANCED_TRANSLATION_FEATURES.md)
-- [API 参考文档](../api/API_REFERENCE.md)
+- [API 参考文档](../api/MODEL_CONFIG_API.md)
 - [最佳实践指南](../guides/BEST_PRACTICES.md)
 
 ---

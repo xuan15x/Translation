@@ -1,3 +1,11 @@
+> ⚠️ **重要提示**: 本文档内容已整合到 [COMPLETE_MANUAL.md](COMPLETE_MANUAL.md)  
+> 建议优先阅读新手册获取更全面、更准确的信息
+> 
+> **整合日期**: 2026-04-01  
+> **替代文档**: [COMPLETE_MANUAL.md](COMPLETE_MANUAL.md) 第 5 章 - 故障排查
+
+---
+
 # 配置检查功能使用指南
 
 ## 📋 功能概述

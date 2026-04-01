@@ -25,7 +25,7 @@ project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-from gui_app import TranslationApp
+from modern_gui_app import ModernGUIApp  # 使用新的现代化 GUI
 
 
 def main():
@@ -60,8 +60,8 @@ def main():
     style = ttk.Style()
     style.theme_use('clam')  # 使用更现代的主题
     
-    # 启动应用（传入配置文件路径）
-    app = TranslationApp(root, config_file=config_file)
+    # 启动应用（使用新的现代化 GUI）
+    app = ModernGUIApp(root, config_file=config_file)
     
     # 运行事件循环
     root.mainloop()

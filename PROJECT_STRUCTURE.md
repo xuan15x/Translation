@@ -256,7 +256,7 @@ docs/
 │   └── ASYNC_*.md              # 异步处理
 │
 └── api/                         # API 文档（高级用户）
-    ├── API_REFERENCE.md        # 完整 API 参考
+    ├── MODEL_CONFIG_API.md        # 完整 API 参考
     └── CONFIG_PERSISTENCE.md   # 配置持久化
 ```
 

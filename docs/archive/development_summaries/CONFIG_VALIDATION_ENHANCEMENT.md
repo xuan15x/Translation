@@ -1,3 +1,11 @@
+> ⚠️ **重要提示**: 本文档内容已整合到 [ERROR_HANDLING_GUIDE.md](ERROR_HANDLING_GUIDE.md)  
+> 建议优先阅读新手册获取更全面、更准确的信息
+> 
+> **整合日期**: 2026-04-01  
+> **替代文档**: [ERROR_HANDLING_GUIDE.md](ERROR_HANDLING_GUIDE.md) 错误处理
+
+---
+
 # 配置验证增强 - 实现总结与文档更新
 
 **文档版本**: v2.1.1  

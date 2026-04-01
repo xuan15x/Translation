@@ -254,7 +254,8 @@ python presentation/translation.py
 ## 📖 完整文档导航
 
 ### 🌟 **新手必读**（从零开始）
-- [**配置填入手册**](docs/guides/CONFIG_SETUP_HANDBOOK.md) ⭐⭐⭐ **最详细配置教程，手把手教你**
+- [**完整使用手册**](COMPLETE_MANUAL.md) ⭐⭐⭐ **最新！一站式解决方案，包含所有核心内容**
+- [配置填入手册](docs/guides/CONFIG_SETUP_HANDBOOK.md) ⭐⭐⭐ 最详细配置教程，手把手教你
 - [快速开始指南](docs/guides/QUICKSTART.md) - 5 分钟上手
 - [最佳实践](docs/guides/BEST_PRACTICES.md) ⭐ 全面详细的使用教程
 - [故障排查手册](docs/guides/TROUBLESHOOTING.md) ⭐ 常见问题快速解决
@@ -269,10 +270,9 @@ python presentation/translation.py
 - [**错误处理总结**](docs/development/ERROR_HANDLING_SUMMARY.md) ⭐ NEW - 错误处理实施报告
 
 ### 📑 API 文档（适合高级用户）
-- [完整 API 参考](docs/api/API_REFERENCE.md) ⭐ 所有类和方法详细说明
+- [完整 API 参考](docs/api/MODEL_CONFIG_API.md) ⭐ 所有类和方法详细说明
 - [配置持久化指南](docs/api/CONFIG_PERSISTENCE_GUIDE.md)
 - [依赖项说明](docs/api/DEPENDENCIES.md)
-- [模型配置 API](docs/api/MODEL_CONFIG_API.md) ⭐ 模型配置拆分详细 API
 
 ### 🗂️ 模块文档
 - [应用层模块](docs/application/README.md)
@@ -538,7 +538,7 @@ Result_20260331_143025.xlsx
 - [异步处理](docs/development/ASYNC_BACKGROUND_PROCESSING.md)
 
 ### API 文档
-- [API 参考](docs/api/API_REFERENCE.md)
+- [API 参考](docs/api/MODEL_CONFIG_API.md)
 - [配置持久化](docs/api/CONFIG_PERSISTENCE_GUIDE.md)
 - [依赖说明](docs/api/DEPENDENCIES.md)
 
@@ -829,6 +829,8 @@ Translation Team
 ---
 
 **遇到问题？** 
-- 查看 [故障排查指南](docs/guides/TROUBLESHOOTING.md)
+- ⭐ **[完整使用手册](COMPLETE_MANUAL.md)** - 一站式解决方案
+- [故障排查指南](docs/guides/TROUBLESHOOTING.md) - 详细排查步骤
+- [文档中心](docs/INDEX.md) - 完整的文档导航
 - 提交 Issue
 - 联系开发团队

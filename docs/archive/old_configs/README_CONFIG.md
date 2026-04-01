@@ -1,3 +1,11 @@
+> ⚠️ **重要提示**: 本文档内容已整合到 [COMPLETE_MANUAL.md](COMPLETE_MANUAL.md)  
+> 建议优先阅读新手册获取更全面、更准确的信息
+> 
+> **整合日期**: 2026-04-01  
+> **替代文档**: [COMPLETE_MANUAL.md](COMPLETE_MANUAL.md) 第 3 章 - 配置指南
+
+---
+
 # 配置管理快速指南
 
 ## 📦 新增功能
@@ -335,7 +343,7 @@ python -c "import os; print(os.getenv('DEEPSEEK_API_KEY'))"
 
 - [完整配置指南](CONFIGURATION_GUIDE.md) - 详细的配置说明
 - [快速入门](QUICKSTART.md) - 平台使用入门
-- [API 参考](../api/API_REFERENCE.md) - API 文档
+- [API 参考](../api/MODEL_CONFIG_API.md) - API 文档
 - [架构设计](../architecture/ARCHITECTURE.md) - 系统架构
 
 ## 🆘 获取帮助

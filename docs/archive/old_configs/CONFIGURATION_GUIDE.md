@@ -1,3 +1,11 @@
+> ⚠️ **重要提示**: 本文档内容已整合到 [COMPLETE_MANUAL.md](COMPLETE_MANUAL.md)  
+> 建议优先阅读新手册获取更全面、更准确的信息
+> 
+> **整合日期**: 2026-04-01  
+> **替代文档**: [COMPLETE_MANUAL.md](COMPLETE_MANUAL.md) 第 3 章 - 配置指南
+
+---
+
 # 配置管理指南
 
 本指南详细介绍 AI 翻译工作台的所有配置选项和使用方法。
@@ -415,7 +423,7 @@ python -c "import os; print(os.getenv('DEEPSEEK_API_KEY'))"
 ## 📚 相关文档
 
 - [快速入门指南](../guides/QUICKSTART.md)
-- [API 参考文档](../api/API_REFERENCE.md)
+- [API 参考文档](../api/MODEL_CONFIG_API.md)
 - [架构设计文档](../architecture/ARCHITECTURE.md)
 - [测试指南](../development/TESTING_GUIDE.md)
 

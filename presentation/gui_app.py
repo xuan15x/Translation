@@ -5,10 +5,11 @@ GUI 应用模块 - 重构版
 import asyncio
 import logging
 import tkinter as tk
+from datetime import datetime
 from tkinter import filedialog, messagebox, ttk, scrolledtext
 from typing import List
 
-from config import DEFAULT_DRAFT_PROMPT, DEFAULT_REVIEW_PROMPT, TARGET_LANGUAGES, GUI_CONFIG, GAME_TRANSLATION_TYPES, GAME_DRAFT_PROMPTS, GAME_REVIEW_PROMPTS
+from config import DEFAULT_DRAFT_PROMPT, DEFAULT_REVIEW_PROMPT, TARGET_LANGUAGES, GUI_CONFIG, GAME_TRANSLATION_TYPES, GAME_DRAFT_PROMPTS, GAME_REVIEW_PROMPTS, T1_LANGUAGES, T2_LANGUAGES, T3_LANGUAGES
 from infrastructure.prompt_injector import inject_prompts
 from infrastructure.log_config import setup_logger, LogTag, log_with_tag, LogLevel
 from infrastructure.log_slice import LoggerSlice, LogCategory
@@ -17,6 +18,10 @@ from infrastructure.di_container import initialize_container
 from data_access.config_persistence import ConfigPersistence
 from service.api_provider import get_provider_manager
 from infrastructure.gui_log_controller import GUILogController
+from service.session_config import get_session_manager, SessionConfigManager
+from service.version_history import get_version_manager, VersionHistoryManager
+from service.translation_history import get_history_manager, TranslationHistoryManager, record_translation
+from service.terminology_history import get_history_manager as get_terminology_history_manager
 
 logger = logging.getLogger(__name__)
 
@@ -65,6 +70,12 @@ class TranslationApp:
         # 日志控制器
         self.log_controller = None
         
+        # 历史记录管理器
+        self.session_manager = None
+        self.version_manager = None
+        self.translation_history_manager = None
+        self.terminology_history_manager = None
+        
         # 加载配置
         if config_file:
             self._load_config_from_file()
@@ -84,8 +95,12 @@ class TranslationApp:
         self.container = None
         self.translation_facade = None
         
+        # 绑定窗口关闭事件
+        self.root.protocol("WM_DELETE_WINDOW", self._on_closing)
+        
         self._setup_ui()
         self._setup_logger()
+        self._initialize_history_managers()
     
     def _setup_ui(self):
         """设置用户界面"""
@@ -154,17 +169,8 @@ class TranslationApp:
         self.provider_combo.grid(row=0, column=1, sticky=tk.W, padx=5, pady=5)
         self.provider_combo.bind('<<ComboboxSelected>>', self._on_provider_changed)
         
-        # 模型选择
-        ttk.Label(provider_frame, text="选择模型:").grid(row=1, column=0, sticky=tk.W, padx=5, pady=5)
-        
-        self.current_model_var = tk.StringVar(value="")
-        self.model_combo = ttk.Combobox(
-            provider_frame,
-            textvariable=self.current_model_var,
-            state='readonly',
-            width=30
-        )
-        self.model_combo.grid(row=1, column=1, sticky=tk.W, padx=5, pady=5)
+        # 说明：模型在双阶段参数中配置
+        ttk.Label(provider_frame, text="💡 模型请在下方「双阶段翻译参数」中配置", foreground="gray").grid(row=1, column=0, columnspan=2, sticky=tk.W, padx=5, pady=2)
         
         # --- 2.1 双阶段翻译参数（高级选项）---
         advanced_frame = ttk.LabelFrame(main_frame, text="⚙️ 双阶段翻译参数（高级）", padding="10")
@@ -182,7 +188,7 @@ class TranslationApp:
         self.draft_model_var = tk.StringVar(value="")
         self.draft_model_combo = ttk.Combobox(draft_params_frame, textvariable=self.draft_model_var, state='readonly', width=30)
         self.draft_model_combo.grid(row=0, column=1, sticky=tk.W, padx=5, pady=5)
-        ttk.Label(draft_params_frame, text="(空=使用全局模型)", foreground="gray").grid(row=0, column=2, padx=5, pady=5)
+        ttk.Label(draft_params_frame, text="(空=使用 API 提供商默认模型)", foreground="gray").grid(row=0, column=2, padx=5, pady=5)
         
         ttk.Label(draft_params_frame, text="温度:").grid(row=1, column=0, sticky=tk.W, padx=5, pady=5)
         self.draft_temp_var = tk.DoubleVar(value=0.3)
@@ -208,11 +214,22 @@ class TranslationApp:
         review_params_frame = ttk.Frame(self.advanced_notebook, padding="5")
         self.advanced_notebook.add(review_params_frame, text="✏️ 校对参数")
         
-        ttk.Label(review_params_frame, text="校对模型:").grid(row=0, column=0, sticky=tk.W, padx=5, pady=5)
+        # 第一行：模型选择 + 同步按钮
+        model_sync_frame = ttk.Frame(review_params_frame)
+        model_sync_frame.grid(row=0, column=0, columnspan=3, sticky=tk.W, pady=5)
+        
+        ttk.Label(model_sync_frame, text="校对模型:").grid(row=0, column=0, sticky=tk.W, padx=5, pady=5)
         self.review_model_var = tk.StringVar(value="")
-        self.review_model_combo = ttk.Combobox(review_params_frame, textvariable=self.review_model_var, state='readonly', width=30)
+        self.review_model_combo = ttk.Combobox(model_sync_frame, textvariable=self.review_model_var, state='readonly', width=30)
         self.review_model_combo.grid(row=0, column=1, sticky=tk.W, padx=5, pady=5)
-        ttk.Label(review_params_frame, text="(空=使用全局模型)", foreground="gray").grid(row=0, column=2, padx=5, pady=5)
+        ttk.Label(model_sync_frame, text="(空=使用 API 提供商默认模型)", foreground="gray").grid(row=0, column=2, padx=5, pady=5)
+        
+        # 同步模型按钮
+        ttk.Button(
+            model_sync_frame,
+            text="🔄 同步初译模型",
+            command=self._sync_draft_model_to_review
+        ).grid(row=0, column=3, padx=10, pady=5)
         
         ttk.Label(review_params_frame, text="温度:").grid(row=1, column=0, sticky=tk.W, padx=5, pady=5)
         self.review_temp_var = tk.DoubleVar(value=0.5)
@@ -270,43 +287,40 @@ class TranslationApp:
         )
         self.type_desc_label.pack(side=tk.LEFT, padx=10)
         
-        # --- 4. 语言选择区 ---
+        # --- 4. 语言选择区（按 T1/T2/T3 分页）---
         lang_frame = ttk.LabelFrame(main_frame, text="🌍 目标语言", padding="10")
         lang_frame.pack(fill=tk.X, pady=(0, 10))
         
-        self.lang_vars = {}
+        self.lang_vars = {}  # 所有语言变量的字典 {lang_name: BooleanVar}
+        
+        # 顶部按钮行
         btn_row = ttk.Frame(lang_frame)
         btn_row.pack(fill=tk.X, pady=(0, 5))
-        ttk.Button(btn_row, text="全选", command=self._select_all_langs).pack(side=tk.LEFT, padx=5)
-        ttk.Button(btn_row, text="取消全选", command=self._deselect_all_langs).pack(side=tk.LEFT, padx=5)
+        ttk.Button(btn_row, text="全选当前页", command=self._select_all_langs).pack(side=tk.LEFT, padx=5)
+        ttk.Button(btn_row, text="取消全选当前页", command=self._deselect_all_langs).pack(side=tk.LEFT, padx=5)
+        ttk.Button(btn_row, text="➕ 添加自定义语言", command=self._add_custom_language).pack(side=tk.RIGHT, padx=5)
         
-        # 使用可滚动的 Frame 来放置语言选项
-        lang_canvas = tk.Canvas(lang_frame, height=180)
-        lang_scrollbar = ttk.Scrollbar(lang_frame, orient="vertical", command=lang_canvas.yview)
-        scrollable_lang_frame = ttk.Frame(lang_canvas)
+        # 使用 Notebook 分页显示 T1/T2/T3
+        self.lang_notebook = ttk.Notebook(lang_frame)
+        self.lang_notebook.pack(fill=tk.BOTH, expand=True)
         
-        scrollable_lang_frame.bind(
-            "<Configure>",
-            lambda e: lang_canvas.configure(scrollregion=lang_canvas.bbox("all"))
-        )
+        # 存储每个分页的语言变量
+        self.tier_lang_frames = {}
         
-        lang_canvas.create_window((0, 0), window=scrollable_lang_frame, anchor="nw")
-        lang_canvas.configure(yscrollcommand=lang_scrollbar.set)
+        # 创建 T1 分页
+        t1_frame = ttk.Frame(self.lang_notebook, padding="5")
+        self.lang_notebook.add(t1_frame, text="⭐ T1 核心市场 (9)")
+        self._create_language_grid(t1_frame, T1_LANGUAGES, "T1")
         
-        lang_canvas.pack(side="left", fill="both", expand=True)
-        lang_scrollbar.pack(side="right", fill="y")
+        # 创建 T2 分页
+        t2_frame = ttk.Frame(self.lang_notebook, padding="5")
+        self.lang_notebook.add(t2_frame, text="🚀 T2 潜力市场 (11)")
+        self._create_language_grid(t2_frame, T2_LANGUAGES, "T2")
         
-        # 从配置加载语言列表（如果配置文件中有自定义）
-        languages_to_show = TARGET_LANGUAGES
-        if hasattr(self, 'config') and self.config and hasattr(self.config, 'target_languages'):
-            languages_to_show = self.config.target_languages
-        
-        # 放置语言选项（改为 5 列布局）
-        for i, lang in enumerate(languages_to_show):
-            var = tk.BooleanVar(value=False)
-            self.lang_vars[lang] = var
-            cb = ttk.Checkbutton(scrollable_lang_frame, text=lang, variable=var, command=self._update_lang_status)
-            cb.grid(row=i // 5, column=i % 5, sticky=tk.W, padx=10, pady=2)
+        # 创建 T3 分页
+        t3_frame = ttk.Frame(self.lang_notebook, padding="5")
+        self.lang_notebook.add(t3_frame, text="🌱 T3 新兴市场 (13)")
+        self._create_language_grid(t3_frame, T3_LANGUAGES, "T3")
         
         # --- 5. 提示词配置区 ---
         prompt_frame = ttk.LabelFrame(main_frame, text="⚙️ 提示词配置", padding="10")
@@ -378,6 +392,14 @@ class TranslationApp:
             state='disabled'
         )
         self.stop_btn.pack(side=tk.LEFT, padx=5)
+        
+        # 历史记录按钮
+        self.history_btn = ttk.Button(
+            btn_frame,
+            text="📜 查看历史",
+            command=self._show_history_window
+        )
+        self.history_btn.pack(side=tk.LEFT, padx=5)
         
         # 进度条
         self.progress_var = tk.DoubleVar()
@@ -499,17 +521,8 @@ class TranslationApp:
             models = self.provider_manager.list_models(provider)
             
             if models:
-                # 更新全局模型列表
-                self.model_combo['values'] = models
-                # 设置默认模型
-                config = self.provider_manager.get_provider(provider)
-                if config and config.default_model in models:
-                    self.current_model_var.set(config.default_model)
-                else:
-                    self.current_model_var.set(models[0] if models else "")
-                
                 # 更新初译和校对模型列表
-                self.draft_model_combo['values'] = [''] + models  # 空值表示使用全局模型
+                self.draft_model_combo['values'] = [''] + models  # 空值表示使用 API 提供商默认模型
                 self.review_model_combo['values'] = [''] + models
                 
                 # 从配置加载双阶段参数
@@ -517,15 +530,11 @@ class TranslationApp:
                 
                 logger.debug(f"提供商 {provider_name} 的模型列表：{models}")
             else:
-                self.model_combo['values'] = []
-                self.current_model_var.set("")
                 self.draft_model_combo['values'] = []
                 self.review_model_combo['values'] = []
                 
         except Exception as e:
             logger.error(f"更新模型列表失败：{e}")
-            self.model_combo['values'] = []
-            self.current_model_var.set("")
             self.draft_model_combo['values'] = []
             self.review_model_combo['values'] = []
     
@@ -573,6 +582,176 @@ class TranslationApp:
         """更新语言选择状态"""
         count = sum(1 for var in self.lang_vars.values() if var.get())
         self.selected_langs = [lang for lang, var in self.lang_vars.items() if var.get()]
+    
+    def _select_all_langs(self):
+        """全选当前页的所有语言"""
+        # 获取当前选中的分页
+        current_tab_index = self.lang_notebook.index(self.lang_notebook.select())
+        tier_map = {0: 'T1', 1: 'T2', 2: 'T3'}
+        current_tier = tier_map.get(current_tab_index)
+        
+        if current_tier and current_tier in self.tier_lang_frames:
+            # 获取该分页的所有语言复选框
+            tier_frame = self.tier_lang_frames[current_tier]
+            for widget in tier_frame.winfo_children():
+                if isinstance(widget, ttk.Checkbutton):
+                    widget.invoke()  # 触发复选框
+            logger.info(f"✅ 已全选 {current_tier} 所有语言")
+    
+    def _deselect_all_langs(self):
+        """取消全选当前页的所有语言"""
+        # 获取当前选中的分页
+        current_tab_index = self.lang_notebook.index(self.lang_notebook.select())
+        tier_map = {0: 'T1', 1: 'T2', 2: 'T3'}
+        current_tier = tier_map.get(current_tab_index)
+        
+        if current_tier and current_tier in self.tier_lang_frames:
+            # 获取该分页的所有语言复选框
+            tier_frame = self.tier_lang_frames[current_tier]
+            for widget in tier_frame.winfo_children():
+                if isinstance(widget, ttk.Checkbutton):
+                    var = widget.cget('variable')
+                    if var and var.get():
+                        var.set(False)
+            self._update_lang_status()
+            logger.info(f"✅ 已取消全选 {current_tier} 所有语言")
+    
+    def _sync_draft_model_to_review(self):
+        """将初译模型的所有参数同步到校对模型"""
+        try:
+            # 同步模型名称
+            draft_model = self.draft_model_var.get()
+            self.review_model_var.set(draft_model)
+            
+            # 同步温度
+            draft_temp = self.draft_temp_var.get()
+            self.review_temp_var.set(draft_temp)
+            
+            # 同步 Top P
+            draft_top_p = self.draft_top_p_var.get()
+            self.review_top_p_var.set(draft_top_p)
+            
+            # 同步超时时间
+            draft_timeout = self.draft_timeout_var.get()
+            self.review_timeout_var.set(draft_timeout)
+            
+            # 同步 Max Tokens
+            draft_max_tokens = self.draft_max_tokens_var.get()
+            self.review_max_tokens_var.set(draft_max_tokens)
+            
+            logger.info(f"🔄 已将初译模型参数同步到校对模型")
+            logger.debug(f"   模型：{draft_model or '(默认)'}")
+            logger.debug(f"   温度：{draft_temp}")
+            logger.debug(f"   Top P: {draft_top_p}")
+            logger.debug(f"   超时：{draft_timeout}秒")
+            logger.debug(f"   Max Tokens: {draft_max_tokens}")
+            
+            messagebox.showinfo(
+                "同步成功",
+                f"✅ 已将初译模型的所有参数同步到校对模型\n\n"
+                f"模型：{draft_model or 'API 提供商默认模型'}\n"
+                f"温度：{draft_temp}\n"
+                f"Top P: {draft_top_p}\n"
+                f"超时：{draft_timeout}秒\n"
+                f"Max Tokens: {draft_max_tokens}"
+            )
+            
+        except Exception as e:
+            logger.error(f"❌ 同步模型参数失败：{e}")
+            messagebox.showerror("同步失败", f"同步模型参数时出错:\n{str(e)}")
+    
+    def _create_language_grid(self, parent, languages, tier):
+        """
+        创建语言网格布局
+        
+        Args:
+            parent: 父容器
+            languages: 语言列表
+            tier: 分级标签（T1/T2/T3）
+        """
+        # 创建可滚动区域
+        lang_canvas = tk.Canvas(parent, height=150)
+        lang_scrollbar = ttk.Scrollbar(parent, orient="vertical", command=lang_canvas.yview)
+        scrollable_lang_frame = ttk.Frame(lang_canvas)
+        
+        scrollable_lang_frame.bind(
+            "<Configure>",
+            lambda e: lang_canvas.configure(scrollregion=lang_canvas.bbox("all"))
+        )
+        
+        lang_canvas.create_window((0, 0), window=scrollable_lang_frame, anchor="nw")
+        lang_canvas.configure(yscrollcommand=lang_scrollbar.set)
+        
+        lang_canvas.pack(side="left", fill="both", expand=True)
+        lang_scrollbar.pack(side="right", fill="y")
+        
+        # 放置语言选项（5 列布局）
+        for i, lang in enumerate(languages):
+            var = tk.BooleanVar(value=False)
+            self.lang_vars[lang] = var
+            # 在语言名称后添加分级标签
+            lang_text = f"{lang} ({tier})"
+            cb = ttk.Checkbutton(scrollable_lang_frame, text=lang_text, variable=var, command=self._update_lang_status)
+            cb.grid(row=i // 5, column=i % 5, sticky=tk.W, padx=10, pady=2)
+        
+        # 存储该分级的框架
+        self.tier_lang_frames[tier] = scrollable_lang_frame
+    
+    def _add_custom_language(self):
+        """添加自定义语言"""
+        # 创建对话框
+        dialog = tk.Toplevel(self.root)
+        dialog.title("➕ 添加自定义语言")
+        dialog.geometry("400x200")
+        dialog.transient(self.root)
+        dialog.grab_set()
+        
+        tk.Label(dialog, text="语言名称:").pack(pady=5)
+        lang_entry = ttk.Entry(dialog, width=40)
+        lang_entry.pack(pady=5)
+        
+        tk.Label(dialog, text="市场分级:").pack(pady=5)
+        tier_var = tk.StringVar(value="T3")
+        tier_combo = ttk.Combobox(dialog, textvariable=tier_var, values=["T1", "T2", "T3"], state='readonly', width=37)
+        tier_combo.pack(pady=5)
+        
+        def on_add():
+            lang_name = lang_entry.get().strip()
+            tier = tier_var.get()
+            
+            if not lang_name:
+                messagebox.showerror("错误", "请输入语言名称", parent=dialog)
+                return
+            
+            if lang_name in self.lang_vars:
+                messagebox.showerror("错误", f"语言 '{lang_name}' 已存在", parent=dialog)
+                return
+            
+            # 添加到对应的分级页面
+            tier_frame = self.tier_lang_frames.get(tier)
+            if tier_frame:
+                # 创建新的复选框
+                var = tk.BooleanVar(value=False)
+                self.lang_vars[lang_name] = var
+                lang_text = f"{lang_name} ({tier})"
+                cb = ttk.Checkbutton(tier_frame, text=lang_text, variable=var, command=self._update_lang_status)
+                
+                # 获取当前行数，添加到末尾
+                row_num = len(tier_frame.grid_slaves()) // 5
+                cb.grid(row=row_num, column=4, sticky=tk.W, padx=10, pady=2)
+                
+                # 更新 canvas 的 scrollregion
+                tier_frame.update_idletasks()
+                canvas = tier_frame.master
+                canvas.configure(scrollregion=canvas.bbox("all"))
+                
+                logger.info(f"✅ 已添加自定义语言：{lang_name} ({tier})")
+                messagebox.showinfo("成功", f"已添加语言：{lang_name} ({tier})", parent=dialog)
+                dialog.destroy()
+            else:
+                messagebox.showerror("错误", f"找不到分级 {tier} 的框架", parent=dialog)
+        
+        ttk.Button(dialog, text="添加", command=on_add).pack(pady=10)
     
     def _reset_advanced_params(self):
         """重置高级参数为默认值"""
@@ -798,7 +977,7 @@ class TranslationApp:
         return loader.to_dataclass(Config)
     
     async def _start_translation_async(self):
-        """异步启动翻译"""
+        """异步启动翻译（带历史记录）"""
         try:
             self._initialize_services()
             
@@ -816,6 +995,9 @@ class TranslationApp:
             
             logger.info("🚀 开始翻译任务...")
             
+            # 生成批次 ID
+            batch_id = f"batch_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            
             # 执行翻译
             result = await self.translation_facade.translate_file(
                 source_excel_path=self.source_path.get(),
@@ -823,6 +1005,26 @@ class TranslationApp:
                 output_excel_path=None,  # TODO: 指定输出路径
                 concurrency_limit=10
             )
+            
+            # 记录翻译历史
+            if self.translation_history_manager and hasattr(result, 'results'):
+                api_provider = self.current_provider_var.get()
+                draft_model = self.draft_model_var.get() or "default"
+                file_path = self.source_path.get()
+                
+                for translation_result in result.results:
+                    try:
+                        record_translation(
+                            result=translation_result,
+                            api_provider=api_provider,
+                            model_name=draft_model,
+                            file_path=file_path,
+                            batch_id=batch_id
+                        )
+                    except Exception as e:
+                        logger.debug(f"单条记录失败：{e}")
+                
+                logger.info(f"📝 已记录 {len(result.results)} 条翻译历史到批次 {batch_id}")
             
             # 显示结果
             success_rate = result.success_rate
@@ -897,6 +1099,443 @@ class TranslationApp:
         setup_logger
         # 添加 GUI handler
         self._setup_gui_logging()
+    
+    def _initialize_history_managers(self):
+        """初始化历史记录管理器"""
+        try:
+            # 初始化会话管理器
+            self.session_manager = get_session_manager("session_config.json")
+            logger.info("✅ 会话管理器初始化完成")
+            
+            # 初始化版本管理器
+            self.version_manager = get_version_manager()
+            logger.info("✅ 版本管理器初始化完成")
+            
+            # 初始化翻译历史管理器
+            self.translation_history_manager = get_history_manager()
+            logger.info("✅ 翻译历史管理器初始化完成")
+            
+            # 初始化术语历史管理器
+            self.terminology_history_manager = get_terminology_history_manager()
+            logger.info("✅ 术语历史管理器初始化完成")
+            
+            # 加载上次的会话配置
+            self._load_last_session()
+            
+            # 记录版本使用
+            if self.session_manager:
+                session = self.session_manager.get_current_session()
+                session_id = session.session_id if session else ""
+                self.version_manager.record_usage(session_id)
+                
+        except Exception as e:
+            logger.error(f"❌ 初始化历史记录管理器失败：{e}")
+    
+    def _load_last_session(self):
+        """加载上次的会话配置并还原"""
+        if not self.session_manager:
+            return
+        
+        session = self.session_manager.load_from_file()
+        if not session:
+            logger.info("ℹ️ 未找到上次的会话配置")
+            return
+        
+        logger.info("🔄 正在还原上次的会话配置...")
+        
+        # 还原文件路径
+        if session.term_file_path:
+            self.term_path.set(session.term_file_path)
+            logger.debug(f"✅ 还原术语库路径：{session.term_file_path}")
+        
+        if session.source_file_path:
+            self.source_path.set(session.source_file_path)
+            logger.debug(f"✅ 还原待翻译文件路径：{session.source_file_path}")
+        
+        # 还原翻译模式
+        self.mode_var.set(session.translation_mode)
+        logger.debug(f"✅ 还原翻译模式：{session.translation_mode}")
+        
+        # 还原 API 提供商
+        self.current_provider_var.set(session.api_provider)
+        logger.debug(f"✅ 还原 API 提供商：{session.api_provider}")
+        
+        # 还原双阶段参数
+        if session.draft_model:
+            self.draft_model_var.set(session.draft_model)
+        self.draft_temp_var.set(session.draft_temperature)
+        self.draft_top_p_var.set(session.draft_top_p)
+        self.draft_timeout_var.set(session.draft_timeout)
+        self.draft_max_tokens_var.set(session.draft_max_tokens)
+        
+        if session.review_model:
+            self.review_model_var.set(session.review_model)
+        self.review_temp_var.set(session.review_temperature)
+        self.review_top_p_var.set(session.review_top_p)
+        self.review_timeout_var.set(session.review_timeout)
+        self.review_max_tokens_var.set(session.review_max_tokens)
+        logger.debug("✅ 还原双阶段翻译参数")
+        
+        # 还原游戏翻译方向
+        if session.translation_type:
+            self.translation_type_var.set(session.translation_type)
+            logger.debug(f"✅ 还原翻译方向：{session.translation_type}")
+        
+        # 还原提示词
+        if session.draft_prompt:
+            self.draft_text.delete('1.0', tk.END)
+            self.draft_text.insert('1.0', session.draft_prompt)
+        
+        if session.review_prompt:
+            self.review_text.delete('1.0', tk.END)
+            self.review_text.insert('1.0', session.review_prompt)
+        logger.debug("✅ 还原提示词配置")
+        
+        # 还原日志配置
+        if hasattr(self, 'log_controller') and self.log_controller:
+            self.log_controller.update_log_level(session.log_level)
+            self.log_controller.update_log_granularity(session.log_granularity)
+            logger.debug(f"✅ 还原日志配置：{session.log_level} / {session.log_granularity}")
+        
+        # 还原性能监控
+        if hasattr(self, 'perf_monitor_var'):
+            self.perf_monitor_var.set(session.enable_performance_monitor)
+            logger.debug(f"✅ 还原性能监控：{'开启' if session.enable_performance_monitor else '关闭'}")
+        
+        logger.info("✅ 会话配置还原完成")
+    
+    def _save_current_session(self):
+        """保存当前会话配置"""
+        if not self.session_manager:
+            return
+        
+        try:
+            # 创建或更新会话
+            session = self.session_manager.get_current_session()
+            if not session:
+                session = self.session_manager.create_session()
+            
+            # 更新会话数据
+            self.session_manager.update_session(
+                term_file_path=self.term_path.get(),
+                source_file_path=self.source_path.get(),
+                translation_mode=self.mode_var.get(),
+                api_provider=self.current_provider_var.get(),
+                draft_model=self.draft_model_var.get(),
+                draft_temperature=self.draft_temp_var.get(),
+                draft_top_p=self.draft_top_p_var.get(),
+                draft_timeout=self.draft_timeout_var.get(),
+                draft_max_tokens=self.draft_max_tokens_var.get(),
+                review_model=self.review_model_var.get(),
+                review_temperature=self.review_temp_var.get(),
+                review_top_p=self.review_top_p_var.get(),
+                review_timeout=self.review_timeout_var.get(),
+                review_max_tokens=self.review_max_tokens_var.get(),
+                translation_type=self.translation_type_var.get(),
+                draft_prompt=self.draft_text.get('1.0', tk.END).strip(),
+                review_prompt=self.review_text.get('1.0', tk.END).strip(),
+                target_languages=','.join(self.selected_langs),
+                log_level=getattr(self.log_controller.log_level_var, 'get', lambda: 'INFO')(),
+                log_granularity=getattr(self.log_controller.log_granularity_var, 'get', lambda: 'normal')(),
+                enable_performance_monitor=getattr(self, 'perf_monitor_var', None).get() if hasattr(self, 'perf_monitor_var') else False
+            )
+            
+            # 保存到文件
+            self.session_manager.save_to_file()
+            logger.debug("💾 会话配置已保存")
+            
+        except Exception as e:
+            logger.error(f"❌ 保存会话配置失败：{e}")
+    
+    def _on_closing(self):
+        """窗口关闭事件处理"""
+        try:
+            # 询问是否保存配置
+            save_config = messagebox.askyesno(
+                "保存配置",
+                "是否保存当前配置以便下次启动时自动恢复？\n\n"
+                "包括：文件路径、API 配置、双阶段参数、提示词等"
+            )
+            
+            if save_config:
+                logger.info("💾 正在保存配置...")
+                self._save_current_session()
+                logger.info("✅ 配置已保存")
+            
+            # 清理资源
+            if self.container:
+                self.container.cleanup()
+            
+            logger.info("👋 感谢使用 AI 翻译工作台！")
+            
+        except Exception as e:
+            logger.error(f"关闭窗口时出错：{e}")
+        finally:
+            self.root.destroy()
+    
+    def _show_history_window(self):
+        """显示历史记录窗口"""
+        try:
+            # 创建新窗口
+            history_window = tk.Toplevel(self.root)
+            history_window.title("📜 翻译历史记录")
+            history_window.geometry("900x600")
+            history_window.transient(self.root)
+            
+            # 创建主框架
+            main_frame = ttk.Frame(history_window, padding="10")
+            main_frame.pack(fill=tk.BOTH, expand=True)
+            
+            # 顶部控制区
+            control_frame = ttk.Frame(main_frame)
+            control_frame.pack(fill=tk.X, pady=(0, 10))
+            
+            # 搜索框
+            ttk.Label(control_frame, text="🔍 搜索:").pack(side=tk.LEFT, padx=5)
+            search_var = tk.StringVar()
+            search_entry = ttk.Entry(control_frame, textvariable=search_var, width=30)
+            search_entry.pack(side=tk.LEFT, padx=5)
+            
+            # 搜索按钮
+            def on_search():
+                self._search_history(search_var.get())
+            
+            ttk.Button(control_frame, text="搜索", command=on_search).pack(side=tk.LEFT, padx=5)
+            ttk.Button(control_frame, text="刷新", command=lambda: self._load_history_list()).pack(side=tk.LEFT, padx=5)
+            
+            # 导出按钮
+            ttk.Button(
+                control_frame,
+                text="📤 导出 Excel",
+                command=lambda: self._export_history()
+            ).pack(side=tk.RIGHT, padx=5)
+            
+            # 统计信息
+            stats_frame = ttk.LabelFrame(main_frame, text="📊 统计信息", padding="10")
+            stats_frame.pack(fill=tk.X, pady=(0, 10))
+            
+            self.stats_labels = {}
+            stats_grid = [
+                ("总记录数", 0, 0),
+                ("成功数", 0, 2),
+                ("失败数", 0, 4),
+                ("成功率", 1, 0),
+                ("最近批次", 1, 2),
+                ("最后更新", 1, 4)
+            ]
+            
+            for label_text, row, col in stats_grid:
+                ttk.Label(stats_frame, text=f"{label_text}:").grid(row=row, column=col, sticky=tk.W, padx=10, pady=2)
+                value_label = ttk.Label(stats_frame, text="-", foreground="blue")
+                value_label.grid(row=row, column=col+1, sticky=tk.W, padx=5, pady=2)
+                self.stats_labels[label_text] = value_label
+            
+            # 历史记录列表（带滚动条）
+            list_frame = ttk.LabelFrame(main_frame, text="📝 翻译记录", padding="10")
+            list_frame.pack(fill=tk.BOTH, expand=True)
+            
+            # 创建 Treeview
+            columns = ("时间", "原文", "译文", "语言", "状态", "模型")
+            history_tree = ttk.Treeview(list_frame, columns=columns, show="headings", height=15)
+            
+            # 设置列标题和宽度
+            for col in columns:
+                history_tree.heading(col, text=col)
+                history_tree.column(col, width=100 if col != "原文" and col != "译文" else 200)
+            
+            # 添加滚动条
+            scrollbar = ttk.Scrollbar(list_frame, orient="vertical", command=history_tree.yview)
+            history_tree.configure(yscrollcommand=scrollbar.set)
+            
+            history_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+            scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+            
+            # 双击查看详情
+            def on_item_double_click(event):
+                selection = history_tree.selection()
+                if selection:
+                    item = history_tree.item(selection[0])
+                    self._show_record_detail(item['values'])
+            
+            history_tree.bind("<Double-Button-1>", on_item_double_click)
+            
+            # 加载历史数据
+            self._load_history_list(history_tree)
+            self._update_stats()
+            
+        except Exception as e:
+            logger.error(f"打开历史记录窗口失败：{e}")
+            messagebox.showerror("错误", f"无法打开历史记录:\n{str(e)}")
+    
+    def _load_history_list(self, tree_widget=None):
+        """加载历史记录列表"""
+        try:
+            if not self.translation_history_manager:
+                return
+            
+            if not tree_widget:
+                # 查找当前打开的窗口中的 tree widget
+                for widget in self.root.winfo_children():
+                    if isinstance(widget, tk.Toplevel):
+                        for child in widget.winfo_children():
+                            if isinstance(child, ttk.LabelFrame):
+                                for grandchild in child.winfo_children():
+                                    if isinstance(grandchild, ttk.Treeview):
+                                        tree_widget = grandchild
+                                        break
+            
+            if not tree_widget:
+                logger.warning("未找到历史记录树控件")
+                return
+            
+            # 清空现有数据
+            for item in tree_widget.get_children():
+                tree_widget.delete(item)
+            
+            # 获取最近的记录
+            records = self.translation_history_manager.get_recent_records(limit=100)
+            
+            for record in records:
+                status_text = "✅ 成功" if record.status == "SUCCESS" else "❌ 失败"
+                tree_widget.insert("", "end", values=(
+                    record.created_at[:19],  # 去掉毫秒
+                    record.source_text[:50],  # 限制长度
+                    record.final_trans[:50],
+                    record.target_lang,
+                    status_text,
+                    record.model_name
+                ))
+            
+            logger.debug(f"已加载 {len(records)} 条历史记录")
+            
+        except Exception as e:
+            logger.error(f"加载历史记录失败：{e}")
+    
+    def _update_stats(self):
+        """更新统计信息"""
+        try:
+            if not self.translation_history_manager:
+                return
+            
+            stats = self.translation_history_manager.get_statistics()
+            
+            # 更新统计标签
+            if "总记录数" in self.stats_labels:
+                self.stats_labels["总记录数"].config(text=str(stats.get('total', 0)))
+            if "成功数" in self.stats_labels:
+                self.stats_labels["成功数"].config(text=str(stats.get('success', 0)))
+            if "失败数" in self.stats_labels:
+                self.stats_labels["失败数"].config(text=str(stats.get('failed', 0)))
+            if "成功率" in self.stats_labels:
+                self.stats_labels["成功率"].config(text=f"{stats.get('success_rate', 0):.1f}%")
+            
+            # 获取最近的批次
+            recent_records = self.translation_history_manager.get_recent_records(limit=1)
+            if recent_records:
+                batch_id = recent_records[0].batch_id or "无批次"
+                if "最近批次" in self.stats_labels:
+                    self.stats_labels["最近批次"].config(text=batch_id[:20])
+                if "最后更新" in self.stats_labels:
+                    last_time = recent_records[0].created_at[:19]
+                    self.stats_labels["最后更新"].config(text=last_time)
+            
+        except Exception as e:
+            logger.error(f"更新统计信息失败：{e}")
+    
+    def _search_history(self, keyword):
+        """搜索历史记录"""
+        try:
+            if not self.translation_history_manager:
+                return
+            
+            # 查找当前窗口中的 tree widget
+            tree_widget = None
+            for widget in self.root.winfo_children():
+                if isinstance(widget, tk.Toplevel):
+                    for child in widget.winfo_children():
+                        if isinstance(child, ttk.LabelFrame):
+                            for grandchild in child.winfo_children():
+                                if isinstance(grandchild, ttk.Treeview):
+                                    tree_widget = grandchild
+                                    break
+            
+            if not tree_widget:
+                return
+            
+            # 清空现有数据
+            for item in tree_widget.get_children():
+                tree_widget.delete(item)
+            
+            # 搜索记录
+            records = self.translation_history_manager.search_records(keyword=keyword, limit=100)
+            
+            for record in records:
+                status_text = "✅ 成功" if record.status == "SUCCESS" else "❌ 失败"
+                tree_widget.insert("", "end", values=(
+                    record.created_at[:19],
+                    record.source_text[:50],
+                    record.final_trans[:50],
+                    record.target_lang,
+                    status_text,
+                    record.model_name
+                ))
+            
+            logger.info(f"🔍 搜索到 {len(records)} 条记录")
+            
+        except Exception as e:
+            logger.error(f"搜索历史记录失败：{e}")
+    
+    def _show_record_detail(self, record_values):
+        """显示记录详情"""
+        detail_window = tk.Toplevel(self.root)
+        detail_window.title("📝 翻译记录详情")
+        detail_window.geometry("600x400")
+        detail_window.transient(self.root)
+        
+        frame = ttk.Frame(detail_window, padding="10")
+        frame.pack(fill=tk.BOTH, expand=True)
+        
+        # 显示详细信息
+        details = [
+            ("时间", record_values[0]),
+            ("原文", record_values[1]),
+            ("译文", record_values[2]),
+            ("语言", record_values[3]),
+            ("状态", record_values[4]),
+            ("模型", record_values[5])
+        ]
+        
+        for i, (label, value) in enumerate(details):
+            ttk.Label(frame, text=f"{label}:", font=("Arial", 10, "bold")).grid(row=i, column=0, sticky=tk.W, pady=5)
+            ttk.Label(frame, text=value, wraplength=400).grid(row=i, column=1, sticky=tk.W, pady=5, padx=10)
+        
+        ttk.Button(frame, text="关闭", command=detail_window.destroy).grid(row=len(details), column=0, columnspan=2, pady=20)
+    
+    def _export_history(self):
+        """导出历史记录"""
+        try:
+            if not self.translation_history_manager:
+                messagebox.showwarning("警告", "翻译历史管理器未初始化")
+                return
+            
+            from tkinter import filedialog
+            
+            # 选择保存路径
+            file_path = filedialog.asksaveasfilename(
+                title="导出翻译历史",
+                defaultextension=".xlsx",
+                filetypes=[("Excel files", "*.xlsx"), ("All files", "*.*")],
+                initialfile=f"translation_history_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+            )
+            
+            if file_path:
+                output_file = self.translation_history_manager.export_to_excel(file_path)
+                logger.info(f"📤 翻译历史已导出到：{output_file}")
+                messagebox.showinfo("成功", f"翻译历史已导出到:\n{output_file}")
+        
+        except Exception as e:
+            logger.error(f"导出历史记录失败：{e}")
+            messagebox.showerror("错误", f"导出失败:\n{str(e)}")
 
 
 def run_gui_app(config_file: str = None):

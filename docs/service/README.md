@@ -244,5 +244,5 @@ for r in records:
 ## 🔗 相关文档
 
 - [架构设计](../architecture/ARCHITECTURE.md)
-- [API 参考](../api/API_REFERENCE.md)
+- [API 参考](../api/MODEL_CONFIG_API.md)
 - [快速开始](../guides/QUICKSTART.md)

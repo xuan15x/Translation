@@ -536,7 +536,7 @@ threading.Thread(target=self._run_async_loop, daemon=True).start()
 
 ## 📚 相关文档
 
-- [API 参考文档](../api/API_REFERENCE.md) - 详细 API 说明
+- [API 参考文档](../api/MODEL_CONFIG_API.md) - 详细 API 说明
 - [最佳实践指南](../guides/BEST_PRACTICES.md) - 使用和配置建议
 - [故障排查手册](../guides/TROUBLESHOOTING.md) - 问题诊断
 - [性能优化总结](PERFORMANCE_OPTIMIZATIONS.md) - 性能调优

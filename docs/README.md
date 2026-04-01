@@ -10,7 +10,7 @@
 - [**快速入门**](guides/QUICKSTART.md) - 5 分钟上手
 
 ### 👉 日常使用参考
-- [**完整 API 参考**](api/API_REFERENCE.md) ⭐ **所有 API 详细说明**
+- [**完整 API 参考**](api/MODEL_CONFIG_API.md) ⭐ **所有 API 详细说明**
 - [**配置优化建议**](guides/BEST_PRACTICES.md#配置优化) - 性能调优
 - [**术语库管理**](guides/BEST_PRACTICES.md#术语库管理) - 高效维护
 
@@ -30,7 +30,7 @@ docs/
 │
 ├── api/                         # API 和配置文档
 │   ├── README.md                # API 文档索引
-│   ├── API_REFERENCE.md         # 完整 API 参考 ⭐
+│   ├── MODEL_CONFIG_API.md        # 完整 API 参考 ⭐
 │   ├── MODEL_CONFIG_API.md      # 模型配置拆分 API 参考 ⭐ NEW
 │   ├── CONFIG_PERSISTENCE_GUIDE.md
 │   └── DEPENDENCIES.md
@@ -74,9 +74,9 @@ docs/
 3. [错误代码大全](guides/TROUBLESHOOTING.md#常见错误代码速查) - 错误含义
 
 ### 我想查阅 API 用法
-1. [完整 API 参考](api/API_REFERENCE.md) ⭐ - 所有类和方法
-2. [API 使用示例](api/API_REFERENCE.md#快速开始) - 代码示例
-3. [常用 API 速查](api/API_REFERENCE.md#常用-api 速查) - 快速查询
+1. [完整 API 参考](api/MODEL_CONFIG_API.md) ⭐ - 所有类和方法
+2. [API 使用示例](api/MODEL_CONFIG_API.md#快速开始) - 代码示例
+3. [常用 API 速查](api/MODEL_CONFIG_API.md#常用-api 速查) - 快速查询
 
 ### 我想优化性能
 1. [配置优化](guides/BEST_PRACTICES.md#配置优化) - 参数调整
@@ -96,7 +96,7 @@ docs/
 
 | 文档 | 说明 | 适合人群 | 状态 |
 |------|------|----------|------|
-| [API 参考](api/API_REFERENCE.md) | 完整的 API 文档，包含所有类和方法 | 开发者 | ⭐ |
+| [API 参考](api/MODEL_CONFIG_API.md) | 完整的 API 文档，包含所有类和方法 | 开发者 | ⭐ |
 | [模型配置 API](api/MODEL_CONFIG_API.md) | 模型配置拆分详细 API | 开发者 | ⭐ NEW |
 | [API 文档索引](api/README.md) | API 文档导航 | 所有人 | ✅ |
 | [配置持久化指南](api/CONFIG_PERSISTENCE_GUIDE.md) | JSON/YAML 配置文件使用 | 运维人员 | ✅ |
@@ -231,7 +231,7 @@ python scripts/generate_docs.py
 | 2026-03-20 | 更新测试总结 | TEST_SUMMARY.md |
 | 2026-03-19 | 添加最佳实践指南 | BEST_PRACTICES.md |
 | 2026-03-19 | 添加故障排查手册 | TROUBLESHOOTING.md |
-| 2026-03-19 | 完善 API 参考文档 | API_REFERENCE.md |
+| 2026-03-19 | 完善 API 参考文档 | MODEL_CONFIG_API.md |
 | 2026-03-19 | 添加文档生成工具 | generate_docs.py |
 | 2026-03-17 | 初始文档结构 | 全部 |
 

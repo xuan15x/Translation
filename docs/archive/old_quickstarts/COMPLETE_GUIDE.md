@@ -1,3 +1,11 @@
+> ⚠️ **重要提示**: 本文档内容已整合到 [COMPLETE_MANUAL.md](COMPLETE_MANUAL.md)  
+> 建议优先阅读新手册获取更全面、更准确的信息
+> 
+> **整合日期**: 2026-04-01  
+> **替代文档**: [COMPLETE_MANUAL.md](COMPLETE_MANUAL.md) 第 4 章 - 使用教程
+
+---
+
 # 完整使用指南
 
 ## 📋 目录
@@ -373,7 +381,7 @@ await manager.switch_provider("DeepSeek")
 
 ## 🔗 相关文档
 
-- [API 参考](../api/API_REFERENCE_FULL.md)
+- [API 参考](../api/MODEL_CONFIG_API.md)
 - [最佳实践](BEST_PRACTICES.md)
 - [故障排查](TROUBLESHOOTING.md)
 - [架构设计](../architecture/ARCHITECTURE.md)

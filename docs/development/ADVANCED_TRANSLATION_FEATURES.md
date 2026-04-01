@@ -795,7 +795,7 @@ for i, sentence in enumerate(document):
 
 ## 🔗 相关文档
 
-- [API 参考](../api/API_REFERENCE.md) - 详细 API 文档
+- [API 参考](../api/MODEL_CONFIG_API.md) - 详细 API 文档
 - [最佳实践](../guides/BEST_PRACTICES.md) - 使用建议
 - [故障排查](../guides/TROUBLESHOOTING.md) - 常见问题
 

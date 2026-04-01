@@ -44,10 +44,10 @@ class GUILogController:
             }
             
             record_config_usage(config_data)
-            self.logger_slice.log_debug("GUI 初始化完成", **config_data)
+            self.logger_slice.debug("GUI 初始化完成", **config_data)
         except Exception as e:
             # 打点失败不影响 GUI 启动
-            self.logger_slice.log_warning(f"GUI 初始化打点失败：{e}")
+            self.logger_slice.warning(f"GUI 初始化打点失败：{e}")
     
     def track_button_click(self, button_name: str, **kwargs):
         """
@@ -67,7 +67,7 @@ class GUILogController:
                 **kwargs
             }
             
-            self.logger_slice.log_info(f"按钮点击：{button_name}", **kwargs)
+            self.logger_slice.info(f"按钮点击：{button_name}", **kwargs)
             
             # 打点上报
             record_performance_metric(
@@ -77,7 +77,7 @@ class GUILogController:
                 tags={'button': button_name}
             )
         except Exception as e:
-            self.logger_slice.log_warning(f"按钮点击打点失败：{button_name}, {e}")
+            self.logger_slice.warning(f"按钮点击打点失败：{button_name}, {e}")
     
     def track_translation_start(self, source_lang: str, target_lang: str, count: int):
         """
@@ -91,7 +91,7 @@ class GUILogController:
         try:
             from infrastructure.config_metrics import record_performance_metric
             
-            self.logger_slice.log_info(
+            self.logger_slice.info(
                 f"开始翻译：{source_lang} -> {target_lang}",
                 task_count=count
             )
@@ -106,7 +106,7 @@ class GUILogController:
                 }
             )
         except Exception as e:
-            self.logger_slice.log_warning(f"翻译开始打点失败：{e}")
+            self.logger_slice.warning(f"翻译开始打点失败：{e}")
     
     def track_error(self, error_msg: str, context: str):
         """
@@ -119,7 +119,7 @@ class GUILogController:
         try:
             from infrastructure.config_metrics import record_config_validation_error
             
-            self.logger_slice.log_error(f"{context}: {error_msg}")
+            self.logger_slice.error(f"{context}: {error_msg}")
             
             record_config_validation_error(
                 field=context,
@@ -128,7 +128,7 @@ class GUILogController:
                 value=context
             )
         except Exception as e:
-            self.logger_slice.log_error(f"错误打点失败：{e}")
+            self.logger_slice.error(f"错误打点失败：{e}")
     
     def update_log_level(self, level: str):
         """
@@ -147,14 +147,14 @@ class GUILogController:
             for handler in root_logger.handlers:
                 handler.setLevel(numeric_level)
             
-            self.logger_slice.log_info(f"日志级别已更新为：{level}")
+            self.logger_slice.info(f"日志级别已更新为：{level}")
             
             # 打点记录
             if self.log_level_var:
                 self.log_level_var.set(level)
                 
         except Exception as e:
-            self.logger_slice.log_error(f"更新日志级别失败：{e}")
+            self.logger_slice.error(f"更新日志级别失败：{e}")
     
     def update_log_granularity(self, granularity: str):
         """
@@ -164,14 +164,14 @@ class GUILogController:
             granularity: 新的粒度 (minimal/basic/normal/detailed/verbose)
         """
         try:
-            self.logger_slice.log_info(f"日志粒度已更新为：{granularity}")
+            self.logger_slice.info(f"日志粒度已更新为：{granularity}")
             
             # 打点记录
             if self.granularity_var:
                 self.granularity_var.set(granularity)
                 
         except Exception as e:
-            self.logger_slice.log_error(f"更新日志粒度失败：{e}")
+            self.logger_slice.error(f"更新日志粒度失败：{e}")
     
     def create_log_control_frame(self, parent) -> tk.Frame:
         """
