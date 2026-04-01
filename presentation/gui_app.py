@@ -89,8 +89,30 @@ class TranslationApp:
     
     def _setup_ui(self):
         """设置用户界面"""
-        # 主容器
-        main_frame = ttk.Frame(self.root, padding="10")
+        # 主容器 - 添加滚动条
+        main_canvas = tk.Canvas(self.root)
+        scrollbar = ttk.Scrollbar(self.root, orient="vertical", command=main_canvas.yview)
+        scrollable_frame = ttk.Frame(main_canvas)
+        
+        scrollable_frame.bind(
+            "<Configure>",
+            lambda e: main_canvas.configure(scrollregion=main_canvas.bbox("all"))
+        )
+        
+        main_canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        main_canvas.configure(yscrollcommand=scrollbar.set)
+        
+        main_canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+        
+        # 绑定鼠标滚轮事件
+        def _on_mousewheel(event):
+            main_canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+        
+        main_canvas.bind_all("<MouseWheel>", _on_mousewheel)
+        
+        # 主内容区域
+        main_frame = ttk.Frame(scrollable_frame, padding="10")
         main_frame.pack(fill=tk.BOTH, expand=True)
         
         # --- 1. 文件配置区 ---
@@ -167,10 +189,10 @@ class TranslationApp:
         self.type_combo.set("🎮 三消 - 道具元素")  # 默认值
         self.type_combo.bind('<<ComboboxSelected>>', self._on_translation_type_changed)
         
-        # 说明标签
+        # 说明标签 - 强调不会改变用户提示词
         self.type_desc_label = ttk.Label(
             type_selector_frame,
-            text="💡 提示：选择后自动应用优化的提示词模板",
+            text="💡 仅用于注入禁止事项，不会修改您的提示词",
             foreground="gray"
         )
         self.type_desc_label.pack(side=tk.LEFT, padx=10)
@@ -185,13 +207,28 @@ class TranslationApp:
         ttk.Button(btn_row, text="全选", command=self._select_all_langs).pack(side=tk.LEFT, padx=5)
         ttk.Button(btn_row, text="取消全选", command=self._deselect_all_langs).pack(side=tk.LEFT, padx=5)
         
-        cb_frame = ttk.Frame(lang_frame)
-        cb_frame.pack(fill=tk.X)
+        # 使用可滚动的 Frame 来放置语言选项
+        lang_canvas = tk.Canvas(lang_frame, height=180)
+        lang_scrollbar = ttk.Scrollbar(lang_frame, orient="vertical", command=lang_canvas.yview)
+        scrollable_lang_frame = ttk.Frame(lang_canvas)
+        
+        scrollable_lang_frame.bind(
+            "<Configure>",
+            lambda e: lang_canvas.configure(scrollregion=lang_canvas.bbox("all"))
+        )
+        
+        lang_canvas.create_window((0, 0), window=scrollable_lang_frame, anchor="nw")
+        lang_canvas.configure(yscrollcommand=lang_scrollbar.set)
+        
+        lang_canvas.pack(side="left", fill="both", expand=True)
+        lang_scrollbar.pack(side="right", fill="y")
+        
+        # 放置语言选项（改为 5 列布局）
         for i, lang in enumerate(TARGET_LANGUAGES):
             var = tk.BooleanVar(value=False)
             self.lang_vars[lang] = var
-            cb = ttk.Checkbutton(cb_frame, text=lang, variable=var, command=self._update_lang_status)
-            cb.grid(row=i // 4, column=i % 4, sticky=tk.W, padx=10, pady=2)
+            cb = ttk.Checkbutton(scrollable_lang_frame, text=lang, variable=var, command=self._update_lang_status)
+            cb.grid(row=i // 5, column=i % 5, sticky=tk.W, padx=10, pady=2)
         
         # --- 5. 提示词配置区 ---
         prompt_frame = ttk.LabelFrame(main_frame, text="⚙️ 提示词配置", padding="10")
@@ -211,6 +248,15 @@ class TranslationApp:
         self.review_text = scrolledtext.ScrolledText(review_tab, height=6, font=("Consolas", 10))
         self.review_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
         self.review_text.insert('1.0', self.default_review)
+        
+        # 提示词操作按钮
+        prompt_btn_frame = ttk.Frame(prompt_frame)
+        prompt_btn_frame.pack(fill=tk.X, pady=(5, 0))
+        
+        ttk.Button(prompt_btn_frame, text="💾 保存自定义提示词", command=self._save_custom_prompts).pack(side=tk.LEFT, padx=5)
+        ttk.Button(prompt_btn_frame, text="📂 加载已保存提示词", command=self._load_custom_prompts).pack(side=tk.LEFT, padx=5)
+        ttk.Button(prompt_btn_frame, text="🔄 恢复默认模板", command=self._restore_default_prompts).pack(side=tk.LEFT, padx=5)
+        ttk.Button(prompt_btn_frame, text="✅ 验证提示词格式", command=self._validate_prompts).pack(side=tk.LEFT, padx=5)
         
         # --- 6. 控制与日志区 ---
         control_frame = ttk.LabelFrame(main_frame, text="🚀 执行控制", padding="10")
@@ -383,32 +429,13 @@ class TranslationApp:
         self.selected_langs = [lang for lang, var in self.lang_vars.items() if var.get()]
     
     def _on_translation_type_changed(self, event):
-        """翻译方向切换 - 自动应用优化的提示词模板"""
+        """翻译方向切换 - 仅记录选择，不改变提示词内容"""
         # 获取选中的方向（中文名称）
         selected_name = self.translation_type_var.get()
         
-        # 根据中文名称找到对应的 key
-        type_key = None
-        for key, name in GAME_TRANSLATION_TYPES.items():
-            if name == selected_name:
-                type_key = key
-                break
-        
-        if not type_key:
-            return
-        
-        # 应用对应的提示词模板
-        if type_key in GAME_DRAFT_PROMPTS:
-            self.draft_text.delete('1.0', tk.END)
-            self.draft_text.insert('1.0', GAME_DRAFT_PROMPTS[type_key])
-            logger.info(f"📝 已加载初译提示词模板：{selected_name}")
-        
-        if type_key in GAME_REVIEW_PROMPTS:
-            self.review_text.delete('1.0', tk.END)
-            self.review_text.insert('1.0', GAME_REVIEW_PROMPTS[type_key])
-            logger.info(f"📝 已加载校对提示词模板：{selected_name}")
-        
-        logger.info(f"🎯 切换到游戏翻译方向：{selected_name}")
+        # 仅记录日志，不做任何修改
+        logger.info(f"🎯 已选择翻译方向：{selected_name}")
+        logger.info(f"💡 提示：禁止事项将在点击「开始翻译」时自动注入到当前提示词中")
     
     def _get_translation_type_key(self) -> str:
         """获取当前选择的翻译类型的 key"""
@@ -431,11 +458,106 @@ class TranslationApp:
             messagebox.showwarning("警告", "提示词不能为空")
             return
         
-        if "{source_text}" not in draft or "{target_lang}" not in draft:
-            messagebox.showwarning("警告", "初译提示词缺少占位符 {source_text} 或 {target_lang}")
+        if "{target_lang}" not in draft:
+            messagebox.showwarning("警告", "初译提示词缺少占位符 {target_lang}")
             return
         
         messagebox.showinfo("成功", "提示词格式校验通过！")
+    
+    def _save_custom_prompts(self):
+        """保存自定义提示词到文件"""
+        try:
+            from tkinter import filedialog
+            import json
+            
+            draft = self.draft_text.get("1.0", tk.END).strip()
+            review = self.review_text.get("1.0", tk.END).strip()
+            
+            # 获取保存路径
+            file_path = filedialog.asksaveasfilename(
+                title="保存自定义提示词",
+                defaultextension=".json",
+                filetypes=[("JSON files", "*.json"), ("All files", "*.*")],
+                initialfile="custom_prompts.json"
+            )
+            
+            if file_path:
+                # 保存到文件
+                custom_prompts = {
+                    'draft_prompt': draft,
+                    'review_prompt': review,
+                    'translation_type': self.translation_type_var.get()
+                }
+                
+                with open(file_path, 'w', encoding='utf-8') as f:
+                    json.dump(custom_prompts, f, indent=2, ensure_ascii=False)
+                
+                logger.info(f"💾 已保存自定义提示词到：{file_path}")
+                messagebox.showinfo("成功", f"自定义提示词已保存到:\n{file_path}")
+        
+        except Exception as e:
+            logger.error(f"❌ 保存提示词失败：{e}")
+            messagebox.showerror("错误", f"保存提示词失败:\n{str(e)}")
+    
+    def _load_custom_prompts(self):
+        """从文件加载自定义提示词"""
+        try:
+            from tkinter import filedialog
+            import json
+            
+            # 选择文件
+            file_path = filedialog.askopenfilename(
+                title="加载自定义提示词",
+                defaultextension=".json",
+                filetypes=[("JSON files", "*.json"), ("All files", "*.*")]
+            )
+            
+            if file_path:
+                # 从文件加载
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    custom_prompts = json.load(f)
+                
+                # 应用到 GUI
+                self.draft_text.delete('1.0', tk.END)
+                self.draft_text.insert('1.0', custom_prompts['draft_prompt'])
+                
+                self.review_text.delete('1.0', tk.END)
+                self.review_text.insert('1.0', custom_prompts['review_prompt'])
+                
+                logger.info(f"📂 已从 {file_path} 加载自定义提示词")
+                messagebox.showinfo("成功", f"已加载自定义提示词:\n{file_path}")
+        
+        except Exception as e:
+            logger.error(f"❌ 加载提示词失败：{e}")
+            messagebox.showerror("错误", f"加载提示词失败:\n{str(e)}")
+    
+    def _restore_default_prompts(self):
+        """恢复默认提示词模板"""
+        try:
+            # 确认操作
+            confirm = messagebox.askyesno(
+                "确认恢复",
+                "确定要恢复默认提示词模板吗？\n\n⚠️ 未保存的自定义内容将丢失！"
+            )
+            
+            if confirm:
+                # 根据当前选择的翻译方向恢复对应模板
+                type_key = self._get_translation_type_key()
+                
+                if type_key in GAME_DRAFT_PROMPTS:
+                    self.draft_text.delete('1.0', tk.END)
+                    self.draft_text.insert('1.0', GAME_DRAFT_PROMPTS[type_key])
+                
+                if type_key in GAME_REVIEW_PROMPTS:
+                    self.review_text.delete('1.0', tk.END)
+                    self.review_text.insert('1.0', GAME_REVIEW_PROMPTS[type_key])
+                
+                logger.info(f"🔄 已恢复默认提示词模板 - 方向：{self.translation_type_var.get()}")
+                messagebox.showinfo("成功", "已恢复默认提示词模板")
+        
+        except Exception as e:
+            logger.error(f"❌ 恢复默认提示词失败：{e}")
+            messagebox.showerror("错误", f"恢复失败:\n{str(e)}")
     
     def _initialize_services(self):
         """初始化服务容器 - 从配置文件加载配置并自动注入禁止事项"""
