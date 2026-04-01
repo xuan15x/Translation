@@ -40,6 +40,20 @@ def main():
     # 解析命令行参数
     config_file = None
     if len(sys.argv) > 1:
+        # 检查是否是帮助参数
+        if sys.argv[1] in ['--help', '-h', '-help', 'help']:
+            print("AI 智能翻译工作台 v2.2.0")
+            print("\n用法:")
+            print("  python presentation/translation.py                    # 使用默认配置文件")
+            print("  python presentation/translation.py [配置文件路径]      # 指定配置文件")
+            print("\n示例:")
+            print("  python presentation/translation.py config/config.json")
+            print("\n配置说明:")
+            print("  - 配置文件格式：JSON 或 YAML")
+            print("  - 默认配置文件：config/config.json")
+            print("  - API 密钥必须在配置文件中设置")
+            return
+        
         config_file = sys.argv[1]
         print(f"[INFO] 使用配置文件：{config_file}")
     
