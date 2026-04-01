@@ -251,7 +251,7 @@ class TerminologyManager:
 
     async def find_similar(self, src: str, lang: str, source_lang: Optional[str] = None) -> Optional[Dict]:
         """
-        查找相似翻译（使用 SQLite 内存数据库 + Redis 缓存）
+        查找相似翻译（优先精确匹配，完全匹配直接返回）
                 
         Args:
             src: 源文本
@@ -262,29 +262,20 @@ class TerminologyManager:
             最佳匹配结果
         """
         logger.debug(f"🔍 术语查询：'{src}' -> {lang}")
-            
-        # 优化 1: 先查 Redis 缓存（如果启用）
-        if self._use_redis_cache and self.redis_cache:
+        
+        # 优化 1: 查统一缓存（带版本控制）
+        if self.cache_manager:
             try:
-                # 精确匹配
-                redis_result = await self.redis_cache.get_exact_match(src, lang)
-                if redis_result:
-                    self.stats['redis_hits'] = self.stats.get('redis_hits', 0) + 1
-                    logger.debug(f"✅ Redis 精确命中：{src} -> {redis_result['translation']}")
-                    return redis_result
-                    
-                # 模糊匹配
-                fuzzy_results = await self.redis_cache.get_fuzzy_matches(src, lang)
-                if fuzzy_results:
-                    self.stats['redis_hits'] = self.stats.get('redis_hits', 0) + 1
-                    # 返回得分最高的结果
-                    best_match = max(fuzzy_results, key=lambda x: x.get('score', 0))
-                    logger.debug(f"✅ Redis 模糊命中：{src} -> {best_match['translation']} (得分:{best_match['score']})")
-                    return best_match
-                    
-                self.stats['redis_misses'] = self.stats.get('redis_misses', 0) + 1
+                cache_key = f"{src}:{lang}"
+                cached_result = await self.cache_manager.get(
+                    self._datasource_name,
+                    cache_key
+                )
+                if cached_result:
+                    logger.debug(f"✅ 统一缓存命中：{src} -> {cached_result['translation']}")
+                    return cached_result
             except Exception as e:
-                logger.error(f"Redis 查询失败：{e}")
+                logger.error(f"统一缓存查询失败：{e}")
         
         # 优化 2: 查本地 LRU 缓存
         exact_result = await self.cache.get_exact_match(src, lang)
@@ -292,7 +283,7 @@ class TerminologyManager:
             logger.debug(f"✅ 本地缓存精确命中：{src} -> {exact_result['translation']}")
             return exact_result
             
-        # 优化 3: 使用 SQLite 查询
+        # 优化 3: 使用 SQLite 查询（优先精确匹配）
         try:
             cursor = self.db_conn.cursor()
                 
@@ -310,13 +301,13 @@ class TerminologyManager:
                 logger.debug(f"❌ 术语库中无 {lang} 数据")
                 return None
                 
-            # 精确匹配检查
+            # 【关键优化】优先精确匹配检查（字符串完全相等）
             for source, trans in items:
-                if source == src:
+                if source == src:  # 完全精确匹配
                     result = {
                         'original': source,
                         'translation': trans,
-                        'score': self.config.exact_match_score
+                        'score': self.config.exact_match_score  # 100 分
                     }
                     # 同时写入缓存
                     await self.cache.set_exact_match(src, lang, result)
@@ -329,6 +320,7 @@ class TerminologyManager:
                             result
                         )
                     logger.debug(f"💾 缓存精确匹配结果")
+                    logger.info(f"✅ 精确匹配成功：{src} -> {trans} (直接使用，无需 AI)")
                     return result
                 
             # 模糊匹配
