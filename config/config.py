@@ -31,7 +31,7 @@ TARGET_LANGUAGES = [
 ]
 
 GUI_CONFIG = {
-    "window_title": "AI 智能翻译工作台 v2.0",
+    "window_title": "AI 智能翻译工作台 v3.0",
     "window_width": 950,
     "window_height": 800,
 }

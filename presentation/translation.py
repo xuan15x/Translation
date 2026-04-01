@@ -1,18 +1,14 @@
 """
-AI 智能翻译工作台 v2.0 - 主入口文件
+AI 智能翻译工作台 v3.0 - 主入口文件
 
-本程序采用模块化设计，各功能模块已解耦：
-- models.py: 数据模型定义
-- logging_config.py: 日志系统配置
-- config.py: 配置管理和常量
-- prompt_builder.py: 提示词构建器
-- fuzzy_matcher.py: 模糊匹配引擎
-- concurrency_controller.py: 自适应并发控制
-- terminology_manager.py: 术语库管理
-- api_stages.py: API 处理阶段（初译/校对）
-- workflow_orchestrator.py: 工作流编排
-- gui_app.py: 图形用户界面
-- config_persistence.py: 配置持久化（JSON/YAML）
+本程序采用六层分层架构：
+- presentation/     : 表示层 (GUI/CLI)
+- application/      : 应用层 (流程编排/外观模式)
+- domain/          : 领域层 (核心业务逻辑)
+- service/         : 服务层 (API 集成)
+- data_access/     : 数据访问层 (仓储/持久化)
+- infrastructure/  : 基础设施层 (DI/日志/工具)
+- config/          : 配置管理
 """
 import multiprocessing
 import tkinter as tk
@@ -42,7 +38,7 @@ def main():
     if len(sys.argv) > 1:
         # 检查是否是帮助参数
         if sys.argv[1] in ['--help', '-h', '-help', 'help']:
-            print("AI 智能翻译工作台 v2.2.0")
+            print("AI 智能翻译工作台 v3.0.0")
             print("\n用法:")
             print("  python presentation/translation.py                    # 使用默认配置文件")
             print("  python presentation/translation.py [配置文件路径]      # 指定配置文件")

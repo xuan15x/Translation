@@ -228,7 +228,7 @@ class ConfigLoader:
     def get_gui_config(self) -> Dict[str, Any]:
         """获取 GUI 相关配置"""
         return {
-            'window_title': self.get('gui_window_title', 'AI 智能翻译工作台 v2.0'),
+            'window_title': self.get('gui_window_title', 'AI 智能翻译工作台 v3.0'),
             'window_width': self.get('gui_window_width', 950),
             'window_height': self.get('gui_window_height', 800),
         }

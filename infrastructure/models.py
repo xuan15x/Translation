@@ -89,7 +89,7 @@ class Config(ModuleLoggerMixin):
     log_max_lines: int = 1000
     
     # GUI 配置
-    gui_window_title: str = "AI 智能翻译工作台 v2.0"
+    gui_window_title: str = "AI 智能翻译工作台 v3.0"
     gui_window_width: int = 950
     gui_window_height: int = 800
     
