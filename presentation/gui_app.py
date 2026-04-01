@@ -166,9 +166,6 @@ class TranslationApp:
         )
         self.model_combo.grid(row=1, column=1, sticky=tk.W, padx=5, pady=5)
         
-        # 初始化模型列表
-        self._update_model_list()
-        
         # --- 2.1 双阶段翻译参数（高级选项）---
         advanced_frame = ttk.LabelFrame(main_frame, text="⚙️ 双阶段翻译参数（高级）", padding="10")
         advanced_frame.pack(fill=tk.X, pady=(0, 10))
@@ -241,6 +238,9 @@ class TranslationApp:
         reset_btn_frame = ttk.Frame(advanced_frame)
         reset_btn_frame.pack(fill=tk.X, pady=(5, 0))
         ttk.Button(reset_btn_frame, text="🔄 重置为默认值", command=self._reset_advanced_params).pack(side=tk.LEFT, padx=5)
+        
+        # 初始化模型列表（必须在双阶段控件创建之后）
+        self._update_model_list()
         
         # --- 3. 游戏翻译方向选择区 ---
         game_type_frame = ttk.LabelFrame(main_frame, text="🎮 游戏翻译方向", padding="10")
@@ -485,6 +485,12 @@ class TranslationApp:
         try:
             # 转换为枚举类型
             from service.api_provider import APIProvider
+            
+            # 处理 provider_name 可能是 APIProvider 枚举或字符串
+            if provider_name.startswith('APIProvider.'):
+                # 如果是 'APIProvider.DEEPSEEK' 格式，提取 'deepseek'
+                provider_name = provider_name.split('.')[-1].lower()
+            
             provider = APIProvider(provider_name)
             
             # 获取模型列表
