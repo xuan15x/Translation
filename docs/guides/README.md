@@ -4,19 +4,34 @@
 
 ## 📄 文档列表
 
-### 🚀 入门指南
+### 🌟 **新手必读**（从零开始）
+- **[CONFIG_SETUP_HANDBOOK.md](CONFIG_SETUP_HANDBOOK.md)** ⭐⭐⭐ **配置填入手册 - 最详细教程，手把手教你**
+- **[CONFIG_QUICK_REFERENCE.md](CONFIG_QUICK_REFERENCE.md)** ⭐⭐ **配置速查卡 - 一页纸搞定所有配置**
 - **[README.md](README.md)** - 项目主文档和索引
 - **[QUICKSTART.md](QUICKSTART.md)** - 5 分钟快速开始
+
+### 🔧 配置相关
+- **[CONFIGURATION_GUIDE.md](CONFIGURATION_GUIDE.md)** - 配置指南
+- **[CONFIGURATION_CAUTIONS.md](CONFIGURATION_CAUTIONS.md)** - 配置注意事项
+- **[CONFIG_CHECKER_GUIDE.md](CONFIG_CHECKER_GUIDE.md)** - 配置检查工具
+- **[MODEL_CONFIG_GUIDE.md](MODEL_CONFIG_GUIDE.md)** - 模型配置详解
+
+### 📚 使用教程
+- **[BEST_PRACTICES.md](BEST_PRACTICES.md)** ⭐ 全面详细的使用教程
+- **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** ⭐ 常见问题快速解决
+- **[UI_TRANSLATION_BEST_PRACTICES.md](UI_TRANSLATION_BEST_PRACTICES.md)** - UI 翻译指南
 
 ### 🧪 测试指南
 - **[TESTING_QUICKSTART.md](TESTING_QUICKSTART.md)** - 测试快速开始
 
 ## 🎯 推荐阅读顺序
 
-#### 新手用户
-1. 阅读 [README.md](README.md) 了解项目概况
-2. 按照 [QUICKSTART.md](QUICKSTART.md) 快速上手
-3. 查看 [TESTING_QUICKSTART.md](TESTING_QUICKSTART.md) 学习运行测试
+#### 新手用户（强烈推荐按此顺序）
+1. 📖 [CONFIG_SETUP_HANDBOOK.md](CONFIG_SETUP_HANDBOOK.md) - **配置填入手册（第 1 章必看）**
+2. 📋 [CONFIG_QUICK_REFERENCE.md](CONFIG_QUICK_REFERENCE.md) - 配置速查卡（快速查阅）
+3. 🚀 [QUICKSTART.md](QUICKSTART.md) - 5 分钟快速上手
+4. 💡 [BEST_PRACTICES.md](BEST_PRACTICES.md) - 深入学习最佳实践
+5. 🔧 [TROUBLESHOOTING.md](TROUBLESHOOTING.md) - 遇到问题时查看
 
 #### 开发者
 1. 直接查看 [README.md](README.md) 
@@ -25,7 +40,18 @@
 
 ## 📖 快速链接
 
-- **项目主页**: [README.md](README.md)
-- **快速开始**: [QUICKSTART.md](QUICKSTART.md)
-- **测试入门**: [TESTING_QUICKSTART.md](TESTING_QUICKSTART.md)
+### 🔥 新手专区
+- **📖 配置填入手册**: [CONFIG_SETUP_HANDBOOK.md](CONFIG_SETUP_HANDBOOK.md) - 从零开始教学
+- **⚡ 配置速查卡**: [CONFIG_QUICK_REFERENCE.md](CONFIG_QUICK_REFERENCE.md) - 一页纸搞定
+- **🚀 快速开始**: [QUICKSTART.md](QUICKSTART.md) - 5 分钟上手
+
+### 🔧 配置工具
+- **配置检查器**: [CONFIG_CHECKER_GUIDE.md](CONFIG_CHECKER_GUIDE.md) - 验证配置
+- **配置指南**: [CONFIGURATION_GUIDE.md](CONFIGURATION_GUIDE.md) - 完整说明
+- **模型配置**: [MODEL_CONFIG_GUIDE.md](MODEL_CONFIG_GUIDE.md) - 模型详解
+
+### 💡 使用帮助
+- **最佳实践**: [BEST_PRACTICES.md](BEST_PRACTICES.md) - 使用技巧
+- **故障排查**: [TROUBLESHOOTING.md](TROUBLESHOOTING.md) - 常见问题
+- **测试入门**: [TESTING_QUICKSTART.md](TESTING_QUICKSTART.md) - 测试指南
 - **完整文档**: 返回 [docs/README.md](../README.md)

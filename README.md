@@ -195,26 +195,38 @@ pip install -r requirements.txt
 
 #### 4. 配置 API（⚠️ 重要）
 
-**注意**：程序不再支持环境变量方式，必须通过配置文件或 GUI 界面设置 API 密钥。
+**🎉 超简单！只需 1 分钟！**
 
-**方式一：使用配置文件（推荐）**
+**方式一：自动配置向导（⭐ 强烈推荐）**
 
 ```bash
-# 复制配置示例
-cp config/config.example.json config/config.json
-
-# 编辑配置文件，填入你的 API Key
-# 使用文本编辑器打开 config/config.json
-{
-  "api_key": "your-api-key-here",  # ⚠️ 必须设置
-  "base_url": "https://api.deepseek.com",
-  "model_name": "deepseek-chat"
-}
+# 运行快速启动脚本，跟随向导操作
+python scripts/quick_start.py
 ```
 
-**方式二：GUI 界面配置**
+**就这么简单！** 脚本会自动：
+- ✅ 检测是否第一次使用
+- ✅ 引导你选择使用模式
+- ✅ 让你输入 API Key
+- ✅ 自动生成配置文件
+- ✅ 启动翻译程序
 
-启动程序后，在界面的"🔌 API 提供商"区域直接输入 API 密钥和其他配置。
+**方式二：手动配置文件**
+
+```bash
+# 1. 复制配置示例
+cp config/config.example.json config/config.json
+
+# 2. 编辑配置文件，找到这一行：
+"api_key": "aa",
+
+# 3. 改成你的 API Key：
+"api_key": "sk-your-actual-api-key-here",
+
+# 4. 保存文件，完成！
+```
+
+**💡 提示：** 系统会自动根据模型名称识别 API 提供商，无需手动设置 `api_provider`。
 
 **注意：**
 - ❌ 已废弃环境变量方式
@@ -241,12 +253,11 @@ python presentation/translation.py
 
 ## 📖 完整文档导航
 
-### 📚 使用指南（适合普通用户）
+### 🌟 **新手必读**（从零开始）
+- [**配置填入手册**](docs/guides/CONFIG_SETUP_HANDBOOK.md) ⭐⭐⭐ **最详细配置教程，手把手教你**
 - [快速开始指南](docs/guides/QUICKSTART.md) - 5 分钟上手
 - [最佳实践](docs/guides/BEST_PRACTICES.md) ⭐ 全面详细的使用教程
 - [故障排查手册](docs/guides/TROUBLESHOOTING.md) ⭐ 常见问题快速解决
-- [UI 翻译指南](docs/guides/UI_TRANSLATION_BEST_PRACTICES.md)
-- [模型配置拆分指南](docs/guides/MODEL_CONFIG_GUIDE.md) ⭐ 为翻译和校对配置不同模型
 
 ### 🔧 开发指南（适合开发者）
 - [架构设计](docs/architecture/ARCHITECTURE.md) - 深入了解系统架构
