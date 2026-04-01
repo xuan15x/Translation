@@ -1,6 +1,6 @@
 {
   "_comment": "AI 智能翻译工作台 - JSON 配置文件（复制为 config.json 并修改）",
-  "_version": "v2.2.0",
+  "_version": "v3.0.0",
   
   // ============================================================
   // 【API 配置】- 必须设置
@@ -11,7 +11,7 @@
   // 多 API 提供商配置（未配置 api_key 的不会显示）
   "api_providers": {
     "deepseek": {
-      "api_key": "sk-your-deepseek-api-key-here",  // ⚠️ DeepSeek API 密钥
+      "api_key": "aa",  // ⚠️ DeepSeek API 密钥
       "base_url": "https://api.deepseek.com",
       "model_name": "deepseek-chat",
       "models": [  // 支持的模型列表
@@ -114,7 +114,7 @@
   // ============================================================
   // 【GUI 界面】- 窗口配置
   // ============================================================
-  "gui_window_title": "AI 智能翻译工作台 v2.0",  // 窗口标题
+  "gui_window_title": "AI 智能翻译工作台 v3.0",  // 窗口标题
   "gui_window_width": 950,     // 窗口宽度
   "gui_window_height": 800,    // 窗口高度
   

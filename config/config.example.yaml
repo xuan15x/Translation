@@ -1,4 +1,5 @@
 # AI 智能翻译工作台 - 配置文件 (YAML)
+# 版本：v3.0.0
 # 复制此文件为 config.yaml 并修改配置值
 # 所有配置项都可以通过 GUI 界面或环境变量覆盖
 
@@ -131,7 +132,7 @@ log_max_lines: 1000
 
 # ==================== GUI 配置 ====================
 # gui_window_title: 窗口标题
-gui_window_title: "AI 智能翻译工作台 v2.0"
+gui_window_title: "AI 智能翻译工作台 v3.0"
 
 # gui_window_width: 窗口宽度（像素）
 gui_window_width: 950
