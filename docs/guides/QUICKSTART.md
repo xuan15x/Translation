@@ -16,32 +16,322 @@ pip install -r requirements.txt
 - `thefuzz>=0.19.0` - 模糊匹配
 - `openpyxl>=3.0.0` - Excel 文件操作
 
-## 2. 配置 API 密钥
+## 2. 配置 API 密钥和参数
 
-设置 API 密钥（必须通过配置文件或 GUI 界面）：
+### ⚠️ 重要提示
+**必须设置 API 密钥！** 程序不再支持环境变量方式，必须通过配置文件或 GUI 界面设置。
 
-**方式 1: 创建配置文件**
+---
+
+### 方式 1: 创建配置文件（推荐）
+
+#### 步骤 1: 复制示例配置文件
+
 ```bash
-# 复制示例配置文件
+# 在项目根目录执行
 cp config/config.example.json config/config.json
 ```
 
-然后编辑 `config/config.json`，填入你的 API 密钥：
+#### 步骤 2: 编辑配置文件
+
+使用文本编辑器（如 VS Code、Notepad++）打开 `config/config.json`。
+
+#### 步骤 3: 修改必要配置
+
+**必须修改的配置**：
+
 ```json
 {
-  "api_key": "your_api_key_here",
-  "api_provider": "deepseek",
-  "base_url": "https://api.deepseek.com"
+  // 【API 配置】- 必须设置 ⚠️
+  "api_key": "sk-your-actual-api-key-here",  // ← 替换为你的 API 密钥
+  "api_provider": "deepseek",                 // API 提供商
+  "base_url": "https://api.deepseek.com",     // API 基础 URL
+  "model_name": "deepseek-chat"               // 使用的模型
 }
 ```
 
-**方式 2: 使用 GUI 界面**
-启动程序后，在界面的"🔌 API 提供商"区域直接输入 API 密钥。
+**可选优化的配置**：
 
-**注意**: 
-- ❌ 已废弃环境变量方式
-- ✅ 支持动态切换 API 提供商，包括 DeepSeek、OpenAI 等
-- ✅ 可在 GUI 界面的"🔌 API 提供商"下拉框中选择不同提供商
+```json
+{
+  // 【模型参数】- 影响翻译质量
+  "temperature": 0.3,    // 创造性：0.3 适合翻译（准确）
+  "top_p": 0.8,          // 词汇多样性：0.8 平衡
+  
+  // 【并发控制】- 影响速度
+  "initial_concurrency": 8,   // 初始并发：建议 8-10
+  "max_concurrency": 10,      // 最大并发：根据 API 限制调整
+  
+  // 【重试机制】- 提高稳定性
+  "max_retries": 3,      // 失败重试次数
+  "timeout": 60,         // 请求超时（秒）
+  
+  // 【翻译流程】
+  "enable_two_pass": true,           // 启用两阶段翻译
+  "skip_review_if_local_hit": true,  // 本地命中跳过校对
+  "batch_size": 1000                 // 批量翻译大小
+}
+```
+
+#### 完整配置示例
+
+```json
+{
+  "_comment": "AI 智能翻译工作台 - JSON 配置文件",
+  "_version": "v2.2.0",
+  
+  // ============【API 配置】============
+  "api_provider": "deepseek",
+  "api_key": "sk-your-api-key",        // ⚠️ 必须修改
+  "base_url": "https://api.deepseek.com",
+  "model_name": "deepseek-chat",
+  
+  // ============【模型参数】============
+  "temperature": 0.3,
+  "top_p": 0.8,
+  
+  // ============【并发控制】============
+  "initial_concurrency": 8,
+  "max_concurrency": 10,
+  "concurrency_cooldown_seconds": 5.0,
+  
+  // ============【重试机制】============
+  "retry_streak_threshold": 3,
+  "base_retry_delay": 3.0,
+  "max_retries": 3,
+  "timeout": 60,
+  
+  // ============【翻译流程】============
+  "enable_two_pass": true,
+  "skip_review_if_local_hit": true,
+  "batch_size": 1000,
+  "gc_interval": 2,
+  
+  // ============【术语库】============
+  "similarity_low": 60,
+  "exact_match_score": 100,
+  "multiprocess_threshold": 1000,
+  
+  // ============【性能优化】============
+  "pool_size": 5,
+  "cache_capacity": 2000,
+  "cache_ttl_seconds": 3600,
+  
+  // ============【日志系统】============
+  "log_level": "INFO",
+  "log_granularity": "normal",
+  "log_max_lines": 1000,
+  
+  // ============【GUI 界面】============
+  "gui_window_title": "AI 智能翻译工作台 v2.0",
+  "gui_window_width": 950,
+  "gui_window_height": 800,
+  
+  // ============【提示词】============
+  "draft_prompt": "Role: Professional Translator...",
+  "review_prompt": "Role: Senior Language Editor...",
+  
+  // ============【语言配置】============
+  "target_languages": [
+    "英语", "日语", "韩语", "法语", "德语"
+  ],
+  "default_source_lang": "中文",
+  "supported_source_langs": ["中文", "英语", "日语"],
+  
+  // ============【高级功能】============
+  "enable_version_control": false,
+  "enable_auto_backup": false,
+  "enable_performance_monitor": false
+}
+```
+
+---
+
+### 方式 2: 使用 GUI 界面配置
+
+启动程序后，在界面上直接配置：
+
+1. **🔌 API 提供商** - 选择提供商（DeepSeek、OpenAI 等）
+2. **API Key** - 输入 API 密钥
+3. **Base URL** - API 基础 URL
+4. **Model** - 选择模型
+
+**优点**：
+- ✅ 即时生效，无需重启
+- ✅ 可以动态切换不同提供商
+- ✅ 适合临时测试不同配置
+
+**缺点**：
+- ❌ 重启后需要重新配置
+- ❌ 不适合团队协作（配置无法共享）
+
+---
+
+### 配置参数详解
+
+#### 📌 API 配置（必须设置）
+
+| 参数 | 说明 | 默认值 | 推荐值 |
+|------|------|--------|---------|
+| `api_key` | API 密钥 | 无 | `sk-...` |
+| `api_provider` | API 提供商 | `deepseek` | `deepseek` / `openai` |
+| `base_url` | API 基础 URL | DeepSeek URL | 根据提供商选择 |
+| `model_name` | 模型名称 | `deepseek-chat` | 根据提供商选择 |
+
+**常见 API 提供商配置**：
+
+**DeepSeek（默认）**：
+```json
+{
+  "api_provider": "deepseek",
+  "api_key": "sk-your-deepseek-key",
+  "base_url": "https://api.deepseek.com",
+  "model_name": "deepseek-chat"
+}
+```
+
+**OpenAI**：
+```json
+{
+  "api_provider": "openai",
+  "api_key": "sk-your-openai-key",
+  "base_url": "https://api.openai.com/v1",
+  "model_name": "gpt-3.5-turbo"
+}
+```
+
+---
+
+#### 📌 模型参数（影响翻译质量）
+
+| 参数 | 范围 | 说明 | 推荐值 |
+|------|------|------|--------|
+| `temperature` | 0.0-1.0 | 创造性：越低越准确 | `0.3`（翻译） |
+| `top_p` | 0.0-1.0 | 词汇多样性 | `0.8`（平衡） |
+
+**调优建议**：
+- **准确翻译**：`temperature=0.1-0.3`，`top_p=0.7-0.8`
+- **创意翻译**：`temperature=0.5-0.7`，`top_p=0.8-0.9`
+- **技术文档**：`temperature=0.2`，`top_p=0.7`
+- **文学翻译**：`temperature=0.5`，`top_p=0.9`
+
+---
+
+#### 📌 并发控制（影响速度和稳定性）
+
+| 参数 | 说明 | 默认值 | 调优建议 |
+|------|------|--------|----------|
+| `initial_concurrency` | 初始并发数 | `8` | 根据 API 限制调整 |
+| `max_concurrency` | 最大并发数 | `10` | 不要超过 API 限制 |
+| `concurrency_cooldown_seconds` | 冷却时间 | `5.0` | 失败频繁时增加 |
+
+**调优建议**：
+- **快速翻译**（<1000 条）：`initial_concurrency=10`，`max_concurrency=15`
+- **稳定翻译**（>5000 条）：`initial_concurrency=5`，`max_concurrency=8`
+- **API 限制严格**：`initial_concurrency=2`，`max_concurrency=4`
+
+---
+
+#### 📌 重试机制（提高稳定性）
+
+| 参数 | 说明 | 默认值 | 调优建议 |
+|------|------|--------|----------|
+| `retry_streak_threshold` | 连续失败阈值 | `3` | 网络差时增加 |
+| `base_retry_delay` | 基础延迟 | `3.0` | 秒 |
+| `max_retries` | 最大重试次数 | `3` | 重要任务增加 |
+| `timeout` | 超时时间 | `60` | 秒 |
+
+---
+
+#### 📌 翻译流程
+
+| 参数 | 说明 | 默认值 | 建议 |
+|------|------|--------|------|
+| `enable_two_pass` | 两阶段翻译 | `true` | ✅ 开启 |
+| `skip_review_if_local_hit` | 本地命中跳过校对 | `true` | ✅ 开启 |
+| `batch_size` | 批量大小 | `1000` | 大数据集增加 |
+| `gc_interval` | 垃圾回收间隔 | `2` | 秒 |
+
+---
+
+#### 📌 术语库配置
+
+| 参数 | 说明 | 默认值 | 建议 |
+|------|------|--------|------|
+| `similarity_low` | 最低相似度 | `60` | 0-100 |
+| `exact_match_score` | 完全匹配分数 | `100` | 固定 |
+| `multiprocess_threshold` | 多进程阈值 | `1000` | 大数据集增加 |
+
+---
+
+#### 📌 日志系统
+
+| 参数 | 可选值 | 默认值 | 说明 |
+|------|--------|--------|------|
+| `log_level` | `DEBUG`/`INFO`/`WARNING`/`ERROR` | `INFO` | 调试用 DEBUG |
+| `log_granularity` | `minimal`/`basic`/`normal`/`detailed`/`verbose` | `normal` | 详细用 verbose |
+| `log_max_lines` | 整数 | `1000` | GUI 日志行数 |
+
+---
+
+### 配置验证
+
+程序启动时会自动验证配置，如果配置错误会显示详细错误信息：
+
+```
+❌ 配置验证失败：共发现 2 个错误
+
+【检查点 1】API 密钥验证
+  ❌ 字段：api_key
+     错误：API 密钥不能为空
+     当前值：(空)
+     要求：必须设置有效的 API 密钥
+  
+  💡 解决方案:
+     1. 在 config/config.json 中设置 api_key
+     2. 或在 GUI 界面输入 API 密钥
+
+【检查点 2】Base URL 验证
+  ❌ 字段：base_url
+     错误：URL 格式不正确
+     当前值：invalid-url
+     要求：必须是有效的 HTTP/HTTPS URL
+  
+  💡 解决方案:
+     1. 检查 URL 格式：https://api.example.com
+     2. 确保 URL 以 http://或 https://开头
+```
+
+---
+
+### 配置文件位置
+
+**默认配置文件**：
+- `config/config.json`（JSON 格式）
+- `config/config.yaml`（YAML 格式）
+
+**自定义配置文件**：
+```bash
+python presentation/translation.py path/to/your/config.json
+```
+
+---
+
+### 配置检查清单
+
+在开始翻译前，请确认：
+
+- [ ] ✅ `api_key` 已设置为有效值
+- [ ] ✅ `base_url` 格式正确
+- [ ] ✅ `model_name` 与提供商匹配
+- [ ] ✅ `temperature` 在 0.0-1.0 范围内
+- [ ] ✅ `top_p` 在 0.0-1.0 范围内
+- [ ] ✅ `initial_concurrency` >= 1
+- [ ] ✅ `max_concurrency` >= `initial_concurrency`
+- [ ] ✅ `timeout` >= 10 秒
+- [ ] ✅ 配置文件保存在正确位置
+
+---
 ## 3. 运行程序
 
 ### 方式 1: 在项目根目录运行（推荐）
@@ -182,25 +472,34 @@ asyncio.run(demo())
 ## 7. 常见问题
 
 ### Q: 程序无响应？
-A: 检查是否设置了 `DEEPSEEK_API_KEY` 环境变量
+A: 检查配置文件中的 `api_key` 是否已正确设置。
 
 ### Q: 导入错误？
 A: 确保安装了所有依赖：`pip install -r requirements.txt`
 
 ### Q: 翻译速度慢？
-A: 可以在 GUI 界面或通过配置文件调整并发参数：
+A: 可以在配置文件中调整并发参数：
 - `initial_concurrency`: 初始并发数 (默认 8)
 - `max_concurrency`: 最大并发数 (默认 10)
 - 系统具备自适应并发控制，会根据成功率动态调整
 
 ### Q: 如何切换 API 提供商？
-A: 在 GUI 界面的"🔌 API 提供商"区域选择不同提供商，支持 DeepSeek、OpenAI 等
+A: 修改配置文件中的 `api_provider`，或在 GUI 界面选择不同提供商。
+
+### Q: 配置文件在哪里？
+A: 默认位置：`config/config.json`。可以从 `config/config.example.json` 复制。
+
+### Q: 如何验证配置是否正确？
+A: 程序启动时会自动验证配置，如有错误会显示详细信息。
 
 ### Q: 如何撤销操作？
-A: 使用"↩️ 撤销"按钮可以撤销最近的操作，支持最多 100 步历史记录
+A: 使用"↩️ 撤销"按钮可以撤销最近的操作，支持最多 100 步历史记录。
 
 ### Q: 如何修改提示词？
-A: 在 GUI 界面的"提示词配置"区域直接编辑，或修改 `config.py` 中的默认值
+A: 在 GUI 界面的"提示词配置"区域直接编辑，或修改配置文件中的 `draft_prompt` 和 `review_prompt`。
+
+### Q: 配置参数太多，不知道如何调整？
+A: 新手建议使用默认配置，只修改 `api_key`。熟练后再根据需求调整其他参数。
 
 ## 8. 高级功能
 
