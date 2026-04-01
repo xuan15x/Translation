@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 
 
 class TerminologyManager:
-    """术语库管理器"""
+    """术语库管理器 - 使用 Excel 存储 + SQLite 内存数据库"""
     
     def __init__(self, filepath: str, config: Config):
         """
@@ -43,21 +43,22 @@ class TerminologyManager:
             config: 系统配置对象
         """
         self.filepath = filepath
-        self.tmp_path = filepath + ".tmp.json"
-        self.db: Dict[str, Dict[str, str]] = {}
+        self.config = config
+        
+        # 使用新的 Excel+SQLite 持久化层
+        from data_access.excel_sqlite_persistence import TerminologyPersistence
+        self.persistence = TerminologyPersistence(filepath)
+        
+        # 内存数据库（从持久化层获取连接）
+        self.db_conn = self.persistence.manager.conn
+        
+        # 异步锁和队列
         self.lock = asyncio.Lock()
         self.queue = []
         self.queue_lock = asyncio.Lock()
         self.event = asyncio.Event()
         self.shutdown_flag = False
-        self.config = config
         self._save_logged = False
-        
-        # 同步加载术语库
-        self._load_sync()
-        
-        # 启动后台写入任务
-        self.writer_task = asyncio.create_task(self._background_writer())
         
         # 历史管理器
         self.history_manager = get_history_manager()
@@ -66,10 +67,10 @@ class TerminologyManager:
         # 性能优化：添加缓存层
         self.cache = TerminologyCache(capacity=config.batch_size * 2)
         
-        # 内存监控（可选功能）
+        # 内存监控
         self._memory_tracking_enabled = False
         
-        # 版本控制和备份（可选功能，按需启用）
+        # 版本控制和备份（可选功能）
         self.version_controller: Optional[TerminologyVersionController] = None
         self.backup_manager: Optional[AutoBackupManager] = None
 
@@ -145,7 +146,7 @@ class TerminologyManager:
 
     async def add_entry(self, src: str, lang: str, trans: str):
         """
-        添加术语条目
+        添加术语条目（使用 SQLite）
         
         Args:
             src: 源文本
@@ -156,167 +157,145 @@ class TerminologyManager:
             return
             
         async with self.lock:
-            old_value = self.db[src].get(lang) if src in self.db else None
+            # 获取旧值
+            cursor = self.db_conn.cursor()
+            cursor.execute(f'SELECT {lang} FROM terminology WHERE 中文原文 = ?', (src,))
+            row = cursor.fetchone()
+            old_value = row[0] if row else None
             
-            if src not in self.db:
-                self.db[src] = {}
+            # 添加或更新术语
+            self.persistence.add_terminology(src, lang, trans)
             
-            if self.db[src].get(lang) != trans:
-                self.db[src][lang] = trans
-                
-                # 记录历史
-                if old_value:
-                    record_term_change(
-                        change_type=ChangeType.UPDATED.value,
-                        source_text=src,
-                        language=lang,
-                        old_value=old_value,
-                        new_value=trans,
-                        batch_id=self._current_batch_id,
-                        operator="system"
-                    )
-                else:
-                    record_term_change(
-                        change_type=ChangeType.ADDED.value,
-                        source_text=src,
-                        language=lang,
-                        new_value=trans,
-                        batch_id=self._current_batch_id,
-                        operator="system"
-                    )
-                
-                # 清除相关缓存（数据已变更）
-                await self.cache.invalidate_source(src)
-                
-                async with self.queue_lock:
-                    self.queue.append(1)
-                    self.event.set()
+            # 记录历史
+            if old_value:
+                record_term_change(
+                    change_type=ChangeType.UPDATED.value,
+                    source_text=src,
+                    language=lang,
+                    old_value=old_value,
+                    new_value=trans,
+                    batch_id=self._current_batch_id,
+                    operator="system"
+                )
+            else:
+                record_term_change(
+                    change_type=ChangeType.ADDED.value,
+                    source_text=src,
+                    language=lang,
+                    new_value=trans,
+                    batch_id=self._current_batch_id,
+                    operator="system"
+                )
+            
+            # 清除相关缓存（数据已变更）
+            await self.cache.invalidate_source(src)
+            
+            async with self.queue_lock:
+                self.queue.append(1)
+                self.event.set()
 
     async def find_similar(self, src: str, lang: str, source_lang: Optional[str] = None) -> Optional[Dict]:
         """
-        查找相似翻译
-            
+        查找相似翻译（使用 SQLite 内存数据库）
+                
         Args:
             src: 源文本
             lang: 目标语言
-            source_lang: 源语言 (可选，此参数已废弃，术语库会返回所有匹配的翻译)
-                
+            source_lang: 源语言 (可选)
+                    
         Returns:
-            最佳匹配结果，包含 original, translation, score
+            最佳匹配结果
         """
-        # 优化 1: 快速路径 - 空数据直接返回
-        if not self.db:
-            return None
-            
         logger.debug(f"🔍 术语查询：'{src}' -> {lang}")
             
-        # 优化 2: 先查精确匹配缓存 (最快)
+        # 优化 1: 先查精确匹配缓存
         exact_result = await self.cache.get_exact_match(src, lang)
         if exact_result:
             logger.debug(f"✅ 缓存精确命中：{src} -> {exact_result['translation']}")
             return exact_result
             
-        # 优化 3: 对于短文本直接使用缓存，避免模糊匹配开销
-        if len(src) < 5:
-            fuzzy_result = await self.cache.get_fuzzy_match(src, lang)
-            if fuzzy_result and fuzzy_result[1] >= self.config.similarity_low:
-                logger.debug(f"✅ 缓存模糊命中：{src} -> {fuzzy_result[0]['translation']} (分数:{fuzzy_result[1]})")
-                return fuzzy_result[0]
-            
-        # 优化 4: 预过滤术语库，减少模糊匹配计算量
-        logger.debug(f"📊 检索术语库... (总数:{len(self.db)})")
-        
-        # 只提取包含目标语言的条目，减少后续计算量
-        items = [
-            (s, t[lang]) for s, t in self.db.items() 
-            if lang in t
-        ]
-            
-        if not items:
-            logger.debug(f"❌ 术语库中无 {lang} 数据")
-            return None
-        
-        # 优化 5: 智能选择模糊匹配策略
-        res = None
-        loop = asyncio.get_event_loop()
-            
-        # 大数据量时使用多进程，但增加阈值判断
-        if len(items) > self.config.multiprocess_threshold * 2:
-            # 超大数据量：使用多进程
-            logger.debug(f"⚡ 超大数据量 ({len(items)}条)，使用多进程模糊匹配...")
-            with ProcessPoolExecutor(max_workers=2) as ex:
+        # 优化 2: 使用 SQLite 查询
+        try:
+            cursor = self.db_conn.cursor()
+                
+            # 查询包含目标语言的记录
+            cursor.execute(f'''
+                SELECT 中文原文，{lang} 
+                FROM terminology 
+                WHERE {lang} IS NOT NULL AND {lang} != ''
+            ''')
+                
+            rows = cursor.fetchall()
+            items = [(row[0], row[1]) for row in rows]
+                
+            if not items:
+                logger.debug(f"❌ 术语库中无 {lang} 数据")
+                return None
+                
+            # 精确匹配检查
+            for source, trans in items:
+                if source == src:
+                    result = {
+                        'original': source,
+                        'translation': trans,
+                        'score': self.config.exact_match_score
+                    }
+                    await self.cache.set_exact_match(src, lang, result)
+                    logger.debug(f"💾 缓存精确匹配结果")
+                    return result
+                
+            # 模糊匹配
+            if len(items) > self.config.multiprocess_threshold:
+                logger.debug(f"📊 检索术语库... (总数:{len(items)}条)")
+                loop = asyncio.get_event_loop()
                 res = await loop.run_in_executor(
-                    ex, 
-                    FuzzyMatcher.find_best_match, 
-                    src, 
-                    items, 
+                    None,
+                    FuzzyMatcher.find_best_match,
+                    src,
+                    items,
                     self.config.similarity_low
                 )
-        elif len(items) > self.config.multiprocess_threshold:
-            # 中等数据量：使用单进程但限制计算次数
-            logger.debug(f"📈 中等数据量 ({len(items)}条)，使用优化的单进程模糊匹配")
-            res = await loop.run_in_executor(
-                None,
-                FuzzyMatcher.find_best_match,
-                src,
-                items,
-                self.config.similarity_low
-            )
-        else:
-            # 小数据量：直接同步计算
-            res = FuzzyMatcher.find_best_match(src, items, self.config.similarity_low)
-            
-        # 优化 6: 缓存结果
-        if res:
-            if res['score'] == self.config.exact_match_score:
-                await self.cache.set_exact_match(src, lang, res)
-                logger.debug(f"💾 缓存精确匹配结果")
             else:
+                res = FuzzyMatcher.find_best_match(src, items, self.config.similarity_low)
+                
+            # 缓存结果
+            if res:
                 await self.cache.set_fuzzy_match(src, lang, res, res['score'])
                 logger.debug(f"💾 缓存模糊匹配结果 (得分:{res['score']})")
-            
-            logger.debug(f"✅ 找到最佳匹配：{src} -> {res['translation']} (得分:{res['score']})")
-        else:
-            logger.debug(f"❌ 未找到匹配")
-            
-        return res
+                logger.debug(f"✅ 找到最佳匹配：{src} -> {res['translation']} (得分:{res['score']})")
+                return res
+            else:
+                logger.debug(f"❌ 未找到匹配")
+                return None
+                    
+        except Exception as e:
+            logger.error(f"术语查询失败：{e}")
+            return None
 
     async def shutdown(self):
         """关闭术语库管理器并保存数据"""
         self.shutdown_flag = True
         self.event.set()
         
+        # 保存数据到 Excel 文件
         try:
-            await self.writer_task
-        except Exception:
-            pass
-        
-        if self.db:
-            # 导出为 Excel (总是导出到原路径)
-            langs = set()
-            for t in self.db.values():
-                langs.update(t.keys())
+            output_path = self.persistence.save_to_excel()
             
-            cols = ['Key', '中文原文'] + sorted(langs)
-            rows = [
-                {'Key': f"TM_{i}", '中文原文': s, **t} 
-                for i, (s, t) in enumerate(self.db.items())
-            ]
-            
-            pd.DataFrame(rows, columns=cols).to_excel(
-                self.filepath, 
-                index=False, 
-                engine='openpyxl'
-            )
+            # 获取统计信息
+            cursor = self.db_conn.cursor()
+            cursor.execute("SELECT COUNT(*) FROM terminology")
+            count = cursor.fetchone()[0]
             
             if not self._save_logged:
-                logger.info(f"✅ 术语库已保存并导出：{self.filepath}")
-                logger.info(f"📊 术语库总数：{len(self.db)}条")
+                logger.info(f"✅ 术语库已保存并导出：{output_path}")
+                logger.info(f"📊 术语库总数：{count}条")
                 self._save_logged = True
             
-            # 清理临时文件
-            if os.path.exists(self.tmp_path):
-                os.remove(self.tmp_path)
+            # 关闭持久化层
+            self.persistence.close()
+            
+        except Exception as e:
+            logger.error(f"保存术语库失败：{e}")
     
     async def export_to_excel(self, output_path: str = None, export_new_only: bool = False):
         """
