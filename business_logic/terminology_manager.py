@@ -25,11 +25,6 @@ from service.terminology_history import (
     ChangeType
 )
 from infrastructure.cache import TerminologyCache
-from infrastructure.redis_cache import (
-    get_redis_cache,
-    RedisTerminologyCache,
-    RedisCacheConfig
-)
 from infrastructure.unified_cache import (
     get_cache_manager,
     UnifiedCacheManager,
@@ -82,13 +77,11 @@ class TerminologyManager:
         # 性能优化：添加缓存层
         self.cache = TerminologyCache(capacity=config.batch_size * 2)
         
-        # Redis 缓存（可选，用于高并发场景）
-        self.redis_cache: Optional[RedisTerminologyCache] = None
-        self._use_redis_cache = False
-        
         # 统一缓存管理器（版本控制、同步保障）
         self.cache_manager: Optional[UnifiedCacheManager] = None
         self._datasource_name = "terminology"
+        
+        # 不再使用 Redis 缓存（纯进程内缓存方案）
         
         # 内存监控
         self._memory_tracking_enabled = False
@@ -96,34 +89,6 @@ class TerminologyManager:
         # 版本控制和备份（可选功能）
         self.version_controller: Optional[TerminologyVersionController] = None
         self.backup_manager: Optional[AutoBackupManager] = None
-    
-    async def init_redis_cache(self, host: str = "localhost", port: int = 6379,
-                               password: Optional[str] = None, **kwargs):
-        """
-        初始化 Redis 缓存（可选，用于高并发场景）
-        
-        Args:
-            host: Redis 主机地址
-            port: Redis 端口
-            password: Redis 密码
-            **kwargs: 其他配置参数
-        """
-        try:
-            from infrastructure.redis_cache import init_redis_cache as redis_init
-            
-            self.redis_cache = await redis_init(
-                host=host,
-                port=port,
-                password=password,
-                **kwargs
-            )
-            self._use_redis_cache = True
-            
-            logger.info(f"✅ Redis 缓存已初始化：{host}:{port}")
-            
-        except Exception as e:
-            logger.warning(f"⚠️ Redis 缓存初始化失败，将使用本地缓存：{e}")
-            self._use_redis_cache = False
     
     def init_unified_cache(self, isolation_level: str = "read_committed",
                           default_ttl: int = 3600,
@@ -141,7 +106,8 @@ class TerminologyManager:
         self.cache_manager = init_cache_manager(
             isolation_level=isolation_level,
             default_ttl=default_ttl,
-            max_memory_mb=max_memory_mb
+            max_memory_mb=max_memory_mb,
+            enable_intelligent_memory=True  # 启用智能内存管理
         )
         
         # 订阅缓存失效事件
@@ -150,7 +116,7 @@ class TerminologyManager:
             self._on_cache_invalidated
         )
         
-        logger.info(f"✅ 统一缓存管理器已初始化 (隔离级别：{isolation_level})")
+        logger.info(f"✅ 统一缓存管理器已初始化 (隔离级别：{isolation_level}, 智能内存：启用)")
 
     def _load_sync(self):
         """同步加载术语库数据"""
@@ -268,16 +234,6 @@ class TerminologyManager:
             # 清除相关缓存（数据已变更）
             await self.cache.invalidate_source(src)
             
-            # 同时更新 Redis 缓存
-            if self._use_redis_cache and self.redis_cache:
-                try:
-                    # 删除旧的缓存条目
-                    await self.redis_cache.delete_terminology(src)
-                    # 添加新条目到 Redis Hash
-                    await self.redis_cache.add_terminology_translation(src, lang, trans)
-                except Exception as e:
-                    logger.error(f"Redis 更新失败：{e}")
-            
             # 更新统一缓存管理器（自动使版本失效）
             if self.cache_manager:
                 try:
@@ -362,10 +318,16 @@ class TerminologyManager:
                         'translation': trans,
                         'score': self.config.exact_match_score
                     }
-                    # 同时写入两个缓存
+                    # 同时写入缓存
                     await self.cache.set_exact_match(src, lang, result)
-                    if self._use_redis_cache and self.redis_cache:
-                        await self.redis_cache.set_exact_match(src, lang, result)
+                    # 如果启用了统一缓存，也写入
+                    if self.cache_manager:
+                        cache_key = f"{src}:{lang}"
+                        await self.cache_manager.set(
+                            self._datasource_name,
+                            cache_key,
+                            result
+                        )
                     logger.debug(f"💾 缓存精确匹配结果")
                     return result
                 
@@ -386,10 +348,15 @@ class TerminologyManager:
             # 缓存结果
             if res:
                 await self.cache.set_fuzzy_match(src, lang, res, res['score'])
-                if self._use_redis_cache and self.redis_cache:
-                    # 获取 Top 10 结果一起缓存
-                    top_results = await self._get_top_fuzzy_matches(src, lang, items, limit=10)
-                    await self.redis_cache.set_fuzzy_matches(src, lang, top_results)
+                # 如果启用了统一缓存，也写入
+                if self.cache_manager:
+                    cache_key = f"{src}:{lang}"
+                    await self.cache_manager.set(
+                        self._datasource_name,
+                        cache_key,
+                        res,
+                        ttl=1800  # 模糊匹配 TTL 较短
+                    )
                 logger.debug(f"💾 缓存模糊匹配结果 (得分:{res['score']})")
                 logger.debug(f"✅ 找到最佳匹配：{src} -> {res['translation']} (得分:{res['score']})")
                 return res
@@ -444,13 +411,7 @@ class TerminologyManager:
         self.shutdown_flag = True
         self.event.set()
         
-        # 关闭 Redis 连接
-        if self._use_redis_cache and self.redis_cache:
-            try:
-                await self.redis_cache.disconnect()
-                logger.info("🔒 Redis 缓存连接已关闭")
-            except Exception as e:
-                logger.error(f"Redis 关闭失败：{e}")
+        # 不再需要关闭 Redis 连接（纯进程内缓存）
         
         # 注意：不再单独保存，由全局管理器统一保存所有数据库
         logger.info("🛑 术语库管理器已停止（数据将由全局管理器统一保存）")
