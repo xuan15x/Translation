@@ -449,6 +449,8 @@ class TranslationApp:
             log_manager = get_log_manager()
             log_manager.set_granularity(granularity)
             
+            # 添加控制台日志输出
+            logging.info(f"[GUI] 日志粒度已切换为：{granularity_str}")
             log_with_tag(f"[STATS] 日志粒度已设置为：{granularity_str}", level=LogLevel.INFO, tag=LogTag.IMPORTANT)
         except Exception as e:
             logging.error(f"设置日志粒度失败：{e}")
@@ -458,6 +460,9 @@ class TranslationApp:
         try:
             filter_str = self.log_tag_filter_var.get()
             log_manager = get_log_manager()
+            
+            # 添加控制台日志输出
+            logging.info(f"[GUI] 标签过滤器已切换为：{filter_str}")
             
             if filter_str == "all":
                 # 显示所有标签
@@ -485,6 +490,9 @@ class TranslationApp:
     def _set_log_level(self, level_str: str):
         """快速设置日志级别"""
         try:
+            # 添加控制台日志输出
+            logging.info(f"[GUI] 快捷按钮：{level_str}")
+            
             if level_str == "verbose":
                 self.log_granularity_var.set("verbose")
                 log_manager = get_log_manager()
@@ -502,6 +510,9 @@ class TranslationApp:
         """快速设置标签过滤器"""
         try:
             log_manager = get_log_manager()
+            
+            # 添加控制台日志输出
+            logging.info(f"[GUI] 快捷按钮：{filter_str}")
             
             if filter_str == "important_only":
                 # 只显示重要事件
@@ -536,45 +547,52 @@ class TranslationApp:
             self.log_text.configure(state='normal')
             self.log_text.delete('1.0', tk.END)
             self.log_text.configure(state='disabled')
+            # 添加控制台日志输出
+            logging.info("[GUI] 用户操作：清空日志窗口")
             logging.info("[CLEAR] 日志已清空")
         except Exception as e:
             logging.error(f"清空日志失败：{e}")
     
     def _select_term_file(self):
         """选择术语库文件"""
-        path = filedialog.asksaveasfilename(
-            title="选择/创建术语库", 
-            defaultextension=".xlsx",
-            filetypes=[("Excel", "*.xlsx")]
-        )
-        if path:
-            self.term_path.set(path)
-            
-            # 检查文件是否存在
-            import os
-            if os.path.exists(path):
-                # 询问是否要加载现有术语库
-                result = messagebox.askyesno(
-                    "加载术语库",
-                    f"检测到现有术语库文件:\n{path}\n\n"
-                    f"点击'是'加载并覆盖当前术语库\n"
-                    f"点击'否'创建新术语库 (旧数据将丢失)",
-                    icon='question'
-                )
+        try:
+            path = filedialog.asksaveasfilename(
+                title="选择/创建术语库", 
+                defaultextension=".xlsx",
+                filetypes=[("Excel", "*.xlsx")]
+            )
+            if path:
+                self.term_path.set(path)
+                # 添加控制台日志输出
+                logging.info(f"[GUI] 用户操作：选择术语库文件 - {path}")
                 
-                if result:
-                    # 加载并显示术语库预览
-                    self._load_and_preview_terminology(path)
+                # 检查文件是否存在
+                import os
+                if os.path.exists(path):
+                    # 询问是否要加载现有术语库
+                    result = messagebox.askyesno(
+                        "加载术语库",
+                        f"检测到现有术语库文件:\n{path}\n\n"
+                        f"点击'是'加载并覆盖当前术语库\n"
+                        f"点击'否'创建新术语库 (旧数据将丢失)",
+                        icon='question'
+                    )
+                    
+                    if result:
+                        # 加载并显示术语库预览
+                        self._load_and_preview_terminology(path)
+                    else:
+                        logging.info(f"[FILE] 将创建新术语库：{path}")
                 else:
-                    logging.info(f"[FILE] 将创建新术语库：{path}")
-            else:
-                logging.info(f"[FILE] 新术语库文件将自动创建：{path}")
-                # 显示提示信息
-                messagebox.showinfo(
-                    "提示",
-                    "新术语库将在翻译过程中自动填充\n"
-                    "翻译完成后会自动保存为 Excel 文件供编辑"
-                )
+                    logging.info(f"[FILE] 新术语库文件将自动创建：{path}")
+                    # 显示提示信息
+                    messagebox.showinfo(
+                        "提示",
+                        "新术语库将在翻译过程中自动填充\n"
+                        "翻译完成后会自动保存为 Excel 文件供编辑"
+                    )
+        except Exception as e:
+            logging.error(f"选择术语库文件失败：{e}")
 
     def _load_and_preview_terminology(self, path: str):
         """加载并预览术语库"""
@@ -671,24 +689,39 @@ class TranslationApp:
     
     def _select_source_file(self):
         """选择待翻译文件"""
-        path = filedialog.askopenfilename(
-            title="选择待翻译文件", 
-            filetypes=[("Excel", "*.xlsx")]
-        )
-        if path:
-            self.source_path.set(path)
+        try:
+            path = filedialog.askopenfilename(
+                title="选择待翻译文件", 
+                filetypes=[("Excel", "*.xlsx")]
+            )
+            if path:
+                self.source_path.set(path)
+                # 添加控制台日志输出
+                logging.info(f"[GUI] 用户操作：选择待翻译文件 - {path}")
+        except Exception as e:
+            logging.error(f"选择待翻译文件失败：{e}")
 
     def _select_all_langs(self):
         """全选所有语言"""
-        for var in self.lang_vars.values():
-            var.set(True)
-        self._update_lang_status()
-
+        try:
+            for var in self.lang_vars.values():
+                var.set(True)
+            self._update_lang_status()
+            # 添加控制台日志输出
+            logging.info(f"[GUI] 用户操作：全选所有语言")
+        except Exception as e:
+            logging.error(f"全选语言失败：{e}")
+    
     def _deselect_all_langs(self):
         """取消全选所有语言"""
-        for var in self.lang_vars.values():
-            var.set(False)
-        self._update_lang_status()
+        try:
+            for var in self.lang_vars.values():
+                var.set(False)
+            self._update_lang_status()
+            # 添加控制台日志输出
+            logging.info(f"[GUI] 用户操作：取消全选语言")
+        except Exception as e:
+            logging.error(f"取消全选语言失败：{e}")
 
     def _update_lang_status(self):
         """更新语言选择状态显示"""
@@ -886,28 +919,38 @@ class TranslationApp:
 
     def _start_workflow(self):
         """启动翻译工作流"""
-        if self.is_running:
-            messagebox.showwarning("警告", "任务正在运行中...")
-            return
+        try:
+            if self.is_running:
+                messagebox.showwarning("警告", "任务正在运行中...")
+                return
 
-        # 验证输入
-        if not self.term_path.get() or not self.source_path.get():
-            messagebox.showerror("错误", "请先选择术语库和待翻译文件！")
-            return
+            # 验证输入
+            if not self.term_path.get() or not self.source_path.get():
+                messagebox.showerror("错误", "请先选择术语库和待翻译文件！")
+                return
 
-        if not self.selected_langs:
-            messagebox.showerror("错误", "请至少选择一种目标语言！")
-            return
+            if not self.selected_langs:
+                messagebox.showerror("错误", "请至少选择一种目标语言！")
+                return
 
-        if not self._validate_prompts():
-            return
+            if not self._validate_prompts():
+                return
 
-        self.is_running = True
-        self.start_btn.config(state='disabled')
-        self.progress_bar['value'] = 0
+            # 添加控制台日志输出
+            logging.info(f"[GUI] 用户操作：点击开始翻译任务")
+            logging.info(f"[START] 开始翻译工作流 - 模式：{'新文档 (双阶段)' if self.mode_var.get() == 1 else '旧文档校对'}")
+            logging.info(f"[CONFIG] 术语库：{self.term_path.get()}")
+            logging.info(f"[CONFIG] 源文件：{self.source_path.get()}")
+            logging.info(f"[CONFIG] 目标语言：{', '.join(self.selected_langs)}")
 
-        # 启动异步任务
-        threading.Thread(target=self._run_async_loop, daemon=True).start()
+            self.is_running = True
+            self.start_btn.config(state='disabled')
+            self.progress_bar['value'] = 0
+
+            # 启动异步任务
+            threading.Thread(target=self._run_async_loop, daemon=True).start()
+        except Exception as e:
+            logging.error(f"启动工作流失败：{e}")
 
     def _run_async_loop(self):
         """运行异步循环"""
@@ -1678,6 +1721,8 @@ Key: {record.key}
             loop.close()
             
             if op:
+                # 添加控制台日志输出
+                logging.info(f"[GUI] 用户操作：撤销 - {op.type.value}")
                 logging.info(f"↩️ 已撤销操作：{op.type.value} - {op.description}")
                 messagebox.showinfo(
                     "撤销成功",
@@ -1690,6 +1735,7 @@ Key: {record.key}
                 messagebox.showinfo("提示", "没有可撤销的操作")
         except Exception as e:
             messagebox.showerror("错误", f"撤销失败:\n{str(e)}")
+            logging.error(f"撤销操作失败：{e}")
     
     def _redo_last_operation(self):
         """重做最近撤销的操作"""
@@ -1703,6 +1749,8 @@ Key: {record.key}
             loop.close()
             
             if op:
+                # 添加控制台日志输出
+                logging.info(f"[GUI] 用户操作：重做 - {op.type.value}")
                 logging.info(f"↪️ 已重做操作：{op.type.value} - {op.description}")
                 messagebox.showinfo(
                     "重做成功",
@@ -1715,6 +1763,7 @@ Key: {record.key}
                 messagebox.showinfo("提示", "没有可重做的操作")
         except Exception as e:
             messagebox.showerror("错误", f"重做失败:\n{str(e)}")
+            logging.error(f"重做操作失败：{e}")
     
     def _update_undo_buttons(self):
         """更新撤销/重做按钮状态"""
