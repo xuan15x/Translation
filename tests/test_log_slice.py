@@ -379,7 +379,8 @@ class TestHelperFunctions:
         """测试根据模块名获取类别"""
         assert get_category_by_module("models") == LogCategory.MODEL
         assert get_category_by_module("api_stages") == LogCategory.API
-        assert get_category_by_module("workflow_orchestrator") == LogCategory.WORKFLOW
+        assert get_category_by_module("workflow_coordinator") == LogCategory.WORKFLOW
+        assert get_category_by_module("terminology_service_impl") == LogCategory.TERMINOLOGY
         assert get_category_by_module("unknown_module") == LogCategory.GENERAL
     
     def test_get_category_by_module_with_path(self):

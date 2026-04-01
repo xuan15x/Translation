@@ -386,43 +386,12 @@ def get_version_controller(repo_path: str, file_path: str) -> TerminologyVersion
 
 
 async def auto_commit_changes(message: str = "自动提交术语库变更"):
-    """自动提交术语库变更"""
-    from terminology_manager import TerminologyManager
-    from models import Config
-    
-    # 获取当前术语库路径（从配置或默认值）
-    config = Config()
-    term_path = config.term_path if hasattr(config, 'term_path') else "terms.xlsx"
-    
-    controller = get_version_controller(os.getcwd(), term_path)
-    
-    # 异步执行同步操作
-    loop = asyncio.get_event_loop()
-    success = await loop.run_in_executor(
-        None,
-        lambda: controller.add_and_commit(message)
-    )
-    
-    if success:
-        logger.info("✅ 自动提交成功")
-    else:
-        logger.warning("⚠️ 自动提交失败或无需提交")
+    """自动提交术语库变更（废弃，使用新架构）"""
+    # 此函数已废弃，请使用 domain/terminology_service_impl.py 中的方法
+    logger.warning("auto_commit_changes 已废弃，请使用新的领域服务")
 
 
 async def create_manual_backup(reason: str = "手动备份"):
-    """手动创建备份"""
-    from models import Config
-    
-    config = Config()
-    term_path = config.term_path if hasattr(config, 'term_path') else "terms.xlsx"
-    
-    controller = get_version_controller(os.getcwd(), term_path)
-    
-    loop = asyncio.get_event_loop()
-    backup_path = await loop.run_in_executor(
-        None,
-        lambda: controller.create_backup(reason)
-    )
-    
-    logger.info(f"💾 备份已创建：{backup_path}")
-    return backup_path
+    """手动创建备份（废弃，使用新架构）"""
+    # 此函数已废弃，请使用 service/terminology_version.py 中的 TerminologyVersionController
+    logger.warning("create_manual_backup 已废弃，请直接使用 TerminologyVersionController")

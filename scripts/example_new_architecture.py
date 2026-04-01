@@ -81,7 +81,6 @@ client = AsyncOpenAI(api_key="your-key", base_url="...")
 # 2. 初始化容器（包含翻译服务）
 container = initialize_container(
     api_client=client,
-    terminology_manager=term_manager,  # 可选
     draft_prompt=DRAFT_PROMPT,
     review_prompt=REVIEW_PROMPT
 )

@@ -309,13 +309,25 @@ def get_category_by_module(module_name: str) -> LogCategory:
         对应的 LogCategory
     """
     module_to_category = {
+        # Infrastructure
         'models': LogCategory.MODEL,
         'prompt_builder': LogCategory.PROMPT,
         'fuzzy_matcher': LogCategory.MATCHER,
         'concurrency_controller': LogCategory.CONCURRENCY,
-        'terminology_manager': LogCategory.TERMINOLOGY,
+        
+        # Service Layer
         'api_stages': LogCategory.API,
-        'workflow_orchestrator': LogCategory.WORKFLOW,
+        'api_provider': LogCategory.API,
+        
+        # Domain Layer
+        'terminology_service_impl': LogCategory.TERMINOLOGY,
+        'translation_service_impl': LogCategory.TRANSLATION,
+        
+        # Application Layer
+        'workflow_coordinator': LogCategory.WORKFLOW,
+        'translation_facade': LogCategory.TRANSLATION,
+        
+        # Presentation Layer
         'gui_app': LogCategory.GUI,
     }
     
