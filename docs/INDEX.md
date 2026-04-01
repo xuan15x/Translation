@@ -120,7 +120,8 @@
 
 推荐阅读顺序:
 1. [架构设计](architecture/ARCHITECTURE_DESIGN.md) - 理解扩展点
-2. [业务逻辑层](docs/business_logic/README.md) - 核心逻辑
+2. [应用层](docs/application/README.md) - 流程编排
+3. [领域层](docs/domain/README.md) - 核心业务逻辑
 3. [服务层](docs/service/README.md) - API 扩展
 4. [开发指南](development/TESTING_GUIDE.md) - 测试新功
 

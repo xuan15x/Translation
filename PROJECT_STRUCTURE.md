@@ -168,23 +168,33 @@ translation/
 
 ## 🧪 测试体系
 
-### 测试文件组织
+### 测试文件组织（基于六层架构）
 ```
 tests/
 ├── conftest.py                  # 全局夹具和 mock 配置
 ├── run_all_tests.py             # 批量运行脚本
+│
+├── # 基础设施层测试
 ├── test_models.py               # 数据模型测试
-├── test_config.py               # 配置模块测试
 ├── test_cache.py                # 缓存测试
 ├── test_concurrency_controller.py # 并发控制测试
-├── test_fuzzy_matcher.py        # 模糊匹配测试
-├── test_terminology_manager.py  # 术语库测试
-├── test_api_provider.py         # API 提供商测试
+├── test_log_config.py           # 日志配置测试
+├── test_prompt_builder.py       # 提示词构建测试
+│
+├── # 服务层测试
+├── test_api_provider.py         # API 提供商测试 ⭐
 ├── test_api_stages.py           # API 调用阶段测试
-├── test_workflow_orchestrator.py# 工作流编排测试
-├── test_gui_app.py              # GUI 测试
-├── test_integration.py          # 集成测试
-└── test_performance.py          # 性能测试
+│
+├── # 数据访问层测试
+├── test_fuzzy_matcher.py        # 模糊匹配测试
+├── test_config_persistence.py   # 配置持久化测试
+│
+├── # 表示层测试
+├── test_gui_app.py              # GUI 界面测试
+├── test_translation.py          # 翻译功能测试
+│
+└── data/                        # 测试数据
+    └── .gitkeep
 ```
 
 ### 运行测试
@@ -193,7 +203,7 @@ tests/
 pytest tests/ -v
 
 # 运行特定模块
-pytest tests/test_terminology_manager.py -v
+pytest tests/test_api_provider.py -v
 
 # 生成覆盖率报告
 pytest --cov=translation tests/
@@ -218,7 +228,7 @@ python scripts/check_config.py
 python scripts/manage_config.py
 
 # 功能演示
-python scripts/demo_performance.py
+python scripts/demo_advanced_features.py
 ```
 
 ---
@@ -252,19 +262,31 @@ docs/
 
 ---
 
-## 🔍 关键文件说明
+## 🔍 关键文件说明（六层架构）
 
-### ⭐ 核心文件（必须了解）
+### ⭐ 核心文件
 
-1. **`business_logic/workflow_orchestrator.py`**
-   - 翻译工作流编排器
+#### Application Layer（应用层）
+1. **`application/workflow_coordinator.py`**
+   - 翻译工作流协调器
    - 协调初译、校对、术语查询
    - 支持双阶段翻译流程
 
-2. **`business_logic/terminology_manager.py`**
-   - 术语库管理器
+2. **`application/translation_facade.py`**
+   - 外观模式统一接口
+   - 简化调用流程
+   - 提供高级 API
+
+#### Domain Layer（领域层）
+3. **`domain/terminology_service_impl.py`**
+   - 术语领域服务实现
    - 6 级性能优化
    - 支持缓存、模糊匹配、增量更新
+
+4. **`domain/translation_service_impl.py`**
+   - 翻译领域服务实现
+   - 纯业务逻辑，无外部依赖
+   - 支持双阶段翻译
 
 3. **`infrastructure/models.py`**
    - 核心数据模型
@@ -295,9 +317,11 @@ docs/
     ↓
 presentation/gui_app.py
     ↓
-business_logic/workflow_orchestrator.py
-    ├─→ business_logic/terminology_manager.py (术语查询)
-    ├─→ business_logic/api_stages.py (API 调用)
+application/translation_facade.py
+    ↓
+application/workflow_coordinator.py
+    ├─→ domain/terminology_service_impl.py (术语查询)
+    ├─→ service/api_stages.py (API 调用)
     └─→ service/translation_history.py (历史记录)
     ↓
 infrastructure/
@@ -306,6 +330,7 @@ infrastructure/
     └─→ models.py (数据模型)
     ↓
 data_access/
+    ├─→ repositories.py (仓储)
     ├─→ fuzzy_matcher.py (模糊匹配)
     └─→ config_persistence.py (配置存储)
     ↓

@@ -127,7 +127,7 @@ translation/
 ├── service/              # 服务层 - API 和基础服务
 │   ├── __init__.py
 │   ├── api_provider.py    # API 服务
-│   ├── api_stages.py      # API 调用阶段 [从 business_logic 移来]
+│   ├── api_stages.py      # API 调用阶段
 │   └── translation_history.py   # 翻译历史
 ├── data_access/          # 数据访问层 - 数据持久化
 │   ├── __init__.py
@@ -150,11 +150,9 @@ translation/
 │   ├── development/    # 开发指南
 │   └── api/           # API 文档
 ├── tests/              # 测试文件
-├── scripts/            # 工具脚本
-│   ├── example_new_architecture.py  # 新架构示例 ⭐ NEW
-│   └── start_new_architecture.py    # 启动脚本 ⭐ NEW
-└── business_logic/      # 业务逻辑层 (已废弃) ⚠️
-    └── __init__.py      # 标记为废弃，请勿使用
+└── scripts/            # 工具脚本
+    ├── example_new_architecture.py  # 新架构示例 ⭐ NEW
+    └── manage_config.py             # 配置管理
 ```
 
 ## 🚀 快速开始
@@ -266,7 +264,8 @@ python presentation/translation.py
 - [模型配置 API](docs/api/MODEL_CONFIG_API.md) ⭐ 模型配置拆分详细 API
 
 ### 🗂️ 模块文档
-- [业务逻辑模块](docs/business_logic/README.md)
+- [应用层模块](docs/application/README.md)
+- [领域层模块](docs/domain/README.md)
 - [数据访问模块](docs/data_access/README.md)
 - [基础设施模块](docs/infrastructure/README.md)
 - [表示层模块](docs/presentation/README.md)
@@ -690,7 +689,7 @@ review_temperature: 0.6
 pytest tests/ -v
 
 # 运行特定模块测试
-pytest tests/test_terminology_manager.py -v
+pytest tests/test_api_provider.py -v
 pytest tests/test_models.py -v
 
 # 运行测试并生成覆盖率报告
@@ -701,11 +700,11 @@ pytest --cov=translation tests/
 
 项目包含完整的单元测试和集成测试：
 - ✅ 数据模型测试
-- ✅ 业务逻辑测试
 - ✅ API 调用测试
-- ✅ GUI 自动化测试
-- ✅ 性能测试
-- ✅ 集成测试
+- ✅ 缓存系统测试
+- ✅ GUI 界面测试
+- ✅ 配置管理测试
+- ✅ 并发控制测试
 
 ## 📊 性能指标
 
