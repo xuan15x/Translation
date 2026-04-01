@@ -24,8 +24,21 @@ class TerminologyDomainService(ITerminologyDomainService):
         """查找术语匹配（精确优先）"""
         return await self.repo.find_by_source(source_text, target_lang)
     
+    async def find_matches_batch(self, queries: list) -> list:
+        """批量查找术语匹配"""
+        results = []
+        for source_text, target_lang in queries:
+            result = await self.find_match(source_text, target_lang)
+            results.append(result)
+        return results
+    
     async def save_term(self, source_text: str, target_lang: str, translation: str):
         """保存术语"""
         success = await self.repo.save(source_text, target_lang, translation)
         if not success:
             raise RuntimeError("保存术语失败")
+    
+    async def save_terms_batch(self, terms: list):
+        """批量保存术语"""
+        for source_text, target_lang, translation in terms:
+            await self.save_term(source_text, target_lang, translation)
