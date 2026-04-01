@@ -42,6 +42,34 @@ timeout: 60
 # 最大重试次数
 max_retries: 3
 
+# 连续失败阈值（用于自适应并发控制）
+retry_streak_threshold: 3
+
+# 基础重试延迟（秒）
+base_retry_delay: 3.0
+
+# ============================================================
+# 【双阶段翻译】- 为翻译和校对设置不同的模型参数
+# ============================================================
+# 说明：系统采用「初译 + 校对」双阶段模式
+# - 初译：快速翻译，使用较低温度
+# - 校对：润色优化，使用稍高温度
+# 如果设置为 null，则使用全局配置
+
+# 初译阶段专用配置
+draft_model_name: null  # 翻译模型，null 表示使用全局 model_name
+draft_temperature: null  # 翻译温度，null 表示使用全局 temperature（推荐 0.3-0.4）
+draft_top_p: null  # 翻译 top_p，null 表示使用全局 top_p（推荐 0.8）
+draft_timeout: null  # 翻译超时，null 表示使用全局 timeout
+draft_max_tokens: 512  # 翻译最大 token 数（推荐 512-1024）
+
+# 校对阶段专用配置
+review_model_name: null  # 校对模型，null 表示使用全局 model_name
+review_temperature: null  # 校对温度，null 表示使用全局 temperature（推荐 0.5-0.7）
+review_top_p: null  # 校对 top_p，null 表示使用全局 top_p（推荐 0.9）
+review_timeout: null  # 校对超时，null 表示使用全局 timeout
+review_max_tokens: 512  # 校对最大 token 数（推荐 512-1024）
+
 # ============================================================
 # 【双阶段翻译】- 为翻译和校对设置不同的模型参数
 # ============================================================
