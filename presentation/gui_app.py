@@ -394,12 +394,8 @@ class TranslationApp:
     
     def _setup_logger(self):
         """设置日志系统"""
-        setup_logger(
-            log_level=logging.INFO,
-            granularity=None,
-            enable_console=True,
-            enable_file=False
-        )
+        # 使用默认配置初始化日志
+        setup_logger()
 
 
 def run_gui_app(config_file: str = None):
