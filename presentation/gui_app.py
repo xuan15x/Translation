@@ -180,28 +180,28 @@ class TranslationApp:
         
         ttk.Label(draft_params_frame, text="初译模型:").grid(row=0, column=0, sticky=tk.W, padx=5, pady=5)
         self.draft_model_var = tk.StringVar(value="")
-        self.draft_model_combo = ttk.Combobox(draft_params_frame, textvariable=self.draft_model_var, state='readonly', width=25)
+        self.draft_model_combo = ttk.Combobox(draft_params_frame, textvariable=self.draft_model_var, state='readonly', width=30)
         self.draft_model_combo.grid(row=0, column=1, sticky=tk.W, padx=5, pady=5)
         ttk.Label(draft_params_frame, text="(空=使用全局模型)", foreground="gray").grid(row=0, column=2, padx=5, pady=5)
         
         ttk.Label(draft_params_frame, text="温度:").grid(row=1, column=0, sticky=tk.W, padx=5, pady=5)
         self.draft_temp_var = tk.DoubleVar(value=0.3)
-        self.draft_temp_spin = ttk.Spinbox(draft_params_frame, from_=0.0, to=2.0, increment=0.1, textvariable=self.draft_temp_var, width=28)
+        self.draft_temp_spin = ttk.Spinbox(draft_params_frame, from_=0.0, to=2.0, increment=0.1, textvariable=self.draft_temp_var, width=30)
         self.draft_temp_spin.grid(row=1, column=1, sticky=tk.W, padx=5, pady=5)
         
         ttk.Label(draft_params_frame, text="Top P:").grid(row=2, column=0, sticky=tk.W, padx=5, pady=5)
         self.draft_top_p_var = tk.DoubleVar(value=0.8)
-        self.draft_top_p_spin = ttk.Spinbox(draft_params_frame, from_=0.0, to=1.0, increment=0.1, textvariable=self.draft_top_p_var, width=28)
+        self.draft_top_p_spin = ttk.Spinbox(draft_params_frame, from_=0.0, to=1.0, increment=0.1, textvariable=self.draft_top_p_var, width=30)
         self.draft_top_p_spin.grid(row=2, column=1, sticky=tk.W, padx=5, pady=5)
         
         ttk.Label(draft_params_frame, text="超时 (秒):").grid(row=3, column=0, sticky=tk.W, padx=5, pady=5)
         self.draft_timeout_var = tk.IntVar(value=60)
-        self.draft_timeout_spin = ttk.Spinbox(draft_params_frame, from_=10, to=300, increment=10, textvariable=self.draft_timeout_var, width=28)
+        self.draft_timeout_spin = ttk.Spinbox(draft_params_frame, from_=10, to=300, increment=10, textvariable=self.draft_timeout_var, width=30)
         self.draft_timeout_spin.grid(row=3, column=1, sticky=tk.W, padx=5, pady=5)
         
         ttk.Label(draft_params_frame, text="Max Tokens:").grid(row=4, column=0, sticky=tk.W, padx=5, pady=5)
         self.draft_max_tokens_var = tk.IntVar(value=512)
-        self.draft_max_tokens_spin = ttk.Spinbox(draft_params_frame, from_=128, to=4096, increment=128, textvariable=self.draft_max_tokens_var, width=28)
+        self.draft_max_tokens_spin = ttk.Spinbox(draft_params_frame, from_=128, to=4096, increment=128, textvariable=self.draft_max_tokens_var, width=30)
         self.draft_max_tokens_spin.grid(row=4, column=1, sticky=tk.W, padx=5, pady=5)
         
         # 校对参数页
@@ -210,28 +210,28 @@ class TranslationApp:
         
         ttk.Label(review_params_frame, text="校对模型:").grid(row=0, column=0, sticky=tk.W, padx=5, pady=5)
         self.review_model_var = tk.StringVar(value="")
-        self.review_model_combo = ttk.Combobox(review_params_frame, textvariable=self.review_model_var, state='readonly', width=25)
+        self.review_model_combo = ttk.Combobox(review_params_frame, textvariable=self.review_model_var, state='readonly', width=30)
         self.review_model_combo.grid(row=0, column=1, sticky=tk.W, padx=5, pady=5)
         ttk.Label(review_params_frame, text="(空=使用全局模型)", foreground="gray").grid(row=0, column=2, padx=5, pady=5)
         
         ttk.Label(review_params_frame, text="温度:").grid(row=1, column=0, sticky=tk.W, padx=5, pady=5)
         self.review_temp_var = tk.DoubleVar(value=0.5)
-        self.review_temp_spin = ttk.Spinbox(review_params_frame, from_=0.0, to=2.0, increment=0.1, textvariable=self.review_temp_var, width=28)
+        self.review_temp_spin = ttk.Spinbox(review_params_frame, from_=0.0, to=2.0, increment=0.1, textvariable=self.review_temp_var, width=30)
         self.review_temp_spin.grid(row=1, column=1, sticky=tk.W, padx=5, pady=5)
         
         ttk.Label(review_params_frame, text="Top P:").grid(row=2, column=0, sticky=tk.W, padx=5, pady=5)
         self.review_top_p_var = tk.DoubleVar(value=0.9)
-        self.review_top_p_spin = ttk.Spinbox(review_params_frame, from_=0.0, to=1.0, increment=0.1, textvariable=self.review_top_p_var, width=28)
+        self.review_top_p_spin = ttk.Spinbox(review_params_frame, from_=0.0, to=1.0, increment=0.1, textvariable=self.review_top_p_var, width=30)
         self.review_top_p_spin.grid(row=2, column=1, sticky=tk.W, padx=5, pady=5)
         
         ttk.Label(review_params_frame, text="超时 (秒):").grid(row=3, column=0, sticky=tk.W, padx=5, pady=5)
         self.review_timeout_var = tk.IntVar(value=60)
-        self.review_timeout_spin = ttk.Spinbox(review_params_frame, from_=10, to=300, increment=10, textvariable=self.review_timeout_var, width=28)
+        self.review_timeout_spin = ttk.Spinbox(review_params_frame, from_=10, to=300, increment=10, textvariable=self.review_timeout_var, width=30)
         self.review_timeout_spin.grid(row=3, column=1, sticky=tk.W, padx=5, pady=5)
         
         ttk.Label(review_params_frame, text="Max Tokens:").grid(row=4, column=0, sticky=tk.W, padx=5, pady=5)
         self.review_max_tokens_var = tk.IntVar(value=512)
-        self.review_max_tokens_spin = ttk.Spinbox(review_params_frame, from_=128, to=4096, increment=128, textvariable=self.review_max_tokens_var, width=28)
+        self.review_max_tokens_spin = ttk.Spinbox(review_params_frame, from_=128, to=4096, increment=128, textvariable=self.review_max_tokens_var, width=30)
         self.review_max_tokens_spin.grid(row=4, column=1, sticky=tk.W, padx=5, pady=5)
         
         # 重置按钮
@@ -340,6 +340,9 @@ class TranslationApp:
         control_frame = ttk.LabelFrame(main_frame, text="🚀 执行控制", padding="10")
         control_frame.pack(fill=tk.BOTH, expand=True)
         
+        # 先初始化日志控制器（必须在创建控制面板之前）
+        self._initialize_log_controller()
+        
         # 性能监控开关
         perf_monitor_frame = ttk.Frame(control_frame)
         perf_monitor_frame.pack(fill=tk.X, pady=(0, 5))
@@ -353,7 +356,7 @@ class TranslationApp:
         )
         self.perf_monitor_check.pack(side=tk.LEFT, padx=5)
         
-        # 日志控制面板
+        # 日志控制面板（必须在初始化之后）
         self._create_log_control_panel(control_frame)
         
         # 按钮
@@ -396,8 +399,7 @@ class TranslationApp:
         # 重定向日志到 GUI
         self._setup_gui_logging()
         
-        # 初始化日志控制器
-        self._initialize_log_controller()
+        # 日志控制器已在上面初始化
     
     def _setup_gui_logging(self):
         """设置 GUI 日志重定向"""
