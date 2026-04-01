@@ -1,4 +1,4 @@
-"""
+jianc"""
 术语库版本控制模块
 基于 Git 的术语库版本管理，支持协作和历史追溯
 """
@@ -13,7 +13,7 @@ import json
 
 import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from infrastructure.exceptions import VersionControlError, FileError
+from infrastructure.exceptions import FileError
 
 logger = logging.getLogger(__name__)
 
