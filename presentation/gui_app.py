@@ -396,6 +396,9 @@ class TranslationApp:
         """设置日志系统"""
         # 使用默认配置初始化日志
         setup_logger()
+        
+        # 添加 GUI handler
+        self._setup_gui_logging()
 
 
 def run_gui_app(config_file: str = None):
