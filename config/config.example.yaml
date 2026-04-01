@@ -200,19 +200,74 @@ review_prompt: |
 
 # ==================== 语言配置 ====================
 # target_languages: 可选的目标语言列表
+# 按优先级分类：
+#   T1 - 主要发达国家/经济体（优先支持）
+#   T2 - 重要发展中国家/新兴市场
+#   T3 - 其他语种（小众但重要）
 target_languages:
-  - 英语
-  - 日语
-  - 韩语
-  - 法语
-  - 德语
-  - 西班牙语
-  - 俄语
-  - 葡萄牙语
-  - 意大利语
-  - 阿拉伯语
-  - 泰语
-  - 越南语
+  # ========== T1 优先级（常用）==========
+  - 英语      # English - 国际通用
+  - 日语      # Japanese - 日本
+  - 韩语      # Korean - 韩国
+  - 法语      # French - 法国/瑞士/比利时
+  - 德语      # German - 德国/奥地利/瑞士
+  - 西班牙语   # Spanish - 西班牙/拉丁美洲
+  - 意大利语   # Italian - 意大利/瑞士
+  - 葡萄牙语   # Portuguese - 葡萄牙/巴西
+  - 俄语      # Russian - 俄罗斯/白俄罗斯
+  
+  # ========== T2 优先级（重要市场）==========
+  - 泰语      # Thai - 泰国
+  - 越南语    # Vietnamese - 越南
+  - 阿拉伯语   # Arabic - 中东/北非
+  - 土耳其语   # Turkish - 土耳其
+  - 波斯语    # Persian/Farsi - 伊朗
+  - 希伯来语   # Hebrew - 以色列
+  - 印地语    # Hindi - 印度
+  - 孟加拉语   # Bengali - 孟加拉国
+  - 乌尔都语   # Urdu - 巴基斯坦
+  - 印尼语    # Indonesian - 印度尼西亚
+  - 马来语    # Malay - 马来西亚/新加坡
+  - 菲律宾语   # Filipino - 菲律宾
+  
+  # ========== T3 优先级（小众语种）==========
+  # 欧洲其他
+  - 波兰语    # Polish - 波兰
+  - 乌克兰语   # Ukrainian - 乌克兰
+  - 捷克语    # Czech - 捷克
+  - 罗马尼亚语  # Romanian - 罗马尼亚
+  - 匈牙利语   # Hungarian - 匈牙利
+  - 瑞典语    # Swedish - 瑞典
+  - 挪威语    # Norwegian - 挪威
+  - 丹麦语    # Danish - 丹麦
+  - 芬兰语    # Finnish - 芬兰
+  - 荷兰语    # Dutch - 荷兰/比利时
+  - 希腊语    # Greek - 希腊/塞浦路斯
+  
+  # 亚洲其他
+  - 老挝语    # Lao - 老挝
+  - 柬埔寨语   # Khmer - 柬埔寨
+  - 缅甸语    # Burmese - 缅甸
+  - 僧伽罗语   # Sinhala - 斯里兰卡
+  - 尼泊尔语   # Nepali - 尼泊尔
+  - 蒙古语    # Mongolian - 蒙古
+  - 藏语      # Tibetan - 西藏
+  
+  # 非洲
+  - 斯瓦希里语  # Swahili - 肯尼亚/坦桑尼亚
+  - 南非荷兰语  # Afrikaans - 南非
+  - 祖鲁语    # Zulu - 南非
+  
+  # 美洲原住民
+  - 克丘亚语   # Quechua - 秘鲁/玻利维亚
+  - 瓜拉尼语   # Guarani - 巴拉圭
+  
+  # 大洋洲
+  - 毛利语    # Maori - 新西兰
+  
+  # 古典/人造语言
+  - 世界语    # Esperanto - 人造语言
+  - 拉丁语    # Latin - 古典语言
 
 # default_source_lang: 默认源语言
 default_source_lang: "中文"
