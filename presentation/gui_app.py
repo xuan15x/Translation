@@ -324,12 +324,12 @@ class TranslationApp:
         messagebox.showinfo("成功", "提示词格式校验通过！")
     
     def _initialize_services(self):
-        """初始化服务容器"""
+        """初始化服务容器 - 从配置文件加载配置"""
         if self.container:
             return
         
         try:
-            # 获取配置
+            # 获取配置（从配置文件加载）
             config = self._create_config()
             
             # 获取 API 客户端
@@ -337,11 +337,10 @@ class TranslationApp:
             provider = self.provider_manager.get_provider(provider_name)
             api_client = provider.get_client()
             
-            # 初始化容器
+            # 初始化容器（传入配置文件路径）
             self.container = initialize_container(
                 config_file=self.config_file,
                 api_client=api_client,
-                terminology_manager=None,  # 不再使用旧的术语管理器
                 draft_prompt=self.draft_text.get("1.0", tk.END).strip(),
                 review_prompt=self.review_text.get("1.0", tk.END).strip()
             )
@@ -352,16 +351,27 @@ class TranslationApp:
             # 设置进度回调
             self.translation_facade.set_progress_callback(self._update_progress)
             
-            logger.info("✅ 服务初始化完成")
+            logger.info("✅ 服务初始化完成（使用配置文件）")
             
         except Exception as e:
             logger.error(f"❌ 服务初始化失败：{e}")
             raise
     
     def _create_config(self) -> Config:
-        """创建配置对象"""
-        # TODO: 从配置文件或 GUI 状态创建 Config 对象
-        return Config()
+        """从配置文件或 GUI 状态创建 Config 对象"""
+        from config.loader import get_config_loader
+        
+        loader = get_config_loader()
+        
+        # 如果有配置文件，从文件加载
+        if self.config_file:
+            from data_access.config_persistence import ConfigPersistence
+            persistence = ConfigPersistence(self.config_file)
+            file_config = persistence.load_config()
+            loader.update(file_config)
+        
+        # 转换为 Config 数据类
+        return loader.to_dataclass(Config)
     
     async def _start_translation_async(self):
         """异步启动翻译"""
@@ -420,14 +430,32 @@ class TranslationApp:
         logger.info(f"📊 进度：{current}/{total} ({progress:.1f}%)")
     
     def _load_config_from_file(self):
-        """从文件加载配置"""
+        """从文件加载配置并应用到 GUI"""
         if not self.config_persistence:
             return
         
         try:
             config_data = self.config_persistence.load_config()
-            # TODO: 应用配置到 GUI
-            logger.info("✅ 配置加载成功")
+            
+            # 应用配置到 GUI 状态
+            if 'api_provider' in config_data:
+                self.current_provider_var.set(config_data['api_provider'])
+            
+            if 'draft_prompt' in config_data:
+                self.draft_text.delete('1.0', tk.END)
+                self.draft_text.insert('1.0', config_data['draft_prompt'])
+            
+            if 'review_prompt' in config_data:
+                self.review_text.delete('1.0', tk.END)
+                self.review_text.insert('1.0', config_data['review_prompt'])
+            
+            if 'gui_window_title' in config_data:
+                self.root.title(config_data['gui_window_title'])
+            
+            if 'gui_window_width' in config_data and 'gui_window_height' in config_data:
+                self.root.geometry(f"{config_data['gui_window_width']}x{config_data['gui_window_height']}")
+            
+            logger.info(f"✅ 配置加载成功：{self.config_file}")
         except Exception as e:
             logger.warning(f"配置加载失败：{e}")
     

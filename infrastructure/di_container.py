@@ -51,7 +51,7 @@ def initialize_container(config_file: Optional[str] = None,
                         draft_prompt: str = "",
                         review_prompt: str = ""):
     """
-    初始化依赖容器 - 创建所有组件并建立依赖关系
+    初始化依赖容器 - 从配置文件加载配置并创建所有组件
     
     Args:
         config_file: 配置文件路径（可选）
@@ -65,13 +65,29 @@ def initialize_container(config_file: Optional[str] = None,
     container = get_container()
     container.clear()
     
+    # ========== 从配置文件加载配置 ==========
+    from config.loader import get_config_loader
+    
+    loader = get_config_loader()
+    
+    # 如果有配置文件，重新加载
+    if config_file:
+        from data_access.config_persistence import ConfigPersistence
+        persistence = ConfigPersistence(config_file)
+        file_config = persistence.load()
+        loader.update(file_config)
+    
+    # 从配置加载器获取配置值
+    config = loader.to_dataclass(Config)
+    container.register('config', config, singleton=True)
+    
     # ========== Infrastructure Layer ==========
     # 1. 数据库连接
     db_conn = sqlite3.connect(':memory:', check_same_thread=False)
     container.register('db_connection', db_conn, singleton=True)
     
-    # 2. Excel 路径
-    excel_path = "terminology.xlsx"
+    # 2. Excel 路径（从配置加载）
+    excel_path = loader.get('terminology_excel_path', "terminology.xlsx")
     container.register('excel_path', excel_path, singleton=True)
     
     # ========== Data Access Layer ==========
