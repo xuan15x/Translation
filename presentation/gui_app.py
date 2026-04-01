@@ -9,6 +9,7 @@ from tkinter import filedialog, messagebox, ttk, scrolledtext
 from typing import List
 
 from config import DEFAULT_DRAFT_PROMPT, DEFAULT_REVIEW_PROMPT, TARGET_LANGUAGES, GUI_CONFIG, GAME_TRANSLATION_TYPES, GAME_DRAFT_PROMPTS, GAME_REVIEW_PROMPTS
+from infrastructure.prompt_injector import inject_prompts
 from infrastructure.log_config import setup_logger, LogTag, log_with_tag, LogLevel
 from infrastructure.log_slice import LoggerSlice, LogCategory
 from infrastructure.models import Config
@@ -409,6 +410,18 @@ class TranslationApp:
         
         logger.info(f"🎯 切换到游戏翻译方向：{selected_name}")
     
+    def _get_translation_type_key(self) -> str:
+        """获取当前选择的翻译类型的 key"""
+        selected_name = self.translation_type_var.get()
+        
+        # 根据中文名称找到对应的 key
+        for key, name in GAME_TRANSLATION_TYPES.items():
+            if name == selected_name:
+                return key
+        
+        # 默认返回 custom
+        return 'custom'
+    
     def _validate_prompts(self):
         """校验提示词"""
         draft = self.draft_text.get("1.0", tk.END).strip()
@@ -425,11 +438,25 @@ class TranslationApp:
         messagebox.showinfo("成功", "提示词格式校验通过！")
     
     def _initialize_services(self):
-        """初始化服务容器 - 从配置文件加载配置"""
+        """初始化服务容器 - 从配置文件加载配置并自动注入禁止事项"""
         if self.container:
             return
         
         try:
+            # 获取用户配置的提示词（从 GUI）
+            user_draft_prompt = self.draft_text.get("1.0", tk.END).strip()
+            user_review_prompt = self.review_text.get("1.0", tk.END).strip()
+            
+            # 根据翻译方向自动注入禁止事项
+            translation_type_key = self._get_translation_type_key()
+            injected_draft, injected_review = inject_prompts(
+                user_draft_prompt,
+                user_review_prompt,
+                translation_type_key
+            )
+            
+            logger.info(f"✅ 已自动注入禁止事项到提示词 - 类型：{translation_type_key}")
+            
             # 获取配置（从配置文件加载）
             config = self._create_config()
             
@@ -438,12 +465,12 @@ class TranslationApp:
             provider = self.provider_manager.get_provider(provider_name)
             api_client = provider.get_client()
             
-            # 初始化容器（传入配置文件路径）
+            # 初始化容器（传入注入后的提示词）
             self.container = initialize_container(
                 config_file=self.config_file,
                 api_client=api_client,
-                draft_prompt=self.draft_text.get("1.0", tk.END).strip(),
-                review_prompt=self.review_text.get("1.0", tk.END).strip()
+                draft_prompt=injected_draft,
+                review_prompt=injected_review
             )
             
             # 获取外观服务
@@ -452,7 +479,7 @@ class TranslationApp:
             # 设置进度回调
             self.translation_facade.set_progress_callback(self._update_progress)
             
-            logger.info("✅ 服务初始化完成（使用配置文件）")
+            logger.info("✅ 服务初始化完成（使用配置文件 + 注入禁止事项）")
             
         except Exception as e:
             logger.error(f"❌ 服务初始化失败：{e}")
