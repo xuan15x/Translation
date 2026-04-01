@@ -1,0 +1,4 @@
+{"timestamp": "2026-04-01T14:47:21.977784", "session_id": "session_20260401_144721", "field": "api_key", "error_type": "API 密钥不能为空", "check_point": "API 认证配置", "value": "(空)"}
+{"timestamp": "2026-04-01T14:47:21.978214", "session_id": "session_20260401_144721", "field": "temperature", "error_type": "temperature 值超出范围", "check_point": "模型温度参数", "value": "3.5"}
+{"timestamp": "2026-04-01T14:47:21.978549", "session_id": "session_20260401_144721", "field": "initial_concurrency", "error_type": "initial_concurrency 值无效", "check_point": "初始并发数配置", "value": "0"}
+{"timestamp": "2026-04-01T14:47:21.978918", "session_id": "session_20260401_144721", "field": "temperature", "error_type": "temperature 值超出范围", "check_point": "模型温度参数", "value": "2.8"}

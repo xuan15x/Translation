@@ -1,0 +1,29 @@
+{
+  "timestamp": "2026-04-01T14:47:21.983871",
+  "session_id": "session_20260401_144721",
+  "config_usage": {
+    "api_provider:deepseek": 2,
+    "model_name:deepseek-chat": 1,
+    "temperature_range:0.3-0.5": 1,
+    "top_p_range:0.8-0.9": 1,
+    "concurrency_level:8": 1,
+    "cache_capacity_range:2000-5000": 2,
+    "two_pass_enabled:True": 2,
+    "log_level:INFO": 2,
+    "log_granularity:normal": 3,
+    "version:v3.0.0": 2,
+    "api_provider:openai": 1,
+    "model_name:gpt-4": 1,
+    "temperature_range:0.5-0.7": 1,
+    "top_p_range:0.9-1.0": 1,
+    "concurrency_level:10": 1,
+    "log_level:DEBUG": 1,
+    "model_name:deepseek-coder": 1,
+    "temperature_range:0-0.3": 1,
+    "top_p_range:0.5-0.8": 1,
+    "concurrency_level:5": 1,
+    "cache_capacity_range:1000-2000": 1,
+    "two_pass_enabled:False": 1,
+    "version:v2.2.0": 1
+  }
+}
