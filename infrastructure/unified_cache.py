@@ -1,6 +1,7 @@
 """
 统一内存缓存管理器
 提供高频数据的内存缓存支持，包含版本控制、缓存同步、并发安全保障
+集成智能内存管理（动态内存池 + 冷热数据分离 + 磁盘交换）
 """
 import asyncio
 import hashlib
@@ -10,6 +11,12 @@ from dataclasses import dataclass, field
 from enum import Enum
 import logging
 import sys
+
+from infrastructure.memory_manager import (
+    get_memory_manager,
+    IntelligentMemoryManager,
+    MemoryPoolConfig
+)
 
 logger = logging.getLogger(__name__)
 
@@ -81,12 +88,15 @@ class DataVersionManager:
 
 
 class UnifiedCacheManager:
-    """统一缓存管理器 - 支持版本控制、缓存同步、并发安全"""
+    """统一缓存管理器 - 支持版本控制、缓存同步、并发安全
+    集成智能内存管理（动态内存池 + 冷热数据分离 + 磁盘交换）
+    """
     
     def __init__(self, 
                  isolation_level: CacheIsolationLevel = CacheIsolationLevel.READ_COMMITTED,
                  default_ttl: int = 3600,
-                 max_memory_mb: int = 500):
+                 max_memory_mb: int = 500,
+                 enable_intelligent_memory: bool = True):
         """
         初始化缓存管理器
         
@@ -94,13 +104,26 @@ class UnifiedCacheManager:
             isolation_level: 缓存隔离级别
             default_ttl: 默认缓存生存时间（秒）
             max_memory_mb: 最大内存使用量（MB）
+            enable_intelligent_memory: 是否启用智能内存管理
         """
         self.isolation_level = isolation_level
         self.default_ttl = default_ttl
         self.max_memory_mb = max_memory_mb
+        self.enable_intelligent_memory = enable_intelligent_memory
         
         # 主缓存：数据源 -> 键 -> 版本化数据
         self._cache: Dict[str, Dict[str, VersionedData]] = {}
+        
+        # 智能内存管理器（可选）
+        self.memory_manager: Optional[IntelligentMemoryManager] = None
+        if enable_intelligent_memory:
+            config = MemoryPoolConfig(
+                initial_size_mb=min(200, max_memory_mb // 2),
+                max_size_mb=max_memory_mb,
+                min_size_mb=50,
+                swap_enabled=True
+            )
+            self.memory_manager = get_memory_manager()
         
         # 版本管理器
         self.version_manager = DataVersionManager()
@@ -145,7 +168,7 @@ class UnifiedCacheManager:
     async def get(self, datasource: str, key: str, 
                   default: Any = None) -> Optional[Any]:
         """
-        读取缓存数据（保证隔离级别）
+        读取缓存数据（保证隔离级别，支持智能内存）
         
         Args:
             datasource: 数据源名称
@@ -155,41 +178,40 @@ class UnifiedCacheManager:
         Returns:
             缓存值，如果不存在或已过期则返回 default
         """
-        datasource_lock = self._get_datasource_lock(datasource)
+        # 使用智能内存管理器读取（如果启用）
+        if self.enable_intelligent_memory and self.memory_manager:
+            try:
+                versioned_data = await self.memory_manager.get(datasource, key)
+                if versioned_data is not None:
+                    # 检查过期
+                    if versioned_data.is_expired():
+                        await self.delete(datasource, key)
+                        self.stats.misses += 1
+                        return default
+                    
+                    # 根据隔离级别检查可见性
+                    if not await self._check_visibility(datasource, key, versioned_data):
+                        self.stats.dirty_reads_prevented += 1
+                        self.stats.misses += 1
+                        return default
+                    
+                    self.stats.hits += 1
+                    logger.debug(f"✅ 缓存命中：{datasource}:{key} (v{versioned_data.version})")
+                    return versioned_data.data
+            except Exception as e:
+                logger.error(f"智能内存读取失败：{e}")
+                # 降级到传统方式
+                return await self._get_traditional(datasource, key, default)
         
-        async with datasource_lock:
-            if datasource not in self._cache:
-                self.stats.misses += 1
-                return default
-            
-            if key not in self._cache[datasource]:
-                self.stats.misses += 1
-                return default
-            
-            versioned_data = self._cache[datasource][key]
-            
-            # 检查过期
-            if versioned_data.is_expired():
-                await self._delete_internal(datasource, key)
-                self.stats.misses += 1
-                return default
-            
-            # 根据隔离级别检查可见性
-            if not await self._check_visibility(datasource, key, versioned_data):
-                self.stats.dirty_reads_prevented += 1
-                self.stats.misses += 1
-                return default
-            
-            self.stats.hits += 1
-            logger.debug(f"✅ 缓存命中：{datasource}:{key} (v{versioned_data.version})")
-            return versioned_data.data
+        # 传统方式读取
+        return await self._get_traditional(datasource, key, default)
     
     async def set(self, datasource: str, key: str, value: Any,
                   version: Optional[int] = None,
                   ttl: Optional[int] = None,
                   transaction_id: Optional[str] = None):
         """
-        写入缓存数据
+        写入缓存数据（智能内存管理：自动冷热分离 + 磁盘交换）
         
         Args:
             datasource: 数据源名称
@@ -228,29 +250,17 @@ class UnifiedCacheManager:
             })
             return
         
-        # 直接写入
-        key_lock = self._get_key_lock(datasource, key)
-        async with key_lock:
-            await self._ensure_datasource_cache(datasource)
-            
-            # 检查版本冲突
-            if datasource in self._cache and key in self._cache[datasource]:
-                existing = self._cache[datasource][key]
-                if existing.version > version:
-                    self.stats.version_conflicts += 1
-                    logger.warning(
-                        f"⚠️ 版本冲突：{datasource}:{key} "
-                        f"(现有 v{existing.version} > 新 v{version})"
-                    )
-                    return  # 拒绝写入旧版本
-            
-            old_data = self._cache[datasource].get(key)
-            self._cache[datasource][key] = versioned_data
-            
-            # 更新内存估算
-            self._update_memory_estimate(datasource, key, old_data, versioned_data)
-        
-        logger.debug(f"💾 缓存写入：{datasource}:{key} = {value} (v{version})")
+        # 使用智能内存管理器存储（如果启用）
+        if self.enable_intelligent_memory and self.memory_manager:
+            try:
+                await self.memory_manager.put(datasource, key, versioned_data)
+            except Exception as e:
+                logger.error(f"智能内存存储失败：{e}")
+                # 降级到传统方式
+                await self._set_traditional(datasource, key, versioned_data)
+        else:
+            # 传统方式存储
+            await self._set_traditional(datasource, key, versioned_data)
     
     async def delete(self, datasource: str, key: str,
                     transaction_id: Optional[str] = None):
@@ -403,6 +413,64 @@ class UnifiedCacheManager:
         # 实际项目中可以结合事务系统实现 MVCC
         return True
     
+    async def _get_traditional(self, datasource: str, key: str, 
+                               default: Any = None) -> Optional[Any]:
+        """传统方式读取（兜底机制）"""
+        datasource_lock = self._get_datasource_lock(datasource)
+        
+        async with datasource_lock:
+            if datasource not in self._cache:
+                self.stats.misses += 1
+                return default
+            
+            if key not in self._cache[datasource]:
+                self.stats.misses += 1
+                return default
+            
+            versioned_data = self._cache[datasource][key]
+            
+            # 检查过期
+            if versioned_data.is_expired():
+                await self._delete_internal(datasource, key)
+                self.stats.misses += 1
+                return default
+            
+            # 根据隔离级别检查可见性
+            if not await self._check_visibility(datasource, key, versioned_data):
+                self.stats.dirty_reads_prevented += 1
+                self.stats.misses += 1
+                return default
+            
+            self.stats.hits += 1
+            logger.debug(f"✅ 缓存命中：{datasource}:{key} (v{versioned_data.version})")
+            return versioned_data.data
+    
+    async def _set_traditional(self, datasource: str, key: str, 
+                               versioned_data: VersionedData):
+        """传统方式写入（兜底机制）"""
+        key_lock = self._get_key_lock(datasource, key)
+        async with key_lock:
+            await self._ensure_datasource_cache(datasource)
+            
+            # 检查版本冲突
+            if datasource in self._cache and key in self._cache[datasource]:
+                existing = self._cache[datasource][key]
+                if existing.version > versioned_data.version:
+                    self.stats.version_conflicts += 1
+                    logger.warning(
+                        f"⚠️ 版本冲突：{datasource}:{key} "
+                        f"(现有 v{existing.version} > 新 v{versioned_data.version})"
+                    )
+                    return  # 拒绝写入旧版本
+            
+            old_data = self._cache[datasource].get(key)
+            self._cache[datasource][key] = versioned_data
+            
+            # 更新内存估算
+            self._update_memory_estimate(datasource, key, old_data, versioned_data)
+        
+        logger.debug(f"💾 缓存写入：{datasource}:{key} (v{versioned_data.version})")
+    
     async def _ensure_datasource_cache(self, datasource: str):
         """确保数据源的缓存空间已创建"""
         if datasource not in self._cache:
@@ -461,13 +529,13 @@ class UnifiedCacheManager:
                 logger.error(f"缓存事件回调执行失败：{e}")
     
     async def get_stats(self) -> Dict[str, Any]:
-        """获取缓存统计信息"""
+        """获取缓存统计信息（包含智能内存统计）"""
         async with self._global_lock:
             total_entries = sum(
                 len(keys) for keys in self._cache.values()
             )
             
-            return {
+            stats = {
                 'hits': self.stats.hits,
                 'misses': self.stats.misses,
                 'invalidations': self.stats.invalidations,
@@ -478,8 +546,19 @@ class UnifiedCacheManager:
                 'total_entries': total_entries,
                 'datasources_count': len(self._cache),
                 'memory_usage_mb': round(self._memory_estimate_bytes / 1024 / 1024, 2),
-                'isolation_level': self.isolation_level.value
+                'isolation_level': self.isolation_level.value,
+                'intelligent_memory_enabled': self.enable_intelligent_memory
             }
+            
+            # 添加智能内存统计（如果启用）
+            if self.enable_intelligent_memory and self.memory_manager:
+                try:
+                    mem_stats = await self.memory_manager.get_stats()
+                    stats['smart_memory'] = mem_stats
+                except Exception as e:
+                    logger.error(f"获取智能内存统计失败：{e}")
+            
+            return stats
     
     async def clear_all(self):
         """清空所有缓存"""
@@ -505,7 +584,8 @@ def get_cache_manager() -> UnifiedCacheManager:
 
 def init_cache_manager(isolation_level: str = "read_committed",
                       default_ttl: int = 3600,
-                      max_memory_mb: int = 500) -> UnifiedCacheManager:
+                      max_memory_mb: int = 500,
+                      enable_intelligent_memory: bool = True) -> UnifiedCacheManager:
     """
     初始化缓存管理器
     
@@ -513,6 +593,7 @@ def init_cache_manager(isolation_level: str = "read_committed",
         isolation_level: 隔离级别 ("read_uncommitted"|"read_committed"|"repeatable_read"|"serializable")
         default_ttl: 默认 TTL（秒）
         max_memory_mb: 最大内存（MB）
+        enable_intelligent_memory: 是否启用智能内存管理
         
     Returns:
         缓存管理器实例
@@ -530,7 +611,8 @@ def init_cache_manager(isolation_level: str = "read_committed",
     _cache_manager = UnifiedCacheManager(
         isolation_level=isolation,
         default_ttl=default_ttl,
-        max_memory_mb=max_memory_mb
+        max_memory_mb=max_memory_mb,
+        enable_intelligent_memory=enable_intelligent_memory
     )
     
     return _cache_manager
