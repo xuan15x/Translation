@@ -195,9 +195,15 @@ class TagFilter(logging.Filter):
         self.config = config
     
     def filter(self, record):
-        # 如果没有设置标签，默认通过
+        # 如果没有设置 tag，根据当前粒度的日志级别判断
         if not hasattr(record, 'tag'):
-            record.tag = LogTag.NORMAL
+            # 获取处理器的级别
+            handler_level = getattr(record, 'handler_level', logging.NOTSET)
+            
+            # 如果记录级别 >= 处理器级别，允许通过
+            if record.levelno >= handler_level:
+                return True
+            return False
         
         tag = record.tag
         
@@ -289,18 +295,30 @@ class LogManager:
             self._logger.setLevel(logging.ERROR)
             for handler in self._logger.handlers:
                 handler.setLevel(logging.ERROR)
+                # 清除旧的过滤器，添加新的
+                handler.filters = [f for f in handler.filters if not isinstance(f, TagFilter)]
+                handler.addFilter(TagFilter(self._config))
         elif granularity == LogGranularity.BASIC:
             self._logger.setLevel(logging.WARNING)
             for handler in self._logger.handlers:
                 handler.setLevel(logging.WARNING)
+                # 清除旧的过滤器，添加新的
+                handler.filters = [f for f in handler.filters if not isinstance(f, TagFilter)]
+                handler.addFilter(TagFilter(self._config))
         elif granularity == LogGranularity.NORMAL:
             self._logger.setLevel(logging.INFO)
             for handler in self._logger.handlers:
                 handler.setLevel(logging.INFO)
+                # 清除旧的过滤器，添加新的
+                handler.filters = [f for f in handler.filters if not isinstance(f, TagFilter)]
+                handler.addFilter(TagFilter(self._config))
         elif granularity in [LogGranularity.DETAILED, LogGranularity.VERBOSE]:
             self._logger.setLevel(logging.DEBUG)
             for handler in self._logger.handlers:
                 handler.setLevel(logging.DEBUG)
+                # 清除旧的过滤器，添加新的
+                handler.filters = [f for f in handler.filters if not isinstance(f, TagFilter)]
+                handler.addFilter(TagFilter(self._config))
     
     def set_level(self, level: LogLevel):
         """动态设置日志级别"""
