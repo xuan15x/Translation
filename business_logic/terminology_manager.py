@@ -30,6 +30,11 @@ from infrastructure.redis_cache import (
     RedisTerminologyCache,
     RedisCacheConfig
 )
+from infrastructure.unified_cache import (
+    get_cache_manager,
+    UnifiedCacheManager,
+    CacheIsolationLevel
+)
 from service.terminology_version import TerminologyVersionController
 from service.auto_backup import AutoBackupManager, BackupStrategy
 
@@ -81,6 +86,10 @@ class TerminologyManager:
         self.redis_cache: Optional[RedisTerminologyCache] = None
         self._use_redis_cache = False
         
+        # 统一缓存管理器（版本控制、同步保障）
+        self.cache_manager: Optional[UnifiedCacheManager] = None
+        self._datasource_name = "terminology"
+        
         # 内存监控
         self._memory_tracking_enabled = False
         
@@ -115,6 +124,33 @@ class TerminologyManager:
         except Exception as e:
             logger.warning(f"⚠️ Redis 缓存初始化失败，将使用本地缓存：{e}")
             self._use_redis_cache = False
+    
+    def init_unified_cache(self, isolation_level: str = "read_committed",
+                          default_ttl: int = 3600,
+                          max_memory_mb: int = 500):
+        """
+        初始化统一缓存管理器（版本控制、同步保障）
+        
+        Args:
+            isolation_level: 隔离级别 ("read_uncommitted"|"read_committed"|"repeatable_read"|"serializable")
+            default_ttl: 默认 TTL（秒）
+            max_memory_mb: 最大内存（MB）
+        """
+        from infrastructure.unified_cache import init_cache_manager
+        
+        self.cache_manager = init_cache_manager(
+            isolation_level=isolation_level,
+            default_ttl=default_ttl,
+            max_memory_mb=max_memory_mb
+        )
+        
+        # 订阅缓存失效事件
+        self.cache_manager.subscribe(
+            self._datasource_name,
+            self._on_cache_invalidated
+        )
+        
+        logger.info(f"✅ 统一缓存管理器已初始化 (隔离级别：{isolation_level})")
 
     def _load_sync(self):
         """同步加载术语库数据"""
@@ -241,6 +277,17 @@ class TerminologyManager:
                     await self.redis_cache.add_terminology_translation(src, lang, trans)
                 except Exception as e:
                     logger.error(f"Redis 更新失败：{e}")
+            
+            # 更新统一缓存管理器（自动使版本失效）
+            if self.cache_manager:
+                try:
+                    # 递增版本号，自动使旧缓存失效
+                    await self.cache_manager.version_manager.increment_version(self._datasource_name)
+                    # 删除特定键的缓存
+                    cache_key = f"{src}:{lang}"
+                    await self.cache_manager.delete(self._datasource_name, cache_key)
+                except Exception as e:
+                    logger.error(f"统一缓存更新失败：{e}")
             
             async with self.queue_lock:
                 self.queue.append(1)
@@ -377,6 +424,20 @@ class TerminologyManager:
         sorted_matches = sorted(all_matches, key=lambda x: x['score'], reverse=True)[:limit]
         
         return sorted_matches
+    
+    def _on_cache_invalidated(self, datasource: str, key: str, event_type: str):
+        """
+        缓存失效事件处理器（由统一缓存管理器回调）
+        
+        Args:
+            datasource: 数据源名称
+            key: 缓存键
+            event_type: 事件类型 ('delete'|'invalidate_datasource')
+        """
+        logger.debug(f"📢 缓存失效事件：{datasource}:{key} ({event_type})")
+        
+        # 可以在这里添加其他清理逻辑
+        # 例如：通知其他组件缓存已失效
 
     async def shutdown(self):
         """关闭术语库管理器（由全局管理器统一保存）"""
