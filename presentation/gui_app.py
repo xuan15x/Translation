@@ -123,6 +123,21 @@ class TranslationApp:
         self.provider_combo.grid(row=0, column=1, sticky=tk.W, padx=5, pady=5)
         self.provider_combo.bind('<<ComboboxSelected>>', self._on_provider_changed)
         
+        # 模型选择
+        ttk.Label(provider_frame, text="选择模型:").grid(row=1, column=0, sticky=tk.W, padx=5, pady=5)
+        
+        self.current_model_var = tk.StringVar(value="")
+        self.model_combo = ttk.Combobox(
+            provider_frame,
+            textvariable=self.current_model_var,
+            state='readonly',
+            width=30
+        )
+        self.model_combo.grid(row=1, column=1, sticky=tk.W, padx=5, pady=5)
+        
+        # 初始化模型列表
+        self._update_model_list()
+        
         # --- 3. 语言选择区 ---
         lang_frame = ttk.LabelFrame(main_frame, text="🌍 目标语言", padding="10")
         lang_frame.pack(fill=tk.X, pady=(0, 10))
@@ -242,13 +257,45 @@ class TranslationApp:
     
     def _on_provider_changed(self, event):
         """API 提供商切换"""
-        logger.info(f"切换到 API 提供商：{self.current_provider_var.get()}")
+        provider_name = self.current_provider_var.get()
+        logger.info(f"切换到 API 提供商：{provider_name}")
+        # 更新模型列表
+        self._update_model_list()
     
     def _select_all_langs(self):
         """全选语言"""
         for var in self.lang_vars.values():
             var.set(True)
         self._update_lang_status()
+    
+    def _update_model_list(self):
+        """更新模型列表"""
+        provider_name = self.current_provider_var.get()
+        try:
+            # 转换为枚举类型
+            from service.api_provider import APIProvider
+            provider = APIProvider(provider_name)
+            
+            # 获取模型列表
+            models = self.provider_manager.list_models(provider)
+            
+            if models:
+                self.model_combo['values'] = models
+                # 设置默认模型
+                config = self.provider_manager.get_provider(provider)
+                if config and config.default_model in models:
+                    self.current_model_var.set(config.default_model)
+                else:
+                    self.current_model_var.set(models[0] if models else "")
+            else:
+                self.model_combo['values'] = []
+                self.current_model_var.set("")
+                
+            logger.debug(f"提供商 {provider_name} 的模型列表：{models}")
+        except Exception as e:
+            logger.error(f"更新模型列表失败：{e}")
+            self.model_combo['values'] = []
+            self.current_model_var.set("")
     
     def _deselect_all_langs(self):
         """取消全选"""
@@ -395,8 +442,7 @@ class TranslationApp:
     def _setup_logger(self):
         """设置日志系统"""
         # 使用默认配置初始化日志
-        setup_logger()
-        
+        setup_logger
         # 添加 GUI handler
         self._setup_gui_logging()
 
