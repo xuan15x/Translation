@@ -25,6 +25,11 @@ from service.terminology_history import (
     ChangeType
 )
 from infrastructure.cache import TerminologyCache
+from infrastructure.redis_cache import (
+    get_redis_cache,
+    RedisTerminologyCache,
+    RedisCacheConfig
+)
 from service.terminology_version import TerminologyVersionController
 from service.auto_backup import AutoBackupManager, BackupStrategy
 
@@ -72,12 +77,44 @@ class TerminologyManager:
         # 性能优化：添加缓存层
         self.cache = TerminologyCache(capacity=config.batch_size * 2)
         
+        # Redis 缓存（可选，用于高并发场景）
+        self.redis_cache: Optional[RedisTerminologyCache] = None
+        self._use_redis_cache = False
+        
         # 内存监控
         self._memory_tracking_enabled = False
         
         # 版本控制和备份（可选功能）
         self.version_controller: Optional[TerminologyVersionController] = None
         self.backup_manager: Optional[AutoBackupManager] = None
+    
+    async def init_redis_cache(self, host: str = "localhost", port: int = 6379,
+                               password: Optional[str] = None, **kwargs):
+        """
+        初始化 Redis 缓存（可选，用于高并发场景）
+        
+        Args:
+            host: Redis 主机地址
+            port: Redis 端口
+            password: Redis 密码
+            **kwargs: 其他配置参数
+        """
+        try:
+            from infrastructure.redis_cache import init_redis_cache as redis_init
+            
+            self.redis_cache = await redis_init(
+                host=host,
+                port=port,
+                password=password,
+                **kwargs
+            )
+            self._use_redis_cache = True
+            
+            logger.info(f"✅ Redis 缓存已初始化：{host}:{port}")
+            
+        except Exception as e:
+            logger.warning(f"⚠️ Redis 缓存初始化失败，将使用本地缓存：{e}")
+            self._use_redis_cache = False
 
     def _load_sync(self):
         """同步加载术语库数据"""
@@ -195,13 +232,23 @@ class TerminologyManager:
             # 清除相关缓存（数据已变更）
             await self.cache.invalidate_source(src)
             
+            # 同时更新 Redis 缓存
+            if self._use_redis_cache and self.redis_cache:
+                try:
+                    # 删除旧的缓存条目
+                    await self.redis_cache.delete_terminology(src)
+                    # 添加新条目到 Redis Hash
+                    await self.redis_cache.add_terminology_translation(src, lang, trans)
+                except Exception as e:
+                    logger.error(f"Redis 更新失败：{e}")
+            
             async with self.queue_lock:
                 self.queue.append(1)
                 self.event.set()
 
     async def find_similar(self, src: str, lang: str, source_lang: Optional[str] = None) -> Optional[Dict]:
         """
-        查找相似翻译（使用 SQLite 内存数据库）
+        查找相似翻译（使用 SQLite 内存数据库 + Redis 缓存）
                 
         Args:
             src: 源文本
@@ -213,13 +260,36 @@ class TerminologyManager:
         """
         logger.debug(f"🔍 术语查询：'{src}' -> {lang}")
             
-        # 优化 1: 先查精确匹配缓存
+        # 优化 1: 先查 Redis 缓存（如果启用）
+        if self._use_redis_cache and self.redis_cache:
+            try:
+                # 精确匹配
+                redis_result = await self.redis_cache.get_exact_match(src, lang)
+                if redis_result:
+                    self.stats['redis_hits'] = self.stats.get('redis_hits', 0) + 1
+                    logger.debug(f"✅ Redis 精确命中：{src} -> {redis_result['translation']}")
+                    return redis_result
+                    
+                # 模糊匹配
+                fuzzy_results = await self.redis_cache.get_fuzzy_matches(src, lang)
+                if fuzzy_results:
+                    self.stats['redis_hits'] = self.stats.get('redis_hits', 0) + 1
+                    # 返回得分最高的结果
+                    best_match = max(fuzzy_results, key=lambda x: x.get('score', 0))
+                    logger.debug(f"✅ Redis 模糊命中：{src} -> {best_match['translation']} (得分:{best_match['score']})")
+                    return best_match
+                    
+                self.stats['redis_misses'] = self.stats.get('redis_misses', 0) + 1
+            except Exception as e:
+                logger.error(f"Redis 查询失败：{e}")
+        
+        # 优化 2: 查本地 LRU 缓存
         exact_result = await self.cache.get_exact_match(src, lang)
         if exact_result:
-            logger.debug(f"✅ 缓存精确命中：{src} -> {exact_result['translation']}")
+            logger.debug(f"✅ 本地缓存精确命中：{src} -> {exact_result['translation']}")
             return exact_result
             
-        # 优化 2: 使用 SQLite 查询
+        # 优化 3: 使用 SQLite 查询
         try:
             cursor = self.db_conn.cursor()
                 
@@ -245,7 +315,10 @@ class TerminologyManager:
                         'translation': trans,
                         'score': self.config.exact_match_score
                     }
+                    # 同时写入两个缓存
                     await self.cache.set_exact_match(src, lang, result)
+                    if self._use_redis_cache and self.redis_cache:
+                        await self.redis_cache.set_exact_match(src, lang, result)
                     logger.debug(f"💾 缓存精确匹配结果")
                     return result
                 
@@ -266,6 +339,10 @@ class TerminologyManager:
             # 缓存结果
             if res:
                 await self.cache.set_fuzzy_match(src, lang, res, res['score'])
+                if self._use_redis_cache and self.redis_cache:
+                    # 获取 Top 10 结果一起缓存
+                    top_results = await self._get_top_fuzzy_matches(src, lang, items, limit=10)
+                    await self.redis_cache.set_fuzzy_matches(src, lang, top_results)
                 logger.debug(f"💾 缓存模糊匹配结果 (得分:{res['score']})")
                 logger.debug(f"✅ 找到最佳匹配：{src} -> {res['translation']} (得分:{res['score']})")
                 return res
@@ -276,11 +353,43 @@ class TerminologyManager:
         except Exception as e:
             logger.error(f"术语查询失败：{e}")
             return None
+    
+    async def _get_top_fuzzy_matches(self, src: str, lang: str, items: List[Tuple[str, str]], 
+                                    limit: int = 10) -> List[Dict]:
+        """
+        获取 Top N 个模糊匹配结果用于 Redis 缓存
+        
+        Args:
+            src: 源文本
+            lang: 目标语言
+            items: 术语列表
+            limit: 返回数量限制
+            
+        Returns:
+            Top N 匹配结果列表
+        """
+        from data_access.fuzzy_matcher import FuzzyMatcher
+        
+        # 使用低阈值获取更多结果
+        all_matches = FuzzyMatcher.find_all_matches(src, items, 0.3)
+        
+        # 按得分排序并取 Top N
+        sorted_matches = sorted(all_matches, key=lambda x: x['score'], reverse=True)[:limit]
+        
+        return sorted_matches
 
     async def shutdown(self):
         """关闭术语库管理器（由全局管理器统一保存）"""
         self.shutdown_flag = True
         self.event.set()
+        
+        # 关闭 Redis 连接
+        if self._use_redis_cache and self.redis_cache:
+            try:
+                await self.redis_cache.disconnect()
+                logger.info("🔒 Redis 缓存连接已关闭")
+            except Exception as e:
+                logger.error(f"Redis 关闭失败：{e}")
         
         # 注意：不再单独保存，由全局管理器统一保存所有数据库
         logger.info("🛑 术语库管理器已停止（数据将由全局管理器统一保存）")

@@ -91,6 +91,19 @@
   "cache_capacity": 2000,      // LRU 缓存容量
   "cache_ttl_seconds": 3600,   // 缓存生存时间（秒）
   
+  // Redis 缓存配置（可选，用于高并发场景）
+  "redis_cache": {
+    "enabled": false,          // 是否启用 Redis 缓存
+    "host": "localhost",       // Redis 服务器地址
+    "port": 6379,              // Redis 端口
+    "password": null,          // Redis 密码（可选）
+    "db": 0,                   // Redis 数据库编号
+    "key_prefix": "translation:terminology:",  // 键前缀
+    "default_ttl": 3600,       // 默认过期时间（秒）
+    "exact_match_ttl": 7200,   // 精确匹配过期时间（秒）
+    "fuzzy_match_ttl": 1800,   // 模糊匹配过期时间（秒）
+    "max_connections": 50      // 最大连接数
+  },
   // ============================================================
   // 【日志系统】- 调试与监控
   // ============================================================
