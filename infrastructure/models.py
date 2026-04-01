@@ -36,6 +36,9 @@ class Config(ModuleLoggerMixin):
     base_url: str = "https://api.deepseek.com"
     api_provider: str = "deepseek"
     
+    # 多 API 提供商配置（新增）
+    api_providers: Dict[str, Dict[str, Any]] = field(default_factory=dict)
+    
     # 全局模型配置（默认配置）
     model_name: str = "deepseek-chat"
     temperature: float = 0.3
@@ -1071,6 +1074,89 @@ class Config(ModuleLoggerMixin):
     def get_review_max_tokens(self) -> int:
         """获取校对阶段的 max_tokens"""
         return self.review_max_tokens
+    
+    # ========================================================================
+    # 多 API 提供商支持方法（新增）
+    # ========================================================================
+    
+    def get_available_providers(self) -> Dict[str, Dict[str, Any]]:
+        """
+        获取已配置的 API 提供商（只显示配置了 api_key 的）
+        
+        Returns:
+            包含所有已配置提供商的字典，键为提供商名称，值为配置信息
+        """
+        if not self.api_providers:
+            # 如果没有配置多提供商，返回当前单个提供商
+            if self.api_key and self.api_key.strip():
+                return {
+                    self.api_provider: {
+                        'api_key': self.api_key,
+                        'base_url': self.base_url,
+                        'model_name': self.model_name,
+                        'models': [self.model_name]
+                    }
+                }
+            return {}
+        
+        # 过滤出配置了 api_key 的提供商
+        available = {}
+        for provider_name, provider_config in self.api_providers.items():
+            api_key = provider_config.get('api_key', '')
+            if api_key and api_key.strip():
+                available[provider_name] = provider_config
+        
+        return available
+    
+    def get_provider_models(self, provider_name: str) -> List[str]:
+        """
+        获取指定提供商的所有可用模型
+        
+        Args:
+            provider_name: 提供商名称
+            
+        Returns:
+            模型名称列表
+        """
+        providers = self.get_available_providers()
+        if provider_name not in providers:
+            return []
+        
+        provider_config = providers[provider_name]
+        models = provider_config.get('models', [])
+        
+        if models:
+            return models
+        
+        # 如果没有配置 models 列表，使用 model_name
+        model_name = provider_config.get('model_name', '')
+        if model_name:
+            return [model_name]
+        
+        return []
+    
+    def switch_provider(self, provider_name: str) -> bool:
+        """
+        切换到指定的 API 提供商
+        
+        Args:
+            provider_name: 提供商名称
+            
+        Returns:
+            是否切换成功
+        """
+        providers = self.get_available_providers()
+        if provider_name not in providers:
+            return False
+        
+        provider_config = providers[provider_name]
+        self.api_provider = provider_name
+        self.api_key = provider_config.get('api_key', '')
+        self.base_url = provider_config.get('base_url', '')
+        self.model_name = provider_config.get('model_name', '')
+        
+        self.log_info(f"切换到 API 提供商：{provider_name}", model=self.model_name)
+        return True
 
 
 @dataclass

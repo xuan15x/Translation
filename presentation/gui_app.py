@@ -85,18 +85,16 @@ class TranslationApp:
         self.provider_manager = get_provider_manager()
         self.current_provider_var = tk.StringVar(value="deepseek")
         
-        # 翻译历史管理
-        self.history_manager = get_history_manager()
-        
-        # 撤销/重做管理器
-        self.undo_manager = get_undo_manager(max_history=100)
-        
-        # 进度估计器
-        self.progress_estimator = get_progress_estimator(window_size=20)
-        
         # 加载配置文件（如果有）
         if config_file:
             self._load_config_from_file()
+        
+        # 初始化可用 API 提供商列表（在加载配置之后）
+        self.available_providers = self._get_available_providers_from_config()
+        if self.available_providers:
+            # 使用第一个可用的提供商作为默认值
+            default_provider = list(self.available_providers.keys())[0]
+            self.current_provider_var.set(default_provider)
 
         self._setup_ui()
         self._setup_logger()
@@ -170,11 +168,12 @@ class TranslationApp:
         # 提供商选择下拉框
         ttk.Label(provider_frame, text="选择 API 提供商:").grid(row=0, column=0, sticky=tk.W, padx=5, pady=5)
         
-        providers_list = list(PREDEFINED_PROVIDERS.keys())
+        # 使用动态加载的可用提供商列表
+        providers_list = list(self.available_providers.keys()) if hasattr(self, 'available_providers') and self.available_providers else ["deepseek"]
         self.provider_combo = ttk.Combobox(
             provider_frame, 
             textvariable=self.current_provider_var,
-            values=[p.value for p in providers_list],
+            values=providers_list,
             state='readonly',
             width=30
         )
@@ -1785,3 +1784,61 @@ Key: {record.key}
         self.progress_eta_label.config(text="预计剩余：--:--")
         self.progress_speed_label.config(text="速度：0 项/秒")
         self.progress_bar['value'] = 0
+    
+    # ========================================================================
+    # API 提供商动态配置方法（新增）
+    # ========================================================================
+    
+    def _get_available_providers_from_config(self) -> dict:
+        """
+        从配置文件加载已配置的 API 提供商（只显示配置了 api_key 的）
+        
+        Returns:
+            包含所有已配置提供商的字典
+        """
+        if not self.config_persistence:
+            # 如果没有配置文件，返回空字典
+            return {}
+        
+        try:
+            file_config = self.config_persistence.load()
+            api_providers = file_config.get('api_providers', {})
+            
+            if not api_providers:
+                # 如果没有配置多提供商，使用单个提供商配置
+                api_key = file_config.get('api_key', '')
+                if api_key and api_key.strip():
+                    provider_name = file_config.get('api_provider', 'deepseek')
+                    return {
+                        provider_name: {
+                            'api_key': api_key,
+                            'base_url': file_config.get('base_url', ''),
+                            'model_name': file_config.get('model_name', ''),
+                            'models': [file_config.get('model_name', '')]
+                        }
+                    }
+                return {}
+            
+            # 过滤出配置了 api_key 的提供商
+            available = {}
+            for provider_name, provider_config in api_providers.items():
+                api_key = provider_config.get('api_key', '')
+                if api_key and api_key.strip():
+                    available[provider_name] = provider_config
+            
+            return available
+            
+        except Exception as e:
+            logging.error(f"加载 API 提供商配置失败：{e}")
+            return {}
+    
+    def _update_provider_combo_values(self):
+        """更新提供商下拉框的可选值"""
+        if hasattr(self, 'available_providers') and self.available_providers:
+            providers_list = list(self.available_providers.keys())
+            self.provider_combo['values'] = providers_list
+            
+            # 设置默认选中项
+            if providers_list:
+                self.current_provider_var.set(providers_list[0])
+                self._on_provider_changed(None)

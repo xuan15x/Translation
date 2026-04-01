@@ -5,10 +5,48 @@
   // ============================================================
   // 【API 配置】- 必须设置
   // ============================================================
-  "api_provider": "deepseek",              // API 提供商：deepseek, openai 等
-  "api_key": "your_api_key_here",          // ⚠️ 必须设置：你的 API 密钥
-  "base_url": "https://api.deepseek.com",  // API 基础 URL
-  "model_name": "deepseek-chat",           // 使用的模型名称
+  // 默认 API 提供商（从下方 api_providers 中选择）
+  "api_provider": "deepseek",
+  
+  // 多 API 提供商配置（未配置 api_key 的不会显示）
+  "api_providers": {
+    "deepseek": {
+      "api_key": "sk-your-deepseek-api-key-here",  // ⚠️ DeepSeek API 密钥
+      "base_url": "https://api.deepseek.com",
+      "model_name": "deepseek-chat",
+      "models": [  // 支持的模型列表
+        "deepseek-chat",
+        "deepseek-coder"
+      ]
+    },
+    "openai": {
+      "api_key": "sk-your-openai-api-key-here",    // ⚠️ OpenAI API 密钥
+      "base_url": "https://api.openai.com/v1",
+      "model_name": "gpt-3.5-turbo",
+      "models": [  // 支持的模型列表
+        "gpt-3.5-turbo",
+        "gpt-4",
+        "gpt-4-turbo"
+      ]
+    },
+    "azure_openai": {
+      "api_key": "your-azure-api-key-here",        // ⚠️ Azure API 密钥
+      "base_url": "https://YOUR_RESOURCE.openai.azure.com/",
+      "model_name": "gpt-35-turbo",                // Azure 部署名称
+      "models": [  // Azure 部署的模型
+        "gpt-35-turbo",
+        "gpt-4"
+      ]
+    },
+    "custom": {
+      "api_key": "your-custom-api-key-here",       // ⚠️ 自定义 API 密钥
+      "base_url": "https://your-api-server.com/v1",
+      "model_name": "your-model-name",
+      "models": [  // 自定义模型
+        "your-model-name"
+      ]
+    }
+  },
   
   // ============================================================
   // 【模型参数】- 影响翻译质量
