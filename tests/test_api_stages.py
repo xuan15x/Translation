@@ -9,7 +9,7 @@ from unittest.mock import MagicMock, AsyncMock, patch
 
 from infrastructure.models import Config, StageResult, TaskContext
 from infrastructure.concurrency_controller import AdaptiveConcurrencyController
-from business_logic.api_stages import APIDraftStage, APIReviewStage, LocalHitStage
+from service.api_stages import APIDraftStage, APIReviewStage
 
 
 @pytest.fixture
