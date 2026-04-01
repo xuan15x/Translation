@@ -213,8 +213,8 @@ class GlobalPersistenceManager:
         results = {
             'save': save_results,
             'close': close_results,
-            'total_saved': save_results['saved'],
-            'total_failed': save_results['failed'] + close_results['failed']
+            'total_saved': save_results.get('saved', 0),
+            'total_failed': save_results.get('failed', 0) + close_results.get('failed', 0)
         }
         
         if results['total_failed'] == 0:
