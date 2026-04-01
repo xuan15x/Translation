@@ -13,7 +13,7 @@ class ITerminologyDomainService(ABC):
     @abstractmethod
     async def find_match(self, source_text: str, target_lang: str) -> Optional[TermMatch]:
         """
-        查找术语匹配
+        查找术语匹配（单次查询）
         
         Args:
             source_text: 源文本
@@ -21,6 +21,19 @@ class ITerminologyDomainService(ABC):
             
         Returns:
             术语匹配结果
+        """
+        pass
+    
+    @abstractmethod
+    async def find_matches_batch(self, queries: List[tuple]) -> List[Optional[TermMatch]]:
+        """
+        批量查找术语匹配（降低调用开销）
+        
+        Args:
+            queries: 查询列表 [(source_text, target_lang), ...]
+            
+        Returns:
+            匹配结果列表
         """
         pass
     
@@ -33,6 +46,16 @@ class ITerminologyDomainService(ABC):
             source_text: 源文本
             target_lang: 目标语言
             translation: 翻译结果
+        """
+        pass
+    
+    @abstractmethod
+    async def save_terms_batch(self, terms: List[tuple]):
+        """
+        批量保存术语（降低数据库开销）
+        
+        Args:
+            terms: [(source_text, target_lang, translation), ...]
         """
         pass
 
@@ -78,6 +101,20 @@ class IBatchProcessor(ABC):
         
         Args:
             tasks: 任务列表
+            
+        Returns:
+            批量结果
+        """
+        pass
+    
+    @abstractmethod
+    async def process_concurrent(self, tasks: List[TranslationTask], concurrency_limit: int) -> BatchResult:
+        """
+        并发处理任务（可配置并发数）
+        
+        Args:
+            tasks: 任务列表
+            concurrency_limit: 并发限制
             
         Returns:
             批量结果
