@@ -124,6 +124,9 @@ class Config(ModuleLoggerMixin):
             self.log_error(error_msg)
             raise AuthenticationError(error_msg, details={'env_var': 'api_key'})
         
+        # 记录配置使用情况（打点上报）
+        self._track_config_usage()
+        
         # 验证配置参数的有效性
         self._validate_config()
         
@@ -146,6 +149,18 @@ class Config(ModuleLoggerMixin):
                 'solution': '请通过以下方式设置：\n'
                            '1. 配置文件：config.json 中设置 "api_key": "your-key"\n'
                            '2. GUI 界面：在翻译平台界面中配置 API 密钥'
+            })
+        
+        # ========== API 提供商配置验证 ==========
+        valid_providers = ['deepseek', 'openai', 'anthropic', 'moonshot', 'zhipu', 'baidu', 'alibaba', 'custom']
+        if self.api_provider not in valid_providers:
+            errors.append({
+                'field': 'api_provider',
+                'error': f'api_provider 值 "{self.api_provider}" 无效',
+                'check_point': 'API 提供商选择',
+                'current_value': self.api_provider,
+                'requirement': f'必须是以下之一：{valid_providers}',
+                'solution': f'建议使用 "deepseek" 或 "openai"，当前值：" {self.api_provider}"'
             })
         
         if not self.base_url or not self.base_url.strip():
@@ -614,6 +629,18 @@ class Config(ModuleLoggerMixin):
                 'solution': '请通过以下方式设置：\n'
                            '1. 配置文件：config.json 中设置 "api_key": "your-key"\n'
                            '2. GUI 界面：在翻译平台界面中配置 API 密钥'
+            })
+        
+        # ========== API 提供商配置验证 ==========
+        valid_providers = ['deepseek', 'openai', 'anthropic', 'moonshot', 'zhipu', 'baidu', 'alibaba', 'custom']
+        if self.api_provider not in valid_providers:
+            errors.append({
+                'field': 'api_provider',
+                'error': f'api_provider 值 "{self.api_provider}" 无效',
+                'check_point': 'API 提供商选择',
+                'current_value': self.api_provider,
+                'requirement': f'必须是以下之一：{valid_providers}',
+                'solution': f'建议使用 "deepseek" 或 "openai"，当前值：" {self.api_provider}"'
             })
         
         if not self.base_url or not self.base_url.strip():

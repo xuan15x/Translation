@@ -10,10 +10,12 @@ from typing import List
 
 from config import DEFAULT_DRAFT_PROMPT, DEFAULT_REVIEW_PROMPT, TARGET_LANGUAGES, GUI_CONFIG
 from infrastructure.log_config import setup_logger, LogTag, log_with_tag, LogLevel
+from infrastructure.log_slice import LoggerSlice, LogCategory
 from infrastructure.models import Config
 from infrastructure.di_container import initialize_container
 from data_access.config_persistence import ConfigPersistence
 from service.api_provider import get_provider_manager
+from infrastructure.gui_log_controller import GUILogController
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +57,9 @@ class TranslationApp:
         # API 提供商管理
         self.provider_manager = get_provider_manager()
         self.current_provider_var = tk.StringVar(value="deepseek")
+        
+        # 日志控制器
+        self.log_controller = None
         
         # 加载配置
         if config_file:
@@ -179,6 +184,9 @@ class TranslationApp:
         control_frame = ttk.LabelFrame(main_frame, text="🚀 执行控制", padding="10")
         control_frame.pack(fill=tk.BOTH, expand=True)
         
+        # 日志控制面板
+        self._create_log_control_panel(control_frame)
+        
         # 按钮
         btn_frame = ttk.Frame(control_frame)
         btn_frame.pack(pady=5)
@@ -218,6 +226,9 @@ class TranslationApp:
         
         # 重定向日志到 GUI
         self._setup_gui_logging()
+        
+        # 初始化日志控制器
+        self._initialize_log_controller()
     
     def _setup_gui_logging(self):
         """设置 GUI 日志重定向"""
@@ -236,6 +247,37 @@ class TranslationApp:
         formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
         handler.setFormatter(formatter)
         logging.getLogger().addHandler(handler)
+    
+    def _initialize_log_controller(self):
+        """初始化 GUI 日志控制器"""
+        try:
+            # 创建绑定变量
+            self.log_level_var = tk.StringVar(value="INFO")
+            self.log_granularity_var = tk.StringVar(value="normal")
+            
+            # 创建控制器
+            self.log_controller = GUILogController(
+                self.log_level_var,
+                self.log_granularity_var
+            )
+            
+            # 应用初始配置
+            if hasattr(self, 'config') and self.config:
+                self.log_controller.update_log_level(self.config.log_level)
+                self.log_controller.update_log_granularity(self.config.log_granularity)
+            
+            logger.info("✅ GUI 日志控制器初始化完成")
+        except Exception as e:
+            logger.error(f"❌ GUI 日志控制器初始化失败：{e}")
+    
+    def _create_log_control_panel(self, parent):
+        """创建日志控制面板"""
+        if not self.log_controller:
+            return
+        
+        # 使用 log_controller 的方法创建控制面板
+        control_frame = self.log_controller.create_log_control_frame(parent)
+        control_frame.pack(fill=tk.X, pady=(0, 5))
     
     def _select_term_file(self):
         """选择术语库文件"""
