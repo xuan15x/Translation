@@ -169,6 +169,79 @@ class TranslationApp:
         # 初始化模型列表
         self._update_model_list()
         
+        # --- 2.1 双阶段翻译参数（高级选项）---
+        advanced_frame = ttk.LabelFrame(main_frame, text="⚙️ 双阶段翻译参数（高级）", padding="10")
+        advanced_frame.pack(fill=tk.X, pady=(0, 10))
+        
+        # 使用 Notebook 分页显示初译和校对参数
+        self.advanced_notebook = ttk.Notebook(advanced_frame)
+        self.advanced_notebook.pack(fill=tk.X)
+        
+        # 初译参数页
+        draft_params_frame = ttk.Frame(self.advanced_notebook, padding="5")
+        self.advanced_notebook.add(draft_params_frame, text="📝 初译参数")
+        
+        ttk.Label(draft_params_frame, text="初译模型:").grid(row=0, column=0, sticky=tk.W, padx=5, pady=5)
+        self.draft_model_var = tk.StringVar(value="")
+        self.draft_model_combo = ttk.Combobox(draft_params_frame, textvariable=self.draft_model_var, state='readonly', width=25)
+        self.draft_model_combo.grid(row=0, column=1, sticky=tk.W, padx=5, pady=5)
+        ttk.Label(draft_params_frame, text="(空=使用全局模型)", foreground="gray").grid(row=0, column=2, padx=5, pady=5)
+        
+        ttk.Label(draft_params_frame, text="温度:").grid(row=1, column=0, sticky=tk.W, padx=5, pady=5)
+        self.draft_temp_var = tk.DoubleVar(value=0.3)
+        self.draft_temp_spin = ttk.Spinbox(draft_params_frame, from_=0.0, to=2.0, increment=0.1, textvariable=self.draft_temp_var, width=28)
+        self.draft_temp_spin.grid(row=1, column=1, sticky=tk.W, padx=5, pady=5)
+        
+        ttk.Label(draft_params_frame, text="Top P:").grid(row=2, column=0, sticky=tk.W, padx=5, pady=5)
+        self.draft_top_p_var = tk.DoubleVar(value=0.8)
+        self.draft_top_p_spin = ttk.Spinbox(draft_params_frame, from_=0.0, to=1.0, increment=0.1, textvariable=self.draft_top_p_var, width=28)
+        self.draft_top_p_spin.grid(row=2, column=1, sticky=tk.W, padx=5, pady=5)
+        
+        ttk.Label(draft_params_frame, text="超时 (秒):").grid(row=3, column=0, sticky=tk.W, padx=5, pady=5)
+        self.draft_timeout_var = tk.IntVar(value=60)
+        self.draft_timeout_spin = ttk.Spinbox(draft_params_frame, from_=10, to=300, increment=10, textvariable=self.draft_timeout_var, width=28)
+        self.draft_timeout_spin.grid(row=3, column=1, sticky=tk.W, padx=5, pady=5)
+        
+        ttk.Label(draft_params_frame, text="Max Tokens:").grid(row=4, column=0, sticky=tk.W, padx=5, pady=5)
+        self.draft_max_tokens_var = tk.IntVar(value=512)
+        self.draft_max_tokens_spin = ttk.Spinbox(draft_params_frame, from_=128, to=4096, increment=128, textvariable=self.draft_max_tokens_var, width=28)
+        self.draft_max_tokens_spin.grid(row=4, column=1, sticky=tk.W, padx=5, pady=5)
+        
+        # 校对参数页
+        review_params_frame = ttk.Frame(self.advanced_notebook, padding="5")
+        self.advanced_notebook.add(review_params_frame, text="✏️ 校对参数")
+        
+        ttk.Label(review_params_frame, text="校对模型:").grid(row=0, column=0, sticky=tk.W, padx=5, pady=5)
+        self.review_model_var = tk.StringVar(value="")
+        self.review_model_combo = ttk.Combobox(review_params_frame, textvariable=self.review_model_var, state='readonly', width=25)
+        self.review_model_combo.grid(row=0, column=1, sticky=tk.W, padx=5, pady=5)
+        ttk.Label(review_params_frame, text="(空=使用全局模型)", foreground="gray").grid(row=0, column=2, padx=5, pady=5)
+        
+        ttk.Label(review_params_frame, text="温度:").grid(row=1, column=0, sticky=tk.W, padx=5, pady=5)
+        self.review_temp_var = tk.DoubleVar(value=0.5)
+        self.review_temp_spin = ttk.Spinbox(review_params_frame, from_=0.0, to=2.0, increment=0.1, textvariable=self.review_temp_var, width=28)
+        self.review_temp_spin.grid(row=1, column=1, sticky=tk.W, padx=5, pady=5)
+        
+        ttk.Label(review_params_frame, text="Top P:").grid(row=2, column=0, sticky=tk.W, padx=5, pady=5)
+        self.review_top_p_var = tk.DoubleVar(value=0.9)
+        self.review_top_p_spin = ttk.Spinbox(review_params_frame, from_=0.0, to=1.0, increment=0.1, textvariable=self.review_top_p_var, width=28)
+        self.review_top_p_spin.grid(row=2, column=1, sticky=tk.W, padx=5, pady=5)
+        
+        ttk.Label(review_params_frame, text="超时 (秒):").grid(row=3, column=0, sticky=tk.W, padx=5, pady=5)
+        self.review_timeout_var = tk.IntVar(value=60)
+        self.review_timeout_spin = ttk.Spinbox(review_params_frame, from_=10, to=300, increment=10, textvariable=self.review_timeout_var, width=28)
+        self.review_timeout_spin.grid(row=3, column=1, sticky=tk.W, padx=5, pady=5)
+        
+        ttk.Label(review_params_frame, text="Max Tokens:").grid(row=4, column=0, sticky=tk.W, padx=5, pady=5)
+        self.review_max_tokens_var = tk.IntVar(value=512)
+        self.review_max_tokens_spin = ttk.Spinbox(review_params_frame, from_=128, to=4096, increment=128, textvariable=self.review_max_tokens_var, width=28)
+        self.review_max_tokens_spin.grid(row=4, column=1, sticky=tk.W, padx=5, pady=5)
+        
+        # 重置按钮
+        reset_btn_frame = ttk.Frame(advanced_frame)
+        reset_btn_frame.pack(fill=tk.X, pady=(5, 0))
+        ttk.Button(reset_btn_frame, text="🔄 重置为默认值", command=self._reset_advanced_params).pack(side=tk.LEFT, padx=5)
+        
         # --- 3. 游戏翻译方向选择区 ---
         game_type_frame = ttk.LabelFrame(main_frame, text="🎮 游戏翻译方向", padding="10")
         game_type_frame.pack(fill=tk.X, pady=(0, 10))
@@ -418,6 +491,7 @@ class TranslationApp:
             models = self.provider_manager.list_models(provider)
             
             if models:
+                # 更新全局模型列表
                 self.model_combo['values'] = models
                 # 设置默认模型
                 config = self.provider_manager.get_provider(provider)
@@ -425,15 +499,27 @@ class TranslationApp:
                     self.current_model_var.set(config.default_model)
                 else:
                     self.current_model_var.set(models[0] if models else "")
+                
+                # 更新初译和校对模型列表
+                self.draft_model_combo['values'] = [''] + models  # 空值表示使用全局模型
+                self.review_model_combo['values'] = [''] + models
+                
+                # 从配置加载双阶段参数
+                self._load_advanced_params_from_config()
+                
+                logger.debug(f"提供商 {provider_name} 的模型列表：{models}")
             else:
                 self.model_combo['values'] = []
                 self.current_model_var.set("")
+                self.draft_model_combo['values'] = []
+                self.review_model_combo['values'] = []
                 
-            logger.debug(f"提供商 {provider_name} 的模型列表：{models}")
         except Exception as e:
             logger.error(f"更新模型列表失败：{e}")
             self.model_combo['values'] = []
             self.current_model_var.set("")
+            self.draft_model_combo['values'] = []
+            self.review_model_combo['values'] = []
     
     def _deselect_all_langs(self):
         """取消全选"""
@@ -441,10 +527,63 @@ class TranslationApp:
             var.set(False)
         self._update_lang_status()
     
+    def _load_advanced_params_from_config(self):
+        """从配置文件加载双阶段翻译参数"""
+        if not hasattr(self, 'config') or not self.config:
+            return
+        
+        try:
+            # 加载初译参数
+            if hasattr(self.config, 'draft_model_name') and self.config.draft_model_name:
+                self.draft_model_var.set(self.config.draft_model_name)
+            if hasattr(self.config, 'draft_temperature') and self.config.draft_temperature:
+                self.draft_temp_var.set(self.config.draft_temperature)
+            if hasattr(self.config, 'draft_top_p') and self.config.draft_top_p:
+                self.draft_top_p_var.set(self.config.draft_top_p)
+            if hasattr(self.config, 'draft_timeout') and self.config.draft_timeout:
+                self.draft_timeout_var.set(self.config.draft_timeout)
+            if hasattr(self.config, 'draft_max_tokens') and self.config.draft_max_tokens:
+                self.draft_max_tokens_var.set(self.config.draft_max_tokens)
+            
+            # 加载校对参数
+            if hasattr(self.config, 'review_model_name') and self.config.review_model_name:
+                self.review_model_var.set(self.config.review_model_name)
+            if hasattr(self.config, 'review_temperature') and self.config.review_temperature:
+                self.review_temp_var.set(self.config.review_temperature)
+            if hasattr(self.config, 'review_top_p') and self.config.review_top_p:
+                self.review_top_p_var.set(self.config.review_top_p)
+            if hasattr(self.config, 'review_timeout') and self.config.review_timeout:
+                self.review_timeout_var.set(self.config.review_timeout)
+            if hasattr(self.config, 'review_max_tokens') and self.config.review_max_tokens:
+                self.review_max_tokens_var.set(self.config.review_max_tokens)
+            
+            logger.debug("已加载双阶段翻译参数配置")
+        except Exception as e:
+            logger.error(f"加载双阶段参数配置失败：{e}")
+    
     def _update_lang_status(self):
         """更新语言选择状态"""
         count = sum(1 for var in self.lang_vars.values() if var.get())
         self.selected_langs = [lang for lang, var in self.lang_vars.items() if var.get()]
+    
+    def _reset_advanced_params(self):
+        """重置高级参数为默认值"""
+        # 清空模型选择（使用全局模型）
+        self.draft_model_var.set("")
+        self.review_model_var.set("")
+        
+        # 重置为默认参数值
+        self.draft_temp_var.set(0.3)
+        self.draft_top_p_var.set(0.8)
+        self.draft_timeout_var.set(60)
+        self.draft_max_tokens_var.set(512)
+        
+        self.review_temp_var.set(0.5)
+        self.review_top_p_var.set(0.9)
+        self.review_timeout_var.set(60)
+        self.review_max_tokens_var.set(512)
+        
+        logger.info("🔄 已重置双阶段翻译参数为默认值")
     
     def _toggle_performance_monitor(self):
         """切换性能监控开关"""
