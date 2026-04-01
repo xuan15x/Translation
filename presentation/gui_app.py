@@ -63,6 +63,11 @@ class TranslationApp:
         # 初始化 API 提供商列表
         self.available_providers = self._get_available_providers_from_config()
         if self.available_providers:
+            # _get_available_providers_from_config 返回的是列表，需要转换为字典
+            providers_dict = {provider: provider for provider in self.available_providers}
+            self.available_providers = providers_dict
+            
+            # 使用第一个可用的提供商作为默认值
             default_provider = list(self.available_providers.keys())[0]
             self.current_provider_var.set(default_provider)
         
