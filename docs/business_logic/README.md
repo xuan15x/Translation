@@ -1,6 +1,43 @@
-# 业务逻辑层文档
+# 业务逻辑层文档 (已废弃 ⚠️)
 
-## 📋 概述
+## 📋 重要提示
+
+**本模块已在 v3.0 版本中废弃！**
+
+### 迁移指南
+
+| 旧代码 (v2.x) | 新代码 (v3.0+) |
+|--------------|---------------|
+| `WorkflowOrchestrator` | `TranslationWorkflowCoordinator` (application 层) |
+| `TerminologyManager` | `TerminologyDomainService` (domain 层) |
+| `business_logic.*` | `application.*` + `domain.*` |
+
+### 为什么废弃？
+
+1. **职责混乱** - business_logic 层承担了过多职责
+2. **紧耦合** - 各组件之间依赖复杂
+3. **难测试** - 难以进行单元测试
+4. **性能差** - 缺少缓存和批量优化
+
+### 新的六层架构
+
+```
+Presentation Layer (表示层)
+    ↓
+Application Layer (应用层) ← 新增的流程编排层
+    ↓
+Domain Layer (领域层) ← 纯业务逻辑层
+    ↓
+Service Layer (服务层)
+    ↓
+Data Access Layer (数据访问层)
+    ↓
+Infrastructure Layer (基础设施层)
+```
+
+---
+
+## 📋 历史概述（仅供参考）
 
 `business_logic/` 模块负责翻译流程编排和术语库管理，是系统的核心业务逻辑层。
 

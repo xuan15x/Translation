@@ -27,9 +27,9 @@
 
 | 文档 | 说明 | 位置 |
 |------|------|------|
-| [架构设计](architecture/ARCHITECTURE_DESIGN.md) | 五层模块化架构详解 | architecture/ |
-| [架构概览](architecture/ARCHITECTURE.md) | 架构简介 | architecture/ |
-| [重构总结](architecture/REFACTORING_SUMMARY.md) | 模块化重构过程 | architecture/ |
+| [架构设计](architecture/ARCHITECTURE_DESIGN.md) | 六层分层架构详解 ⭐ NEW | architecture/ |
+| [架构概览](architecture/ARCHITECTURE.md) | 架构简介 v3.0 | architecture/ |
+| [重构总结](architecture/REFACTORING_SUMMARY.md) | 全面重构过程 | architecture/ |
 
 ### 💻 开发指南 (适合贡献者)
 
@@ -54,11 +54,17 @@
 |------|------|------|
 | [基础设施层](docs/infrastructure/README.md) | 数据模型、日志、并发控制 | docs/infrastructure/ |
 
-#### 业务逻辑层
+#### 应用层
 
 | 文档 | 说明 | 位置 |
 |------|------|------|
-| [业务逻辑层](docs/business_logic/README.md) | 工作流编排和术语管理 | docs/business_logic/ |
+| [应用层](application/README.md) | 流程编排和外观模式 ⭐ NEW | application/ |
+
+#### 领域层
+
+| 文档 | 说明 | 位置 |
+|------|------|------|
+| [领域层](domain/README.md) | 核心业务逻辑 ⭐ NEW | domain/ |
 
 #### 服务层
 
