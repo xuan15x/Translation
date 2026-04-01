@@ -87,3 +87,6 @@ scripts/check_*.py
 scripts/generate_docs.py
 scripts/quick_start_verify.py
 scripts/test_config_checker.py
+
+# 但保留版本检查工具
+!scripts/check_version_before_push.py
