@@ -13,7 +13,7 @@ from domain.models import (
     TermMatch
 )
 from infrastructure.models import Config, TaskContext, FinalResult
-from business_logic.api_stages import APIDraftStage, APIReviewStage
+from service.api_stages import APIDraftStage, APIReviewStage
 from infrastructure.concurrency_controller import AdaptiveConcurrencyController
 import asyncio
 
