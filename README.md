@@ -1,8 +1,8 @@
-# AI 智能翻译系统 v2.0
+# AI 智能翻译系统 v2.2
 
 一款基于 AI 大语言模型的专业翻译工具，采用五层模块化架构设计，支持**多语言批量翻译**、**术语库管理**、**双阶段翻译流程**等功能。
 
-![Version](https://img.shields.io/badge/version-2.0-blue)
+![Version](https://img.shields.io/badge/version-2.2.0-blue)
 ![Python](https://img.shields.io/badge/python-3.8+-green)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
@@ -28,7 +28,9 @@
 - **日志分级**: 5 级日志粒度 + 8 种标签过滤
 - **配置管理**: 支持 JSON/YAML 配置文件
 - **撤销/重做**: 完整的操作历史记录
-- **统一错误处理**: 20+ 自定义异常类，标准化异常体系 ⭐ NEW
+- **统一错误处理**: 20+ 自定义异常类，标准化异常体系
+- **配置验证增强**: 40+ 检查点，批量错误报告 ⭐ NEW
+- **文档版本管理**: 完善的文档同步机制 ⭐ NEW
 
 ## 📁 项目结构
 
@@ -165,7 +167,9 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-#### 4. 配置 API
+#### 4. 配置 API（⚠️ 重要）
+
+**注意**：程序不再支持环境变量方式，必须通过配置文件或 GUI 界面设置 API 密钥。
 
 **方式一：使用配置文件（推荐）**
 
@@ -176,27 +180,15 @@ cp config/config.example.json config/config.json
 # 编辑配置文件，填入你的 API Key
 # 使用文本编辑器打开 config/config.json
 {
-  "api_key": "your-api-key-here",
+  "api_key": "your-api-key-here",  # ⚠️ 必须设置
   "base_url": "https://api.deepseek.com",
   "model_name": "deepseek-chat"
 }
 ```
 
-**方式二：使用配置文件（推荐）**
+**方式二：GUI 界面配置**
 
-```bash
-# 复制示例配置文件
-cp config/config.example.json config/config.json
-```
-
-然后编辑 `config/config.json`：
-```json
-{
-  "api_key": "your-api-key",
-  "base_url": "https://api.deepseek.com",
-  "model_name": "deepseek-chat"
-}
-```
+启动程序后，在界面的"🔌 API 提供商"区域直接输入 API 密钥和其他配置。
 
 **注意：**
 - ❌ 已废弃环境变量方式
