@@ -54,10 +54,6 @@ class TranslationApp:
         self.prompt_draft.set(self.default_draft)
         self.prompt_review.set(self.default_review)
         
-        # 游戏翻译方向
-        self.translation_type_var = tk.StringVar(value="custom")
-        self.is_game_translation = tk.BooleanVar(value=False)
-        
         # API 提供商管理
         self.provider_manager = get_provider_manager()
         self.current_provider_var = tk.StringVar(value="deepseek")
@@ -147,41 +143,7 @@ class TranslationApp:
         # 初始化模型列表
         self._update_model_list()
         
-        # --- 3. 翻译类型选择区 ---
-        type_frame = ttk.LabelFrame(main_frame, text="🎮 翻译类型", padding="10")
-        type_frame.pack(fill=tk.X, pady=(0, 10))
-        
-        # 游戏翻译开关
-        game_cb_frame = ttk.Frame(type_frame)
-        game_cb_frame.pack(fill=tk.X, pady=(0, 5))
-        
-        game_cb = ttk.Checkbutton(
-            game_cb_frame,
-            text="启用游戏翻译模式",
-            variable=self.is_game_translation,
-            command=self._on_game_translation_toggle
-        )
-        game_cb.pack(side=tk.LEFT, padx=5)
-        
-        # 翻译方向选择（仅在游戏模式启用时可用）
-        self.type_combo_label = ttk.Label(game_cb_frame, text="翻译方向:")
-        self.type_combo_label.pack(side=tk.LEFT, padx=(20, 5))
-        
-        self.type_combo = ttk.Combobox(
-            game_cb_frame,
-            textvariable=self.translation_type_var,
-            values=list(GAME_TRANSLATION_TYPES.values()),
-            state='readonly',
-            width=15
-        )
-        self.type_combo.pack(side=tk.LEFT, padx=5)
-        self.type_combo.set("自定义")  # 默认值
-        self.type_combo.bind('<<ComboboxSelected>>', self._on_translation_type_changed)
-        
-        # 初始化状态
-        self._update_type_combo_state()
-        
-        # --- 4. 语言选择区 ---
+        # --- 3. 语言选择区 ---
         lang_frame = ttk.LabelFrame(main_frame, text="🌍 目标语言", padding="10")
         lang_frame.pack(fill=tk.X, pady=(0, 10))
         
@@ -199,7 +161,7 @@ class TranslationApp:
             cb = ttk.Checkbutton(cb_frame, text=lang, variable=var, command=self._update_lang_status)
             cb.grid(row=i // 4, column=i % 4, sticky=tk.W, padx=10, pady=2)
         
-        # --- 5. 提示词配置区 ---
+        # --- 4. 提示词配置区 ---
         prompt_frame = ttk.LabelFrame(main_frame, text="⚙️ 提示词配置", padding="10")
         prompt_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
         
@@ -218,7 +180,7 @@ class TranslationApp:
         self.review_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
         self.review_text.insert('1.0', self.default_review)
         
-        # --- 6. 控制与日志区 ---
+        # --- 5. 控制与日志区 ---
         control_frame = ttk.LabelFrame(main_frame, text="🚀 执行控制", padding="10")
         control_frame.pack(fill=tk.BOTH, expand=True)
         
