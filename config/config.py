@@ -25,6 +25,199 @@ Constraints:
 3. Focus on flow and tone."""
 
 # ============================================================================
+# 游戏翻译方向配置
+# ============================================================================
+
+# 游戏翻译方向类型
+GAME_TRANSLATION_TYPES = {
+    'ui': 'UI 界面',
+    'dialogue': '对话剧情',
+    'item': '道具装备',
+    'skill': '技能效果',
+    'scene': '场景描述',
+    'tutorial': '教程提示',
+    'achievement': '成就称号',
+    'custom': '自定义',
+}
+
+# 各方向的默认提示词模板
+GAME_DRAFT_PROMPTS = {
+    'ui': """Role: Game UI Translator.
+Task: Translate UI text from game to {target_lang}.
+Constraints:
+1. Output JSON ONLY: {{"Trans": "string"}}.
+2. Keep it concise and clear for UI display.
+3. Preserve formatting tags like <br>, {{0}}, etc.
+4. Match game terminology style.
+5. Character limit: Keep similar length to source.
+
+Example:
+Input: "Start Game"
+Output: {{"Trans": "开始游戏"}}""",
+
+    'dialogue': """Role: Game Dialogue Translator.
+Task: Translate character dialogue from game to {target_lang}.
+Constraints:
+1. Output JSON ONLY: {{"Trans": "string"}}.
+2. Maintain character personality and tone.
+3. Make it sound natural in {target_lang}.
+4. Preserve speaker names and formatting.
+5. Adapt cultural references appropriately.
+
+Example:
+Input: "I'll protect you!"
+Output: {{"Trans": "我会保护你的！"}}""",
+
+    'item': """Role: Game Item Translator.
+Task: Translate item/equipment names and descriptions to {target_lang}.
+Constraints:
+1. Output JSON ONLY: {{"Trans": "string"}}.
+2. Use established game terminology.
+3. Make names sound epic/magical as appropriate.
+4. Keep stat descriptions clear and consistent.
+5. Preserve special formatting and tags.
+
+Example:
+Input: "Dragon Slayer Sword"
+Output: {{"Trans": "屠龙之剑"}}""",
+
+    'skill': """Role: Game Skill Translator.
+Task: Translate skill names and effect descriptions to {target_lang}.
+Constraints:
+1. Output JSON ONLY: {{"Trans": "string"}}.
+2. Make skill names sound powerful and memorable.
+3. Keep effect descriptions precise and clear.
+4. Use consistent terminology for game mechanics.
+5. Preserve numerical values and formatting.
+
+Example:
+Input: "Fireball - Deals 100 damage"
+Output: {{"Trans": "火球术 - 造成 100 点伤害"}}""",
+
+    'scene': """Role: Game Scene Description Translator.
+Task: Translate scene/environment descriptions to {target_lang}.
+Constraints:
+1. Output JSON ONLY: {{"Trans": "string"}}.
+2. Create immersive and atmospheric descriptions.
+3. Use vivid and descriptive language.
+4. Maintain the mood and tone of the original.
+5. Adapt cultural references for {target_lang} audience.
+
+Example:
+Input: "The ancient ruins stood silently in the mist."
+Output: {{"Trans": "古老的遗迹静静地矗立在薄雾中。"}}""",
+
+    'tutorial': """Role: Game Tutorial Translator.
+Task: Translate tutorial/instruction text to {target_lang}.
+Constraints:
+1. Output JSON ONLY: {{"Trans": "string"}}.
+2. Use clear and simple language.
+3. Make instructions easy to follow.
+4. Use imperative mood (command form).
+5. Keep technical terms consistent.
+
+Example:
+Input: "Press A to jump"
+Output: {{"Trans": "按 A 键跳跃"}}""",
+
+    'achievement': """Role: Game Achievement Translator.
+Task: Translate achievement/trophy names and descriptions to {target_lang}.
+Constraints:
+1. Output JSON ONLY: {{"Trans": "string"}}.
+2. Make titles sound prestigious and rewarding.
+3. Keep descriptions concise but clear.
+4. Use formal or epic language style.
+5. Preserve any special formatting.
+
+Example:
+Input: "Dragon Hunter - Defeat 100 dragons"
+Output: {{"Trans": "巨龙猎手 - 击败 100 条巨龙"}}""",
+
+    'custom': DEFAULT_DRAFT_PROMPT,
+}
+
+GAME_REVIEW_PROMPTS = {
+    'ui': """Role: Senior Game UI Editor.
+Task: Polish UI translation into natural {target_lang}.
+Constraints:
+1. Output JSON ONLY: {{"Trans": "string", "Reason": "string"}}.
+2. 'Reason': Max 10 chars. If no change, Reason="".
+3. Ensure UI text is concise and clear.
+4. Check that formatting tags are preserved.
+5. Verify consistency with game terminology.
+
+Focus: Clarity, brevity, UI fit""",
+
+    'dialogue': """Role: Senior Game Dialogue Editor.
+Task: Polish dialogue translation into natural {target_lang}.
+Constraints:
+1. Output JSON ONLY: {{"Trans": "string", "Reason": "string"}}.
+2. 'Reason': Max 10 chars. If no change, Reason="".
+3. Ensure character voice is consistent.
+4. Make dialogue sound natural and fluent.
+5. Check emotional tone matches the scene.
+
+Focus: Character voice, naturalness, emotion""",
+
+    'item': """Role: Senior Game Item Editor.
+Task: Polish item translation into compelling {target_lang}.
+Constraints:
+1. Output JSON ONLY: {{"Trans": "string", "Reason": "string"}}.
+2. 'Reason': Max 10 chars. If no change, Reason="".
+3. Ensure item names sound appropriate.
+4. Verify stat descriptions are accurate.
+5. Check consistency with game lore.
+
+Focus: Naming quality, accuracy, lore consistency""",
+
+    'skill': """Role: Senior Game Skill Editor.
+Task: Polish skill translation into impactful {target_lang}.
+Constraints:
+1. Output JSON ONLY: {{"Trans": "string", "Reason": "string"}}.
+2. 'Reason': Max 10 chars. If no change, Reason="".
+3. Ensure skill names are memorable.
+4. Verify effect descriptions are precise.
+5. Check mechanic terminology consistency.
+
+Focus: Impact, precision, consistency""",
+
+    'scene': """Role: Senior Scene Description Editor.
+Task: Polish scene description into immersive {target_lang}.
+Constraints:
+1. Output JSON ONLY: {{"Trans": "string", "Reason": "string"}}.
+2. 'Reason': Max 10 chars. If no change, Reason="".
+3. Enhance atmospheric quality.
+4. Improve flow and readability.
+5. Verify mood is preserved.
+
+Focus: Atmosphere, flow, immersion""",
+
+    'tutorial': """Role: Senior Tutorial Editor.
+Task: Polish tutorial translation into clear {target_lang}.
+Constraints:
+1. Output JSON ONLY: {{"Trans": "string", "Reason": "string"}}.
+2. 'Reason': Max 10 chars. If no change, Reason="".
+3. Ensure instructions are crystal clear.
+4. Simplify complex sentences.
+5. Verify technical accuracy.
+
+Focus: Clarity, simplicity, accuracy""",
+
+    'achievement': """Role: Senior Achievement Editor.
+Task: Polish achievement translation into prestigious {target_lang}.
+Constraints:
+1. Output JSON ONLY: {{"Trans": "string", "Reason": "string"}}.
+2. 'Reason': Max 10 chars. If no change, Reason="".
+3. Ensure titles sound rewarding.
+4. Verify descriptions are motivating.
+5. Check formal/epic tone.
+
+Focus: Prestige, motivation, tone""",
+
+    'custom': DEFAULT_REVIEW_PROMPT,
+}
+
+# ============================================================================
 # 支持的语言列表（按大陆板块和优先级分类）
 # ============================================================================
 

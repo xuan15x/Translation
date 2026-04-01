@@ -8,7 +8,7 @@ import tkinter as tk
 from tkinter import filedialog, messagebox, ttk, scrolledtext
 from typing import List
 
-from config import DEFAULT_DRAFT_PROMPT, DEFAULT_REVIEW_PROMPT, TARGET_LANGUAGES, GUI_CONFIG
+from config import DEFAULT_DRAFT_PROMPT, DEFAULT_REVIEW_PROMPT, TARGET_LANGUAGES, GUI_CONFIG, GAME_TRANSLATION_TYPES, GAME_DRAFT_PROMPTS, GAME_REVIEW_PROMPTS
 from infrastructure.log_config import setup_logger, LogTag, log_with_tag, LogLevel
 from infrastructure.log_slice import LoggerSlice, LogCategory
 from infrastructure.models import Config
@@ -53,6 +53,10 @@ class TranslationApp:
         self.default_review = DEFAULT_REVIEW_PROMPT
         self.prompt_draft.set(self.default_draft)
         self.prompt_review.set(self.default_review)
+        
+        # 游戏翻译方向
+        self.translation_type_var = tk.StringVar(value="custom")
+        self.is_game_translation = tk.BooleanVar(value=False)
         
         # API 提供商管理
         self.provider_manager = get_provider_manager()
@@ -143,7 +147,41 @@ class TranslationApp:
         # 初始化模型列表
         self._update_model_list()
         
-        # --- 3. 语言选择区 ---
+        # --- 3. 翻译类型选择区 ---
+        type_frame = ttk.LabelFrame(main_frame, text="🎮 翻译类型", padding="10")
+        type_frame.pack(fill=tk.X, pady=(0, 10))
+        
+        # 游戏翻译开关
+        game_cb_frame = ttk.Frame(type_frame)
+        game_cb_frame.pack(fill=tk.X, pady=(0, 5))
+        
+        game_cb = ttk.Checkbutton(
+            game_cb_frame,
+            text="启用游戏翻译模式",
+            variable=self.is_game_translation,
+            command=self._on_game_translation_toggle
+        )
+        game_cb.pack(side=tk.LEFT, padx=5)
+        
+        # 翻译方向选择（仅在游戏模式启用时可用）
+        self.type_combo_label = ttk.Label(game_cb_frame, text="翻译方向:")
+        self.type_combo_label.pack(side=tk.LEFT, padx=(20, 5))
+        
+        self.type_combo = ttk.Combobox(
+            game_cb_frame,
+            textvariable=self.translation_type_var,
+            values=list(GAME_TRANSLATION_TYPES.values()),
+            state='readonly',
+            width=15
+        )
+        self.type_combo.pack(side=tk.LEFT, padx=5)
+        self.type_combo.set("自定义")  # 默认值
+        self.type_combo.bind('<<ComboboxSelected>>', self._on_translation_type_changed)
+        
+        # 初始化状态
+        self._update_type_combo_state()
+        
+        # --- 4. 语言选择区 ---
         lang_frame = ttk.LabelFrame(main_frame, text="🌍 目标语言", padding="10")
         lang_frame.pack(fill=tk.X, pady=(0, 10))
         
@@ -161,7 +199,7 @@ class TranslationApp:
             cb = ttk.Checkbutton(cb_frame, text=lang, variable=var, command=self._update_lang_status)
             cb.grid(row=i // 4, column=i % 4, sticky=tk.W, padx=10, pady=2)
         
-        # --- 4. 提示词配置区 ---
+        # --- 5. 提示词配置区 ---
         prompt_frame = ttk.LabelFrame(main_frame, text="⚙️ 提示词配置", padding="10")
         prompt_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
         
@@ -180,7 +218,7 @@ class TranslationApp:
         self.review_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
         self.review_text.insert('1.0', self.default_review)
         
-        # --- 5. 控制与日志区 ---
+        # --- 6. 控制与日志区 ---
         control_frame = ttk.LabelFrame(main_frame, text="🚀 执行控制", padding="10")
         control_frame.pack(fill=tk.BOTH, expand=True)
         
@@ -349,6 +387,49 @@ class TranslationApp:
         """更新语言选择状态"""
         count = sum(1 for var in self.lang_vars.values() if var.get())
         self.selected_langs = [lang for lang, var in self.lang_vars.items() if var.get()]
+    
+    def _on_game_translation_toggle(self):
+        """游戏翻译模式开关切换"""
+        self._update_type_combo_state()
+        if self.is_game_translation.get():
+            logger.info("🎮 已启用游戏翻译模式")
+        else:
+            logger.info("📄 已切换到普通翻译模式")
+    
+    def _update_type_combo_state(self):
+        """更新翻译方向下拉框状态"""
+        if self.is_game_translation.get():
+            self.type_combo.config(state='readonly')
+            self.type_combo_label.config(fg='black')
+        else:
+            self.type_combo.config(state='disabled')
+            self.type_combo_label.config(fg='gray')
+    
+    def _on_translation_type_changed(self, event):
+        """翻译方向切换"""
+        # 获取选中的方向（中文名称）
+        selected_name = self.translation_type_var.get()
+        
+        # 根据中文名称找到对应的 key
+        type_key = None
+        for key, name in GAME_TRANSLATION_TYPES.items():
+            if name == selected_name:
+                type_key = key
+                break
+        
+        if not type_key:
+            return
+        
+        # 应用对应的提示词模板
+        if type_key in GAME_DRAFT_PROMPTS:
+            self.draft_text.delete('1.0', tk.END)
+            self.draft_text.insert('1.0', GAME_DRAFT_PROMPTS[type_key])
+        
+        if type_key in GAME_REVIEW_PROMPTS:
+            self.review_text.delete('1.0', tk.END)
+            self.review_text.insert('1.0', GAME_REVIEW_PROMPTS[type_key])
+        
+        logger.info(f"🎯 切换到游戏翻译方向：{selected_name}")
     
     def _validate_prompts(self):
         """校验提示词"""
