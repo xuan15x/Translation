@@ -223,8 +223,13 @@ class TranslationApp:
         lang_canvas.pack(side="left", fill="both", expand=True)
         lang_scrollbar.pack(side="right", fill="y")
         
+        # 从配置加载语言列表（如果配置文件中有自定义）
+        languages_to_show = TARGET_LANGUAGES
+        if hasattr(self, 'config') and self.config and hasattr(self.config, 'target_languages'):
+            languages_to_show = self.config.target_languages
+        
         # 放置语言选项（改为 5 列布局）
-        for i, lang in enumerate(TARGET_LANGUAGES):
+        for i, lang in enumerate(languages_to_show):
             var = tk.BooleanVar(value=False)
             self.lang_vars[lang] = var
             cb = ttk.Checkbutton(scrollable_lang_frame, text=lang, variable=var, command=self._update_lang_status)
@@ -261,6 +266,19 @@ class TranslationApp:
         # --- 6. 控制与日志区 ---
         control_frame = ttk.LabelFrame(main_frame, text="🚀 执行控制", padding="10")
         control_frame.pack(fill=tk.BOTH, expand=True)
+        
+        # 性能监控开关
+        perf_monitor_frame = ttk.Frame(control_frame)
+        perf_monitor_frame.pack(fill=tk.X, pady=(0, 5))
+        
+        self.perf_monitor_var = tk.BooleanVar(value=False)
+        self.perf_monitor_check = ttk.Checkbutton(
+            perf_monitor_frame,
+            text="📊 启用性能监控",
+            variable=self.perf_monitor_var,
+            command=self._toggle_performance_monitor
+        )
+        self.perf_monitor_check.pack(side=tk.LEFT, padx=5)
         
         # 日志控制面板
         self._create_log_control_panel(control_frame)
@@ -427,6 +445,15 @@ class TranslationApp:
         """更新语言选择状态"""
         count = sum(1 for var in self.lang_vars.values() if var.get())
         self.selected_langs = [lang for lang, var in self.lang_vars.items() if var.get()]
+    
+    def _toggle_performance_monitor(self):
+        """切换性能监控开关"""
+        enabled = self.perf_monitor_var.get()
+        logger.info(f"{'✅ 已启用' if enabled else '❌ 已禁用'} 性能监控")
+        
+        # 更新配置（如果已加载）
+        if hasattr(self, 'config') and self.config:
+            self.config.enable_performance_monitor = enabled
     
     def _on_translation_type_changed(self, event):
         """翻译方向切换 - 仅记录选择，不改变提示词内容"""
