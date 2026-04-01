@@ -1,0 +1,188 @@
+# AI 智能翻译工作台 - 配置文件 (YAML)
+# 复制此文件为 config.yaml 并修改配置值
+# 所有配置项都可以通过 GUI 界面或环境变量覆盖
+
+# ==================== API 提供商配置 ====================
+# 支持的提供商：deepseek, openai, moonshot, zhipu, baidu, alibaba, anthropic, custom
+api_provider: "deepseek"
+
+# API 密钥（强烈建议使用环境变量）
+# 推荐方式：export DEEPSEEK_API_KEY="your_key_here"
+api_key: "your_api_key_here"
+
+# API 基础 URL
+base_url: "https://api.deepseek.com"
+
+# 模型名称
+model_name: "deepseek-chat"
+
+# ==================== 全局模型配置 ====================
+# 默认使用的模型和参数（可被子配置覆盖）
+model_name: "deepseek-chat"
+temperature: 0.3
+top_p: 0.8
+timeout: 60
+max_retries: 3
+
+# ==================== 翻译阶段（Draft）专用配置 ====================
+# 初译阶段使用的模型配置（如果为 None 则使用全局配置）
+# 可以为翻译和校对阶段指定不同的模型和参数
+draft_model_name: null  # 翻译模型名称，例如："deepseek-chat"
+draft_temperature: null  # 翻译温度，推荐 0.3-0.5（更保守的翻译）
+draft_top_p: null  # 翻译 top_p，推荐 0.8
+draft_timeout: null  # 翻译超时（秒）
+draft_max_tokens: 512  # 翻译最大 token 数
+
+# ==================== 校对阶段（Review）专用配置 ====================
+# 校对阶段使用的模型配置（如果为 None 则使用全局配置）
+review_model_name: null  # 校对模型名称，例如："gpt-4"
+review_temperature: null  # 校对温度，推荐 0.5-0.7（更灵活的润色）
+review_top_p: null  # 校对 top_p，推荐 0.9
+review_timeout: null  # 校对超时（秒）
+review_max_tokens: 512  # 校对最大 token 数
+
+# ==================== 并发控制 ====================
+# initial_concurrency: 初始并发请求数
+initial_concurrency: 8
+
+# max_concurrency: 最大并发请求数（自适应调整的上限）
+max_concurrency: 10
+
+# concurrency_cooldown_seconds: 并发度降低后的冷却时间（秒）
+concurrency_cooldown_seconds: 5.0
+
+# ==================== 重试配置 ====================
+# retry_streak_threshold: 连续成功多少次后提升并发度
+retry_streak_threshold: 3
+
+# base_retry_delay: 基础重试延迟（秒）
+base_retry_delay: 3.0
+
+# max_retries: 单个请求最大重试次数
+max_retries: 3
+
+# timeout: 请求超时时间（秒）
+timeout: 60
+
+# ==================== 工作流配置 ====================
+# enable_two_pass: 是否启用双阶段处理（初译 + 校对）
+enable_two_pass: true
+
+# skip_review_if_local_hit: 本地术语精确命中时是否跳过校对
+skip_review_if_local_hit: true
+
+# batch_size: 批处理大小（影响缓存容量等）
+batch_size: 1000
+
+# gc_interval: 垃圾回收间隔（每处理多少个任务进行一次 GC）
+gc_interval: 2
+
+# ==================== 术语库配置 ====================
+# similarity_low: 模糊匹配最低相似度阈值（0-100）
+similarity_low: 60
+
+# exact_match_score: 精确匹配置信度（通常设为 100）
+exact_match_score: 100
+
+# multiprocess_threshold: 超过多少条术语时使用多进程处理
+multiprocess_threshold: 1000
+
+# ==================== 性能优化 ====================
+# pool_size: SQLite 连接池大小
+pool_size: 5
+
+# cache_capacity: 术语缓存容量（条目数）
+cache_capacity: 2000
+
+# cache_ttl_seconds: 缓存过期时间（秒），0 表示永不过期
+cache_ttl_seconds: 3600
+
+# ==================== 日志配置 ====================
+# log_level: 日志级别 (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+log_level: "INFO"
+
+# log_granularity: 日志粒度 (minimal, basic, normal, detailed, verbose)
+log_granularity: "normal"
+
+# log_max_lines: GUI 日志控件最大行数
+log_max_lines: 1000
+
+# ==================== GUI 配置 ====================
+# gui_window_title: 窗口标题
+gui_window_title: "AI 智能翻译工作台 v2.0"
+
+# gui_window_width: 窗口宽度（像素）
+gui_window_width: 950
+
+# gui_window_height: 窗口高度（像素）
+gui_window_height: 800
+
+# ==================== 提示词配置 ====================
+# draft_prompt: 初译提示词模板（支持多行）
+draft_prompt: |
+  Role: Professional Translator.
+  Task: Translate 'Src' to {target_lang}.
+  Constraints:
+  1. Output JSON ONLY: {{"Trans": "string"}}.
+  2. Strictly follow provided TM.
+  3. Accurate and direct.
+
+# review_prompt: 校对提示词模板（支持多行）
+review_prompt: |
+  Role: Senior Language Editor.
+  Task: Polish 'Draft' into native {target_lang}.
+  Constraints:
+  1. Output JSON ONLY: {{"Trans": "string", "Reason": "string"}}.
+  2. 'Reason': Max 10 chars. If no change, Reason="".
+  3. Focus on flow and tone.
+
+# ==================== 语言配置 ====================
+# target_languages: 可选的目标语言列表
+target_languages:
+  - 英语
+  - 日语
+  - 韩语
+  - 法语
+  - 德语
+  - 西班牙语
+  - 俄语
+  - 葡萄牙语
+  - 意大利语
+  - 阿拉伯语
+  - 泰语
+  - 越南语
+
+# default_source_lang: 默认源语言
+default_source_lang: "中文"
+
+# supported_source_langs: 支持的源语言列表
+supported_source_langs:
+  - 中文
+  - 英语
+  - 日语
+  - 韩语
+  - 法语
+  - 德语
+
+# ==================== 版本控制和备份 ====================
+# enable_version_control: 是否启用 Git 版本控制（实验性功能）
+enable_version_control: false
+
+# enable_auto_backup: 是否启用自动备份
+enable_auto_backup: false
+
+# backup_dir: 备份目录路径
+backup_dir: ".terminology_backups"
+
+# backup_strategy: 备份策略 (hourly, daily, weekly, per_batch)
+backup_strategy: "daily"
+
+# ==================== 性能监控 ====================
+# enable_performance_monitor: 是否启用性能监控
+enable_performance_monitor: false
+
+# perf_sample_interval: 性能采样间隔（秒）
+perf_sample_interval: 1.0
+
+# perf_history_size: 性能历史记录数量
+perf_history_size: 300

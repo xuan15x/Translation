@@ -1,0 +1,63 @@
+{
+  "_comment": "AI 智能翻译工作台 - JSON 配置文件（复制为 config.json 并修改）",
+  
+  "api_provider": "deepseek",
+  "api_key": "your_api_key_here",
+  "base_url": "https://api.deepseek.com",
+  "model_name": "deepseek-chat",
+  
+  "temperature": 0.3,
+  "top_p": 0.8,
+  
+  "initial_concurrency": 8,
+  "max_concurrency": 10,
+  "concurrency_cooldown_seconds": 5.0,
+  
+  "retry_streak_threshold": 3,
+  "base_retry_delay": 3.0,
+  "max_retries": 3,
+  "timeout": 60,
+  
+  "enable_two_pass": true,
+  "skip_review_if_local_hit": true,
+  "batch_size": 1000,
+  "gc_interval": 2,
+  
+  "similarity_low": 60,
+  "exact_match_score": 100,
+  "multiprocess_threshold": 1000,
+  
+  "pool_size": 5,
+  "cache_capacity": 2000,
+  "cache_ttl_seconds": 3600,
+  
+  "log_level": "INFO",
+  "log_granularity": "normal",
+  "log_max_lines": 1000,
+  
+  "gui_window_title": "AI 智能翻译工作台 v2.0",
+  "gui_window_width": 950,
+  "gui_window_height": 800,
+  
+  "draft_prompt": "Role: Professional Translator.\nTask: Translate 'Src' to {target_lang}.\nConstraints:\n1. Output JSON ONLY: {{\"Trans\": \"string\"}}.\n2. Strictly follow provided TM.\n3. Accurate and direct.",
+  
+  "review_prompt": "Role: Senior Language Editor.\nTask: Polish 'Draft' into native {target_lang}.\nConstraints:\n1. Output JSON ONLY: {{\"Trans\": \"string\", \"Reason\": \"string\"}}.\n2. 'Reason': Max 10 chars. If no change, Reason=\"\".\n3. Focus on flow and tone.",
+  
+  "target_languages": [
+    "英语", "日语", "韩语", "法语", "德语", 
+    "西班牙语", "俄语", "葡萄牙语", "意大利语", 
+    "阿拉伯语", "泰语", "越南语"
+  ],
+  
+  "default_source_lang": "中文",
+  "supported_source_langs": ["中文", "英语", "日语", "韩语", "法语", "德语"],
+  
+  "enable_version_control": false,
+  "enable_auto_backup": false,
+  "backup_dir": ".terminology_backups",
+  "backup_strategy": "daily",
+  
+  "enable_performance_monitor": false,
+  "perf_sample_interval": 1.0,
+  "perf_history_size": 300
+}

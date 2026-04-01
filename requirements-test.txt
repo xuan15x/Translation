@@ -1,0 +1,18 @@
+pytest>=7.0.0
+pytest-cov>=4.0.0
+pytest-asyncio>=0.21.0
+pytest-mock>=3.10.0
+pytest-html>=3.2.0
+pytest-xdist>=3.0.0  # 并行测试支持
+coverage>=7.0.0
+pyautogui>=0.9.53  # GUI 自动化测试
+pillow>=9.0.0  # 图像处理（GUI 测试需要）
+psutil>=5.9.0  # 系统监控（性能测试需要）
+memory-profiler>=0.60.0  # 内存分析
+line-profiler>=4.0.0  # 代码性能分析
+
+# 文档生成工具
+sphinx>=6.0.0
+sphinx-rtd-theme>=1.2.0
+sphinx-markdown-tables>=0.0.17
+myst-parser>=1.0.0

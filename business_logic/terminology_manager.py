@@ -1,0 +1,973 @@
+"""
+术语库管理模块
+负责术语库的加载、查询、更新和保存
+"""
+import asyncio
+import copy
+import json
+import os
+from concurrent.futures import ProcessPoolExecutor
+from typing import Any, Dict, Optional, List, Tuple
+import logging
+import gc
+import tracemalloc
+
+import pandas as pd
+
+from data_access.fuzzy_matcher import FuzzyMatcher
+from infrastructure.models import Config
+from data_access.terminology_update import TerminologyImporter, ImportResult
+from service.translation_history import (
+    get_history_manager
+)
+from service.terminology_history import (
+    record_term_change, 
+    ChangeType
+)
+from infrastructure.cache import TerminologyCache
+from service.terminology_version import TerminologyVersionController
+from service.auto_backup import AutoBackupManager, BackupStrategy
+
+logger = logging.getLogger(__name__)
+
+
+class TerminologyManager:
+    """术语库管理器"""
+    
+    def __init__(self, filepath: str, config: Config):
+        """
+        初始化术语库管理器
+        
+        Args:
+            filepath: 术语库文件路径
+            config: 系统配置对象
+        """
+        self.filepath = filepath
+        self.tmp_path = filepath + ".tmp.json"
+        self.db: Dict[str, Dict[str, str]] = {}
+        self.lock = asyncio.Lock()
+        self.queue = []
+        self.queue_lock = asyncio.Lock()
+        self.event = asyncio.Event()
+        self.shutdown_flag = False
+        self.config = config
+        self._save_logged = False
+        
+        # 同步加载术语库
+        self._load_sync()
+        
+        # 启动后台写入任务
+        self.writer_task = asyncio.create_task(self._background_writer())
+        
+        # 历史管理器
+        self.history_manager = get_history_manager()
+        self._current_batch_id = ""
+        
+        # 性能优化：添加缓存层
+        self.cache = TerminologyCache(capacity=config.batch_size * 2)
+        
+        # 内存监控（可选功能）
+        self._memory_tracking_enabled = False
+        
+        # 版本控制和备份（可选功能，按需启用）
+        self.version_controller: Optional[TerminologyVersionController] = None
+        self.backup_manager: Optional[AutoBackupManager] = None
+
+    def _load_sync(self):
+        """同步加载术语库数据"""
+        if os.path.exists(self.filepath):
+            try:
+                df = pd.read_excel(self.filepath, engine='openpyxl')
+                df.fillna('', inplace=True)
+                count = 0
+                
+                for _, row in df.iterrows():
+                    src = str(row.get('中文原文', '')).strip()
+                    if src:
+                        trans = {
+                            c: str(row.get(c, '')).strip() 
+                            for c in df.columns 
+                            if c not in ['Key', '中文原文'] and str(row.get(c, '')).strip()
+                        }
+                        if trans:
+                            self.db[src] = trans
+                            count += 1
+                            
+            except Exception as e:
+                logger.error(f"术语库加载失败：{e}")
+        else:
+            logger.info("新术语库将自动创建")
+
+    async def _background_writer(self):
+        """后台异步写入器，定期将内存中的术语库保存到磁盘"""
+        while not self.shutdown_flag:
+            try:
+                await asyncio.wait_for(self.event.wait(), timeout=1.0)
+                snapshot = None
+                
+                async with self.queue_lock:
+                    if not self.queue:
+                        self.event.clear()
+                        continue
+                    self.queue.clear()
+                    self.event.clear()
+                
+                async with self.lock:
+                    # 使用深拷贝防止数据竞争
+                    snapshot = copy.deepcopy(self.db)
+                
+                if snapshot:
+                    try:
+                        # 使用临时文件防止写入中断导致数据损坏
+                        temp_file = f"{self.tmp_path}.{os.getpid()}"
+                        with open(temp_file, 'w', encoding='utf-8') as f:
+                            json.dump(snapshot, f, ensure_ascii=False, indent=2)
+                        
+                        # 原子性替换
+                        if os.path.exists(self.tmp_path):
+                            os.remove(self.tmp_path)
+                        os.rename(temp_file, self.tmp_path)
+                        
+                    except IOError as e:
+                        logger.error(f"写入临时文件失败：{e}")
+                        # 清理可能的临时文件
+                        if 'temp_file' in locals() and os.path.exists(temp_file):
+                            try:
+                                os.remove(temp_file)
+                            except:
+                                pass
+                        
+            except asyncio.TimeoutError:
+                # 正常的超时，继续循环
+                pass
+            except Exception as e:
+                logger.exception(f"后台写入器异常：{e}")
+
+    async def add_entry(self, src: str, lang: str, trans: str):
+        """
+        添加术语条目
+        
+        Args:
+            src: 源文本
+            lang: 目标语言
+            trans: 翻译文本
+        """
+        if not src or not trans:
+            return
+            
+        async with self.lock:
+            old_value = self.db[src].get(lang) if src in self.db else None
+            
+            if src not in self.db:
+                self.db[src] = {}
+            
+            if self.db[src].get(lang) != trans:
+                self.db[src][lang] = trans
+                
+                # 记录历史
+                if old_value:
+                    record_term_change(
+                        change_type=ChangeType.UPDATED.value,
+                        source_text=src,
+                        language=lang,
+                        old_value=old_value,
+                        new_value=trans,
+                        batch_id=self._current_batch_id,
+                        operator="system"
+                    )
+                else:
+                    record_term_change(
+                        change_type=ChangeType.ADDED.value,
+                        source_text=src,
+                        language=lang,
+                        new_value=trans,
+                        batch_id=self._current_batch_id,
+                        operator="system"
+                    )
+                
+                # 清除相关缓存（数据已变更）
+                await self.cache.invalidate_source(src)
+                
+                async with self.queue_lock:
+                    self.queue.append(1)
+                    self.event.set()
+
+    async def find_similar(self, src: str, lang: str, source_lang: Optional[str] = None) -> Optional[Dict]:
+        """
+        查找相似翻译
+            
+        Args:
+            src: 源文本
+            lang: 目标语言
+            source_lang: 源语言 (可选，此参数已废弃，术语库会返回所有匹配的翻译)
+                
+        Returns:
+            最佳匹配结果，包含 original, translation, score
+        """
+        # 优化 1: 快速路径 - 空数据直接返回
+        if not self.db:
+            return None
+            
+        logger.debug(f"🔍 术语查询：'{src}' -> {lang}")
+            
+        # 优化 2: 先查精确匹配缓存 (最快)
+        exact_result = await self.cache.get_exact_match(src, lang)
+        if exact_result:
+            logger.debug(f"✅ 缓存精确命中：{src} -> {exact_result['translation']}")
+            return exact_result
+            
+        # 优化 3: 对于短文本直接使用缓存，避免模糊匹配开销
+        if len(src) < 5:
+            fuzzy_result = await self.cache.get_fuzzy_match(src, lang)
+            if fuzzy_result and fuzzy_result[1] >= self.config.similarity_low:
+                logger.debug(f"✅ 缓存模糊命中：{src} -> {fuzzy_result[0]['translation']} (分数:{fuzzy_result[1]})")
+                return fuzzy_result[0]
+            
+        # 优化 4: 预过滤术语库，减少模糊匹配计算量
+        logger.debug(f"📊 检索术语库... (总数:{len(self.db)})")
+        
+        # 只提取包含目标语言的条目，减少后续计算量
+        items = [
+            (s, t[lang]) for s, t in self.db.items() 
+            if lang in t
+        ]
+            
+        if not items:
+            logger.debug(f"❌ 术语库中无 {lang} 数据")
+            return None
+        
+        # 优化 5: 智能选择模糊匹配策略
+        res = None
+        loop = asyncio.get_event_loop()
+            
+        # 大数据量时使用多进程，但增加阈值判断
+        if len(items) > self.config.multiprocess_threshold * 2:
+            # 超大数据量：使用多进程
+            logger.debug(f"⚡ 超大数据量 ({len(items)}条)，使用多进程模糊匹配...")
+            with ProcessPoolExecutor(max_workers=2) as ex:
+                res = await loop.run_in_executor(
+                    ex, 
+                    FuzzyMatcher.find_best_match, 
+                    src, 
+                    items, 
+                    self.config.similarity_low
+                )
+        elif len(items) > self.config.multiprocess_threshold:
+            # 中等数据量：使用单进程但限制计算次数
+            logger.debug(f"📈 中等数据量 ({len(items)}条)，使用优化的单进程模糊匹配")
+            res = await loop.run_in_executor(
+                None,
+                FuzzyMatcher.find_best_match,
+                src,
+                items,
+                self.config.similarity_low
+            )
+        else:
+            # 小数据量：直接同步计算
+            res = FuzzyMatcher.find_best_match(src, items, self.config.similarity_low)
+            
+        # 优化 6: 缓存结果
+        if res:
+            if res['score'] == self.config.exact_match_score:
+                await self.cache.set_exact_match(src, lang, res)
+                logger.debug(f"💾 缓存精确匹配结果")
+            else:
+                await self.cache.set_fuzzy_match(src, lang, res, res['score'])
+                logger.debug(f"💾 缓存模糊匹配结果 (得分:{res['score']})")
+            
+            logger.debug(f"✅ 找到最佳匹配：{src} -> {res['translation']} (得分:{res['score']})")
+        else:
+            logger.debug(f"❌ 未找到匹配")
+            
+        return res
+
+    async def shutdown(self):
+        """关闭术语库管理器并保存数据"""
+        self.shutdown_flag = True
+        self.event.set()
+        
+        try:
+            await self.writer_task
+        except Exception:
+            pass
+        
+        if self.db:
+            # 导出为 Excel (总是导出到原路径)
+            langs = set()
+            for t in self.db.values():
+                langs.update(t.keys())
+            
+            cols = ['Key', '中文原文'] + sorted(langs)
+            rows = [
+                {'Key': f"TM_{i}", '中文原文': s, **t} 
+                for i, (s, t) in enumerate(self.db.items())
+            ]
+            
+            pd.DataFrame(rows, columns=cols).to_excel(
+                self.filepath, 
+                index=False, 
+                engine='openpyxl'
+            )
+            
+            if not self._save_logged:
+                logger.info(f"✅ 术语库已保存并导出：{self.filepath}")
+                logger.info(f"📊 术语库总数：{len(self.db)}条")
+                self._save_logged = True
+            
+            # 清理临时文件
+            if os.path.exists(self.tmp_path):
+                os.remove(self.tmp_path)
+    
+    async def export_to_excel(self, output_path: str = None, export_new_only: bool = False):
+        """
+        导出术语库到 Excel 文件
+        
+        Args:
+            output_path: 输出文件路径，如果为 None 则保存到原路径
+            export_new_only: 是否只导出新增的术语
+        """
+        if output_path is None:
+            output_path = self.filepath
+        
+        async with self.lock:
+            # 获取要导出的数据
+            if export_new_only:
+                # 只导出本次会话新增的术语
+                export_db = await self._get_new_entries_only()
+                if not export_db:
+                    logger.info("ℹ️ 本次会话无新增术语")
+                    return output_path
+            else:
+                # 导出完整术语库
+                export_db = self.db
+            
+            if not export_db:
+                logger.info("ℹ️ 术语库为空")
+                return output_path
+            
+            # 导出为 Excel
+            langs = set()
+            for t in export_db.values():
+                langs.update(t.keys())
+            
+            cols = ['Key', '中文原文'] + sorted(langs)
+            rows = [
+                {'Key': f"TM_{i}", '中文原文': s, **t} 
+                for i, (s, t) in enumerate(export_db.items())
+            ]
+            
+            pd.DataFrame(rows, columns=cols).to_excel(
+                output_path, 
+                index=False, 
+                engine='openpyxl'
+            )
+            
+            import logging
+            if export_new_only:
+                logging.info(f"📊 新增术语已导出：{len(export_db)}条 -> {output_path}")
+            else:
+                logging.info(f"📊 术语库已导出：{len(export_db)}条 -> {output_path}")
+            
+            return output_path
+    
+    async def _get_new_entries_only(self) -> Dict[str, Dict[str, str]]:
+        """
+        获取本次会话新增的术语条目
+        
+        Returns:
+            新增术语字典
+        """
+        # 从历史记录中获取本次 batch 的新增术语
+        changes = self.history_manager.get_changes(
+            batch_id=self._current_batch_id,
+            change_type='added'
+        )
+        
+        new_db = {}
+        for change in changes:
+            src = change.source_text
+            lang = change.language
+            trans = change.new_value
+            
+            if src not in new_db:
+                new_db[src] = {}
+            new_db[src][lang] = trans
+        
+        return new_db
+    
+    async def import_from_excel(self, excel_file: str, 
+                               update_existing: bool = True) -> ImportResult:
+        """
+        从 Excel 文件增量导入术语
+        
+        Args:
+            excel_file: Excel 文件路径
+            update_existing: 是否更新已存在的条目
+            
+        Returns:
+            导入结果统计
+        """
+        try:
+            importer = TerminologyImporter(excel_file)
+            result, new_db = importer.import_to_dict(self.db, update_existing)
+            
+            # 更新内存中的数据库
+            async with self.lock:
+                self.db = new_db
+                # 触发后台写入
+                async with self.queue_lock:
+                    self.queue.append(1)
+                    self.event.set()
+            
+            logger.info(
+                f"术语库导入完成：新增 {result.new_entries} 条，"
+                f"更新 {result.updated_entries} 条，跳过 {result.skipped_rows} 条"
+            )
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"术语库导入失败：{e}")
+            result = ImportResult()
+            result.errors.append(str(e))
+            return result
+    
+    async def batch_add_entries(self, entries: List[Tuple[str, str, str]]) -> Dict[str, int]:
+        """
+        批量添加术语条目
+        
+        Args:
+            entries: (source_text, language, translation) 元组列表
+            
+        Returns:
+            统计信息
+        """
+        from terminology_update import TerminologyUpdater
+        
+        async with self.lock:
+            updater = TerminologyUpdater(self.db)
+            stats = updater.add_batch(entries)
+            self.db = updater.db
+            
+            # 触发后台写入
+            if stats['added'] > 0 or stats['updated'] > 0:
+                async with self.queue_lock:
+                    self.queue.append(1)
+                    self.event.set()
+            
+            return stats
+    
+    async def remove_entry(self, source_text: str, 
+                          language: Optional[str] = None) -> bool:
+        """
+        删除术语条目
+        
+        Args:
+            source_text: 源文本
+            language: 语言，如果为 None 则删除整个源文本的所有翻译
+            
+        Returns:
+            是否删除成功
+        """
+        from terminology_update import TerminologyUpdater
+        
+        async with self.lock:
+            updater = TerminologyUpdater(self.db)
+            
+            # 记录删除前的值
+            if source_text in self.db:
+                if language is None:
+                    # 删除整个源文本
+                    for lang, trans in self.db[source_text].items():
+                        record_term_change(
+                            change_type=ChangeType.DELETED.value,
+                            source_text=source_text,
+                            language=lang,
+                            old_value=trans,
+                            batch_id=self._current_batch_id,
+                            operator="system"
+                        )
+                else:
+                    # 删除特定语言
+                    if language in self.db[source_text]:
+                        old_value = self.db[source_text][language]
+                        record_term_change(
+                            change_type=ChangeType.DELETED.value,
+                            source_text=source_text,
+                            language=language,
+                            old_value=old_value,
+                            batch_id=self._current_batch_id,
+                            operator="system"
+                        )
+            
+            success = updater.remove_entry(source_text, language)
+            self.db = updater.db
+            
+            if success:
+                # 触发后台写入
+                async with self.queue_lock:
+                    self.queue.append(1)
+                    self.event.set()
+            
+            return success
+    
+    async def get_statistics(self) -> Dict[str, Any]:
+        """
+        获取术语库统计信息
+        
+        Returns:
+            统计信息字典
+        """
+        from terminology_update import TerminologyUpdater
+        
+        async with self.lock:
+            updater = TerminologyUpdater(self.db)
+            stats = updater.get_statistics()
+            
+            # 添加历史统计信息
+            history_stats = self.history_manager.get_statistics(days=30)
+            stats['history'] = history_stats
+            
+            return stats
+    
+    async def get_history_timeline(self, days: int = 7, 
+                                  limit: int = 200) -> List[Dict[str, Any]]:
+        """
+        获取历史时间线
+        
+        Args:
+            days: 最近多少天
+            limit: 返回记录数限制
+            
+        Returns:
+            按天分组的变更记录
+        """
+        return self.history_manager.get_timeline(days=days, limit=limit)
+    
+    async def get_history_changes(self, **kwargs) -> List[Dict[str, Any]]:
+        """
+        获取历史记录详情
+        
+        Args:
+            **kwargs: 查询参数（start_date, end_date, change_type 等）
+            
+        Returns:
+            变更记录列表
+        """
+        changes = self.history_manager.get_changes(**kwargs)
+        return [c.to_dict() for c in changes]
+    
+    async def create_snapshot(self, notes: str = "") -> int:
+        """
+        创建术语库快照
+        
+        Args:
+            notes: 备注信息
+            
+        Returns:
+            快照 ID
+        """
+        async with self.lock:
+            return self.history_manager.create_snapshot(
+                self.db, 
+                batch_id=self._current_batch_id,
+                notes=notes
+            )
+    
+    def set_batch_id(self, batch_id: str):
+        """
+        设置当前批次 ID
+        
+        Args:
+            batch_id: 批次标识
+        """
+        self._current_batch_id = batch_id
+    
+    async def export_history(self, output_file: str, 
+                            format: str = 'json') -> str:
+        """
+        导出历史记录
+        
+        Args:
+            output_file: 输出文件路径
+            format: 导出格式（json/csv）
+            
+        Returns:
+            输出文件路径
+        """
+        return self.history_manager.export_history(output_file, format)
+    
+    # ========== 性能优化方法 ==========
+    
+    def enable_memory_tracking(self):
+        """启用内存跟踪"""
+        tracemalloc.start()
+        self._memory_tracking_enabled = True
+        logger.info("已启用内存跟踪")
+    
+    def get_memory_usage(self) -> Dict[str, float]:
+        """
+        获取内存使用情况
+        
+        Returns:
+            内存使用统计（MB）
+        """
+        import sys
+        
+        stats = {
+            'db_size_mb': 0.0,
+            'cache_stats': {},
+            'total_objects': 0
+        }
+        
+        # 计算数据库大小
+        db_json = json.dumps(self.db, ensure_ascii=False)
+        stats['db_size_mb'] = len(db_json.encode('utf-8')) / (1024 * 1024)
+        
+        # 获取缓存统计
+        if hasattr(self, 'cache'):
+            import asyncio
+            loop = asyncio.new_event_loop()
+            try:
+                stats['cache_stats'] = loop.run_until_complete(self.cache.get_stats())
+            finally:
+                loop.close()
+        
+        # 内存跟踪信息
+        if self._memory_tracking_enabled:
+            current, peak = tracemalloc.get_traced_memory()
+            stats['current_memory_mb'] = current / (1024 * 1024)
+            stats['peak_memory_mb'] = peak / (1024 * 1024)
+        
+        return stats
+    
+    async def optimize_memory(self):
+        """优化内存使用"""
+        import gc
+        
+        # 强制垃圾回收
+        collected = gc.collect()
+        logger.info(f"内存优化：回收了 {collected} 个对象")
+        
+        # 清理缓存
+        await self.cache.cleanup_expired(max_age_seconds=1800)  # 30 分钟
+        
+        # 打印内存使用情况
+        if self._memory_tracking_enabled:
+            current, peak = tracemalloc.get_traced_memory()
+            logger.info(
+                f"内存使用：当前={current / 1024 / 1024:.2f}MB, "
+                f"峰值={peak / 1024 / 1024:.2f}MB"
+            )
+    
+    async def batch_add_entries_optimized(self, entries: List[Tuple[str, str, str]], 
+                                         batch_size: int = 100):
+        """
+        优化的批量添加方法，分批处理并定期清理内存
+        
+        Args:
+            entries: (source_text, language, translation) 元组列表
+            batch_size: 每批处理数量
+            
+        Returns:
+            统计信息
+        """
+        from terminology_update import TerminologyUpdater
+        
+        total_stats = {'added': 0, 'updated': 0, 'skipped': 0}
+        total_count = len(entries)
+        
+        logger.info(f"开始批量添加 {total_count} 条术语，分批大小：{batch_size}")
+        
+        for i in range(0, total_count, batch_size):
+            batch = entries[i:i + batch_size]
+            
+            async with self.lock:
+                updater = TerminologyUpdater(self.db)
+                stats = updater.add_batch(batch)
+                self.db = updater.db
+                
+                # 更新统计
+                for key in total_stats:
+                    total_stats[key] += stats[key]
+            
+            # 触发后台写入
+            if stats['added'] > 0 or stats['updated'] > 0:
+                async with self.queue_lock:
+                    self.queue.append(len(batch))
+                    self.event.set()
+            
+            # 每批处理后进行内存优化
+            if (i // batch_size) % 10 == 0:  # 每 10 批
+                await self.optimize_memory()
+                logger.info(
+                    f"批量添加进度：{i}/{total_count} "
+                    f"({i/total_count*100:.1f}%), "
+                    f"本批新增:{stats['added']}, 更新:{stats['updated']}"
+                )
+        
+        logger.info(
+            f"批量添加完成：总计{total_count}条，"
+            f"新增:{total_stats['added']}, 更新:{total_stats['updated']}, "
+            f"跳过:{total_stats['skipped']}"
+        )
+        
+        return total_stats
+    
+    def _is_source_lang_match(self, source_text: str, source_lang: str) -> bool:
+        """
+        判断术语是否匹配指定的源语言
+        
+        Args:
+            source_text: 术语原文
+            source_lang: 要匹配的源语言
+            
+        Returns:
+            是否匹配
+        """
+        # 简化实现：根据字符范围判断源语言
+        if source_lang == "中文":
+            # 中文字符范围
+            return any('\u4e00' <= c <= '\u9fff' for c in source_text)
+        elif source_lang == "英语":
+            # 英文字符范围（主要是 ASCII）
+            return all(c.isascii() and c.isprintable() or c.isspace() for c in source_text)
+        elif source_lang == "日语":
+            # 日文字符（平假名、片假名）
+            return any(
+                '\u3040' <= c <= '\u309f' or  # 平假名
+                '\u30a0' <= c <= '\u30ff'     # 片假名
+                for c in source_text
+            )
+        elif source_lang == "韩语":
+            # 韩文字符（谚文）
+            return any('\uac00' <= c <= '\ud7af' for c in source_text)
+        elif source_lang in ["法语", "德语", "西班牙语", "意大利语"]:
+            # 拉丁字母扩展（带重音符号）
+            return any(
+                c.isalpha() and ord(c) > 127  # 非 ASCII 字母
+                for c in source_text
+            )
+        else:
+            # 未知语言，默认返回 True（不过滤）
+            return True
+    
+    async def get_performance_stats(self) -> Dict[str, Any]:
+        """
+        获取性能统计信息
+        
+        Returns:
+            性能统计字典
+        """
+        memory_stats = self.get_memory_usage()
+        
+        return {
+            'memory': memory_stats,
+            'database': {
+                'total_entries': len(self.db),
+                'total_translations': sum(len(t) for t in self.db.values())
+            },
+            'cache': memory_stats.get('cache_stats', {})
+        }
+    
+    # ========== 版本控制和备份功能 ==========
+    
+    def enable_version_control(self, repo_path: str = None):
+        """
+        启用版本控制
+        
+        Args:
+            repo_path: Git 仓库路径（默认为当前工作目录）
+        """
+        if repo_path is None:
+            repo_path = os.getcwd()
+        
+        self.version_controller = TerminologyVersionController(repo_path, self.filepath)
+        self._version_control_enabled = True
+        
+        # 初始化 Git 仓库（如果需要）
+        try:
+            self.version_controller.initialize_repo()
+            logger.info(f"✅ 版本控制已启用 (仓库：{repo_path})")
+        except Exception as e:
+            logger.warning(f"版本控制初始化失败：{e}")
+            self._version_control_enabled = False
+    
+    def enable_auto_backup(self, backup_dir: str = ".terminology_backups",
+                          strategy: Dict = BackupStrategy.DAILY):
+        """
+        启用自动备份
+        
+        Args:
+            backup_dir: 备份目录
+            strategy: 备份策略（默认每日备份）
+        """
+        self.backup_manager = AutoBackupManager(self.filepath, backup_dir, strategy)
+        self._auto_backup_enabled = True
+        logger.info(f"✅ 自动备份已启用 (目录：{backup_dir}, 策略：{strategy['prefix']})")
+    
+    async def start_auto_backup(self):
+        """启动自动备份循环"""
+        if self.backup_manager and self._auto_backup_enabled:
+            await self.backup_manager.start()
+            logger.info("🔄 自动备份循环已启动")
+    
+    async def stop_auto_backup(self):
+        """停止自动备份循环"""
+        if self.backup_manager:
+            await self.backup_manager.stop()
+            logger.info("⏹️ 自动备份循环已停止")
+    
+    async def commit_changes(self, message: str = "更新术语库"):
+        """
+        提交术语库更改到 Git
+        
+        Args:
+            message: 提交信息
+        """
+        if not self._version_control_enabled or not self.version_controller:
+            logger.warning("版本控制未启用，跳过提交")
+            return False
+        
+        loop = asyncio.get_event_loop()
+        success = await loop.run_in_executor(
+            None,
+            lambda: self.version_controller.add_and_commit(message)
+        )
+        
+        if success:
+            logger.info(f"✅ 已提交：{message}")
+        else:
+            logger.warning(f"⚠️ 提交失败或无需提交")
+        
+        return success
+    
+    async def create_backup(self, reason: str = "手动备份") -> str:
+        """
+        创建术语库备份
+        
+        Args:
+            reason: 备份原因
+            
+        Returns:
+            备份文件路径
+        """
+        # 优先使用备份管理器
+        if self.backup_manager and self._auto_backup_enabled:
+            loop = asyncio.get_event_loop()
+            return await loop.run_in_executor(
+                None,
+                lambda: self.backup_manager.create_manual_backup(reason)
+            )
+        
+        # 否则使用版本控制器
+        elif self.version_controller and self._version_control_enabled:
+            loop = asyncio.get_event_loop()
+            return await loop.run_in_executor(
+                None,
+                lambda: self.version_controller.create_backup(reason)
+            )
+        
+        else:
+            logger.warning("备份功能未启用")
+            return ""
+    
+    def list_backups(self, limit: int = 20) -> List[Dict]:
+        """
+        列出备份历史
+        
+        Args:
+            limit: 最大返回数量
+            
+        Returns:
+            备份信息列表
+        """
+        backups = []
+        
+        # 从备份管理器获取
+        if self.backup_manager and self._auto_backup_enabled:
+            backups.extend(self.backup_manager.list_backups(limit=limit))
+        
+        # 从版本控制器获取
+        if self.version_controller and self._version_control_enabled:
+            vc_backups = self.version_controller.list_backups(limit=limit)
+            backups.extend(vc_backups)
+        
+        # 去重并排序
+        seen_paths = set()
+        unique_backups = []
+        for backup in sorted(backups, key=lambda x: x.get('time', ''), reverse=True):
+            if backup['path'] not in seen_paths:
+                seen_paths.add(backup['path'])
+                unique_backups.append(backup)
+        
+        return unique_backups[:limit]
+    
+    async def restore_from_backup(self, backup_path: str) -> bool:
+        """
+        从备份恢复
+        
+        Args:
+            backup_path: 备份文件路径
+            
+        Returns:
+            是否成功恢复
+        """
+        if self.version_controller and self._version_control_enabled:
+            loop = asyncio.get_event_loop()
+            return await loop.run_in_executor(
+                None,
+                lambda: self.version_controller.restore_from_backup(backup_path)
+            )
+        
+        logger.error("版本控制未启用，无法恢复备份")
+        return False
+    
+    def get_version_history(self, limit: int = 10) -> List[Dict]:
+        """
+        获取版本历史
+        
+        Args:
+            limit: 最大返回数量
+            
+        Returns:
+            版本历史列表
+        """
+        if not self.version_controller or not self._version_control_enabled:
+            return []
+        
+        return self.version_controller.get_history(limit=limit)
+    
+    async def shutdown(self):
+        """关闭术语库管理器（增加清理逻辑）"""
+        # 停止自动备份
+        await self.stop_auto_backup()
+        
+        # 调用父类的 shutdown
+        await super().shutdown() if hasattr(super(), 'shutdown') else None
+        
+        # 原有的关闭逻辑
+        self.shutdown_flag = True
+        self.event.set()
+        
+        try:
+            await asyncio.wait_for(self.writer_task, timeout=5.0)
+        except asyncio.TimeoutError:
+            self.writer_task.cancel()
+        
+        if self.tmp_path and os.path.exists(self.tmp_path):
+            try:
+                with open(self.tmp_path, 'r', encoding='utf-8') as f:
+                    snapshot = json.load(f)
+                
+                with open(self.filepath, 'w', encoding='utf-8') as f:
+                    df = pd.DataFrame([
+                        {'中文原文': k, **v} for k, v in snapshot.items()
+                    ])
+                    df.to_excel(self.filepath, index=False, engine='openpyxl')
+                
+                os.remove(self.tmp_path)
+                logger.info(f"✅ 术语库已保存：{self.filepath}")
+                
+            except Exception as e:
+                logger.error(f"保存术语库失败：{e}")
