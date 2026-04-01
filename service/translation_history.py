@@ -497,6 +497,42 @@ class TranslationHistoryManager:
     def get_history_file_path(self) -> str:
         """获取历史数据库文件路径"""
         return self.db_path
+    
+    def export_to_excel(self, output_path: Optional[str] = None) -> str:
+        """
+        导出翻译历史到 Excel 文件
+        
+        Args:
+            output_path: 输出文件路径
+            
+        Returns:
+            保存的文件路径
+        """
+        import pandas as pd
+        
+        output_path = output_path or "translation_history.xlsx"
+        
+        try:
+            # 查询所有记录
+            records = self.search_records(limit=100000)
+            
+            if not records:
+                logger.info("翻译历史为空，跳过导出")
+                return output_path
+            
+            # 转换为 DataFrame
+            data = [record.to_dict() for record in records]
+            df = pd.DataFrame(data)
+            
+            # 保存到 Excel
+            df.to_excel(output_path, index=False, engine='openpyxl')
+            
+            logger.info(f"💾 翻译历史已导出到 Excel: {output_path} ({len(df)} 条记录)")
+            return output_path
+            
+        except Exception as e:
+            logger.error(f"导出翻译历史到 Excel 失败：{e}")
+            raise
 
 
 # 全局单例

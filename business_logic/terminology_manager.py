@@ -60,6 +60,11 @@ class TerminologyManager:
         self.shutdown_flag = False
         self._save_logged = False
         
+        # 注册到全局持久化管理器
+        from data_access.global_persistence_manager import get_global_persistence_manager
+        self.global_manager = get_global_persistence_manager()
+        self.global_manager.register_terminology(self.persistence)
+        
         # 历史管理器
         self.history_manager = get_history_manager()
         self._current_batch_id = ""
@@ -273,29 +278,12 @@ class TerminologyManager:
             return None
 
     async def shutdown(self):
-        """关闭术语库管理器并保存数据"""
+        """关闭术语库管理器（由全局管理器统一保存）"""
         self.shutdown_flag = True
         self.event.set()
         
-        # 保存数据到 Excel 文件
-        try:
-            output_path = self.persistence.save_to_excel()
-            
-            # 获取统计信息
-            cursor = self.db_conn.cursor()
-            cursor.execute("SELECT COUNT(*) FROM terminology")
-            count = cursor.fetchone()[0]
-            
-            if not self._save_logged:
-                logger.info(f"✅ 术语库已保存并导出：{output_path}")
-                logger.info(f"📊 术语库总数：{count}条")
-                self._save_logged = True
-            
-            # 关闭持久化层
-            self.persistence.close()
-            
-        except Exception as e:
-            logger.error(f"保存术语库失败：{e}")
+        # 注意：不再单独保存，由全局管理器统一保存所有数据库
+        logger.info("🛑 术语库管理器已停止（数据将由全局管理器统一保存）")
     
     async def export_to_excel(self, output_path: str = None, export_new_only: bool = False):
         """

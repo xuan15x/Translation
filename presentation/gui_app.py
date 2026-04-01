@@ -323,6 +323,13 @@ class TranslationApp:
             command=self._clear_log
         ).pack(side=tk.RIGHT, padx=5)
         
+        # 退出按钮（放在最右边）
+        ttk.Button(
+            shortcut_frame,
+            text="🚪 退出程序",
+            command=self._exit_application
+        ).pack(side=tk.RIGHT, padx=5)
+        
         # 开始按钮（放在最显眼的位置）
         self.start_btn = ttk.Button(
             control_frame, 
@@ -411,7 +418,35 @@ class TranslationApp:
         log_manager.add_gui_handler(self.log_text)
         
         logging.info("[LOG] 日志系统已初始化")
+        
+        # 注册窗口关闭事件处理
+        self.root.protocol("WM_DELETE_WINDOW", self._on_closing)
+        
+        # 注册所有历史管理器到全局持久化管理器
+        self._register_history_managers()
 
+    def _register_history_managers(self):
+        """注册所有历史管理器到全局持久化管理器"""
+        try:
+            from data_access.global_persistence_manager import get_global_persistence_manager
+            from service.translation_history import get_history_manager as get_translation_history_manager
+            from service.terminology_history import get_history_manager as get_terminology_history_manager
+            
+            global_manager = get_global_persistence_manager()
+            
+            # 注册翻译历史管理器
+            translation_history_mgr = get_translation_history_manager()
+            global_manager.register_translation_history(translation_history_mgr)
+            logging.info("📝 翻译历史管理器已注册到全局管理器")
+            
+            # 注册术语历史管理器
+            terminology_history_mgr = get_terminology_history_manager()
+            global_manager.register_terminology_history(terminology_history_mgr)
+            logging.info("📚 术语历史管理器已注册到全局管理器")
+            
+        except Exception as e:
+            logging.error(f"注册历史管理器失败：{e}")
+    
     def _on_canvas_configure(self, event):
         """Canvas 大小变化时调整内部框架宽度"""
         # 设置框架的最小宽度为 Canvas 的宽度
@@ -1891,3 +1926,54 @@ Key: {record.key}
             if providers_list:
                 self.current_provider_var.set(providers_list[0])
                 self._on_provider_changed(None)
+    
+    # ========================================================================
+    # 退出程序方法（新增）
+    # ========================================================================
+    
+    def _exit_application(self):
+        """退出程序并保存所有数据库到 Excel"""
+        try:
+            # 显示确认对话框
+            result = messagebox.askyesno(
+                "确认退出",
+                "确定要退出程序吗？\n\n系统将自动保存所有数据到 Excel 文件。"
+            )
+            
+            if result:
+                # 记录退出日志
+                logging.info("[GUI] 用户操作：点击退出程序")
+                logging.info("💾 开始保存所有数据库到 Excel...")
+                
+                # 调用全局管理器统一保存
+                from data_access.global_persistence_manager import shutdown_all_databases
+                results = shutdown_all_databases()
+                
+                # 显示保存结果
+                if results['total_failed'] == 0:
+                    logging.info(f"✅ 保存成功：共保存 {results['total_saved']} 个数据库")
+                    messagebox.showinfo(
+                        "退出成功",
+                        f"所有数据已保存到 Excel 文件！\n\n"
+                        f"保存成功：{results['total_saved']} 个数据库"
+                    )
+                else:
+                    logging.warning(f"⚠️ 保存失败：{results['total_failed']} 个数据库")
+                    messagebox.showwarning(
+                        "退出警告",
+                        f"部分数据保存失败：{results['total_failed']} 个数据库\n\n"
+                        f"请检查日志获取详细信息。"
+                    )
+                
+                # 关闭 GUI
+                logging.info("👋 程序即将退出...")
+                self.root.quit()
+                self.root.destroy()
+                
+        except Exception as e:
+            logging.error(f"退出程序失败：{e}")
+            messagebox.showerror("错误", f"退出程序失败:\n{str(e)}")
+    
+    def _on_closing(self):
+        """窗口关闭事件处理"""
+        self._exit_application()
