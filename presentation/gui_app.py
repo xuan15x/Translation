@@ -384,9 +384,13 @@ class TranslationApp:
         except Exception as e:
             logger.warning(f"配置加载失败：{e}")
     
-    def _get_available_providers_from_config(self) -> dict:
-        """获取可用的 API 提供商"""
-        return self.provider_manager.list_providers() if self.provider_manager else {}
+    def _get_available_providers_from_config(self) -> list:
+        """获取可用的 API 提供商列表
+        
+        Returns:
+            APIProvider 名称列表
+        """
+        return self.provider_manager.list_providers() if self.provider_manager else []
     
     def _setup_logger(self):
         """设置日志系统"""
