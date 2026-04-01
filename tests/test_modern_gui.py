@@ -1,5 +1,7 @@
 """
 测试现代 GUI 功能完整性
+注意：ModernGUIApp 已合并到 TranslationApp (gui_app.py)
+此测试文件已弃用，仅保留用于向后兼容
 """
 import sys
 import os
@@ -7,11 +9,18 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import tkinter as tk
 from tkinter import messagebox
-from presentation.modern_gui_app import ModernGUIApp
+# 注：modern_gui_app.py 已删除，功能已合并到 gui_app.py
+# from presentation.modern_gui_app import ModernGUIApp
 import logging
 
 # 配置日志
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+# 跳过测试，因为模块已删除
+print("⚠️  警告：test_modern_gui.py 已弃用")
+print("   ModernGUIApp 已合并到 TranslationApp (presentation/gui_app.py)")
+print("   如需测试 GUI 功能，请使用 test_gui_app.py")
+sys.exit(0)
 
 def test_gui_initialization():
     """测试 GUI 初始化"""

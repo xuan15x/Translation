@@ -91,9 +91,56 @@ class ConfigPersistence:
             raise RuntimeError(f"加载配置文件失败：{e}")
     
     def _load_json(self, path: Path) -> Dict[str, Any]:
-        """加载 JSON 配置文件"""
+        """加载 JSON 配置文件（支持注释）"""
+        import re
+        
         with open(path, 'r', encoding='utf-8') as f:
-            return json.load(f)
+            lines = f.readlines()
+        
+        # 逐行处理，移除注释但保留字符串内容
+        cleaned_lines = []
+        for line in lines:
+            # 检查是否在字符串外有 //
+            # 简单策略：移除行尾的 // 注释（不在引号内的）
+            stripped = line.rstrip()
+            
+            # 查找 // 但不在引号内
+            in_string = False
+            escape_next = False
+            result = []
+            
+            i = 0
+            while i < len(stripped):
+                char = stripped[i]
+                
+                if escape_next:
+                    result.append(char)
+                    escape_next = False
+                elif char == '\\':
+                    result.append(char)
+                    escape_next = True
+                elif char == '"' and (i == 0 or stripped[i-1] != '\\'):
+                    in_string = not in_string
+                    result.append(char)
+                elif char == '/' and i + 1 < len(stripped) and stripped[i+1] == '/' and not in_string:
+                    # 找到注释，跳过剩余部分
+                    break
+                else:
+                    result.append(char)
+                
+                i += 1
+            
+            cleaned_lines.append(''.join(result))
+        
+        content = '\n'.join(cleaned_lines)
+        
+        try:
+            return json.loads(content)
+        except json.JSONDecodeError as e:
+            raise json.JSONDecodeError(
+                f"JSON 解析失败（可能是注释格式错误）: {e.msg}",
+                e.doc, e.pos
+            )
     
     def _load_yaml(self, path: Path) -> Dict[str, Any]:
         """加载 YAML 配置文件"""
@@ -152,6 +199,8 @@ class ConfigPersistence:
                          allow_unicode=True, sort_keys=False)
         except ImportError:
             raise ImportError("需要安装 PyYAML: pip install pyyaml")
+        except Exception as e:
+            raise RuntimeError(f"保存 YAML 配置文件失败：{e}")
     
     def _find_default_config(self) -> Optional[str]:
         """查找默认的配置文件"""

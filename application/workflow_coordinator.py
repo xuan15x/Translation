@@ -88,7 +88,19 @@ class TranslationWorkflowCoordinator:
                 batch_result.add_result(result)
             except Exception as e:
                 # 记录错误，继续处理下一个
-                pass
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"任务执行失败：{task.key}, 错误：{e}")
+                # 创建失败结果
+                failed_result = TranslationResult(
+                    task=task,
+                    final_trans="",
+                    initial_trans="",
+                    reason=str(e),
+                    diagnosis="Execution Error",
+                    status=TranslationStatus.FAILED
+                )
+                batch_result.add_result(failed_result)
         
         return batch_result
 

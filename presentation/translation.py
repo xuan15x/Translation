@@ -25,16 +25,23 @@ project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-from modern_gui_app import ModernGUIApp  # 使用新的现代化 GUI
+# 使用 gui_app 中的 TranslationApp（功能完整版）
+from presentation.gui_app import run_gui_app
 
 
 def main():
     """应用程序入口点"""
+    import logging
+    logger = logging.getLogger(__name__)
+    
     # 多进程支持
     multiprocessing.freeze_support()
     
     # 解析命令行参数
     config_file = None
+    logger.info(f"📋 translation.py 启动 - sys.argv: {sys.argv}")
+    logger.info(f"📋 参数数量：{len(sys.argv)}")
+    
     if len(sys.argv) > 1:
         # 检查是否是帮助参数
         if sys.argv[1] in ['--help', '-h', '-help', 'help']:
@@ -51,20 +58,17 @@ def main():
             return
         
         config_file = sys.argv[1]
+        logger.info(f"📂 从命令行获取配置文件：{config_file}")
         print(f"[INFO] 使用配置文件：{config_file}")
+    else:
+        logger.warning("⚠️ 未提供命令行参数")
     
-    # 创建主窗口
-    root = tk.Tk()
-    
-    # 设置样式
-    style = ttk.Style()
-    style.theme_use('clam')  # 使用更现代的主题
-    
-    # 启动应用（使用新的现代化 GUI）
-    app = ModernGUIApp(root, config_file=config_file)
+    # 启动应用（使用功能完整的 TranslationApp）
+    logger.info(f"📦 启动 TranslationApp - config_file={config_file}")
+    run_gui_app(config_file)
     
     # 运行事件循环
-    root.mainloop()
+    # root.mainloop() 已经在 run_gui_app 中调用
 
 
 if __name__ == "__main__":

@@ -1,4 +1,5 @@
 @echo off
+setlocal enabledelayedexpansion
 chcp 65001 >nul
 title AI Translation Platform v3.0
 
@@ -19,14 +20,30 @@ if errorlevel 1 (
 echo [OK] Python found
 echo.
 
-REM Start application from current directory
-python -u presentation\translation.py %*
+REM Get current directory
+set SCRIPT_DIR=%~dp0
+set CONFIG_FILE_JSON=%SCRIPT_DIR%config\config.json
+set CONFIG_FILE_YAML=%SCRIPT_DIR%config\config.yaml
 
-if errorlevel 1 (
-    echo.
-    echo [ERROR] Application failed to start
-    pause
-    exit /b %errorlevel%
+echo [INFO] Checking config files...
+echo [DEBUG] SCRIPT_DIR=%SCRIPT_DIR%
+echo [DEBUG] CONFIG_FILE_JSON=%CONFIG_FILE_JSON%
+
+REM Try YAML first (supports comments), then JSON
+if exist "%CONFIG_FILE_YAML%" (
+    set CONFIG_FILE=%CONFIG_FILE_YAML%
+    echo [OK] YAML config found: !CONFIG_FILE!
+    echo [INFO] Starting GUI with YAML config...
+    python -u presentation\translation.py "!CONFIG_FILE!"
+) else if exist "%CONFIG_FILE_JSON%" (
+    set CONFIG_FILE=%CONFIG_FILE_JSON%
+    echo [OK] JSON config found: !CONFIG_FILE!
+    echo [INFO] Starting GUI with JSON config...
+    python -u presentation\translation.py "!CONFIG_FILE!"
+) else (
+    echo [WARNING] No config file found
+    echo [INFO] Starting GUI without config file...
+    python -u presentation\translation.py
 )
 
 echo.

@@ -44,6 +44,7 @@ class TranslationApp:
         # 配置持久化
         self.config_file = config_file
         self.config_persistence = ConfigPersistence(config_file) if config_file else None
+        self._pending_config_data = None  # 暂存配置数据，等 UI 创建后应用
         
         # 状态变量
         self.term_path = tk.StringVar()
@@ -76,9 +77,9 @@ class TranslationApp:
         self.translation_history_manager = None
         self.terminology_history_manager = None
         
-        # 加载配置
+        # 加载配置 - 只暂存数据
         if config_file:
-            self._load_config_from_file()
+            self._pending_config_data = self._load_config_data()
         
         # 初始化 API 提供商列表
         self.available_providers = self._get_available_providers_from_config()
@@ -101,6 +102,11 @@ class TranslationApp:
         self._setup_ui()
         self._setup_logger()
         self._initialize_history_managers()
+        
+        # 应用暂存的配置到 GUI（必须在 UI 创建完成后）
+        if self._pending_config_data:
+            self._apply_config_to_gui(self._pending_config_data)
+            self._pending_config_data = None
     
     def _setup_ui(self):
         """设置用户界面"""
@@ -538,12 +544,6 @@ class TranslationApp:
             self.draft_model_combo['values'] = []
             self.review_model_combo['values'] = []
     
-    def _deselect_all_langs(self):
-        """取消全选"""
-        for var in self.lang_vars.values():
-            var.set(False)
-        self._update_lang_status()
-    
     def _load_advanced_params_from_config(self):
         """从配置文件加载双阶段翻译参数"""
         if not hasattr(self, 'config') or not self.config:
@@ -970,7 +970,7 @@ class TranslationApp:
         if self.config_file:
             from data_access.config_persistence import ConfigPersistence
             persistence = ConfigPersistence(self.config_file)
-            file_config = persistence.load_config()
+            file_config = persistence.load()
             loader.update(file_config)
         
         # 转换为 Config 数据类
@@ -1055,18 +1055,69 @@ class TranslationApp:
         self.progress_var.set(progress)
         logger.info(f"📊 进度：{current}/{total} ({progress:.1f}%)")
     
-    def _load_config_from_file(self):
-        """从文件加载配置并应用到 GUI"""
+    def _load_config_data(self):
+        """从配置文件加载数据（暂不应用）"""
         if not self.config_persistence:
-            return
+            return {}
         
         try:
-            config_data = self.config_persistence.load_config()
-            
-            # 应用配置到 GUI 状态
+            config_data = self.config_persistence.load()
+            logger.info(f"📂 成功加载配置文件：{self.config_file}")
+            return config_data
+        except Exception as e:
+            logger.error(f"❌ 加载配置文件失败：{e}")
+            return {}
+    
+    def _apply_config_to_gui(self, config_data: dict):
+        """将配置数据应用到 GUI 控件"""
+        try:
+            # API 提供商
             if 'api_provider' in config_data:
                 self.current_provider_var.set(config_data['api_provider'])
             
+            # 双阶段参数 - 初译
+            if config_data.get('draft_temperature') is not None:
+                self.draft_temp_var.set(config_data['draft_temperature'])
+            elif config_data.get('temperature') is not None:
+                self.draft_temp_var.set(config_data['temperature'])
+            
+            if config_data.get('draft_top_p') is not None:
+                self.draft_top_p_var.set(config_data['draft_top_p'])
+            elif config_data.get('top_p') is not None:
+                self.draft_top_p_var.set(config_data['top_p'])
+            
+            if config_data.get('draft_timeout') is not None:
+                self.draft_timeout_var.set(config_data['draft_timeout'])
+            elif config_data.get('timeout') is not None:
+                self.draft_timeout_var.set(config_data['timeout'])
+            
+            if config_data.get('draft_max_tokens') is not None:
+                self.draft_max_tokens_var.set(config_data['draft_max_tokens'])
+            
+            # 双阶段参数 - 校对
+            if config_data.get('review_temperature') is not None:
+                self.review_temp_var.set(config_data['review_temperature'])
+            elif config_data.get('temperature') is not None:
+                self.review_temp_var.set(config_data['temperature'])
+            
+            if config_data.get('review_top_p') is not None:
+                self.review_top_p_var.set(config_data['review_top_p'])
+            elif config_data.get('top_p') is not None:
+                self.review_top_p_var.set(config_data['top_p'])
+            
+            if config_data.get('review_timeout') is not None:
+                self.review_timeout_var.set(config_data['review_timeout'])
+            elif config_data.get('timeout') is not None:
+                self.review_timeout_var.set(config_data['timeout'])
+            
+            if config_data.get('review_max_tokens') is not None:
+                self.review_max_tokens_var.set(config_data['review_max_tokens'])
+            
+            # 翻译方向
+            if 'translation_type' in config_data:
+                self.translation_type_var.set(config_data['translation_type'])
+            
+            # 提示词
             if 'draft_prompt' in config_data:
                 self.draft_text.delete('1.0', tk.END)
                 self.draft_text.insert('1.0', config_data['draft_prompt'])
@@ -1075,15 +1126,10 @@ class TranslationApp:
                 self.review_text.delete('1.0', tk.END)
                 self.review_text.insert('1.0', config_data['review_prompt'])
             
-            if 'gui_window_title' in config_data:
-                self.root.title(config_data['gui_window_title'])
+            logger.info("✅ 配置数据已应用到 GUI")
             
-            if 'gui_window_width' in config_data and 'gui_window_height' in config_data:
-                self.root.geometry(f"{config_data['gui_window_width']}x{config_data['gui_window_height']}")
-            
-            logger.info(f"✅ 配置加载成功：{self.config_file}")
         except Exception as e:
-            logger.warning(f"配置加载失败：{e}")
+            logger.error(f"❌ 应用配置到 GUI 失败：{e}")
     
     def _get_available_providers_from_config(self) -> list:
         """获取可用的 API 提供商列表

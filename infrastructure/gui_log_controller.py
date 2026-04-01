@@ -9,6 +9,7 @@ GUI 日志控制模块
 
 import logging
 import tkinter as tk
+from tkinter import ttk
 from typing import Optional
 from infrastructure.log_slice import LogCategory, LoggerSlice
 
@@ -192,7 +193,7 @@ class GUILogController:
         if self.log_level_var:
             level_var = self.log_level_var
         
-        level_combo = tk.Combobox(frame, textvariable=level_var, width=8, state="readonly")
+        level_combo = ttk.Combobox(frame, textvariable=level_var, width=8, state="readonly")
         level_combo['values'] = ('DEBUG', 'INFO', 'WARNING', 'ERROR')
         level_combo.pack(side=tk.LEFT, padx=5)
         level_combo.bind('<<ComboboxSelected>>', 
@@ -205,7 +206,7 @@ class GUILogController:
         if self.granularity_var:
             granularity_var = self.granularity_var
         
-        granularity_combo = tk.Combobox(frame, textvariable=granularity_var, width=10, state="readonly")
+        granularity_combo = ttk.Combobox(frame, textvariable=granularity_var, width=10, state="readonly")
         granularity_combo['values'] = ('minimal', 'basic', 'normal', 'detailed', 'verbose')
         granularity_combo.pack(side=tk.LEFT, padx=5)
         granularity_combo.bind('<<ComboboxSelected>>',

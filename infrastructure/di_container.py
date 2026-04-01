@@ -78,6 +78,7 @@ def initialize_container(config_file: Optional[str] = None,
         loader.update(file_config)
     
     # 从配置加载器获取配置值
+    from infrastructure.models import Config
     config = loader.to_dataclass(Config)
     container.register('config', config, singleton=True)
     
