@@ -20,6 +20,10 @@ from tkinter import ttk
 import sys
 import os
 
+# 设置 UTF-8 编码模式（解决 Windows 控制台编码问题）
+if sys.platform == 'win32':
+    os.environ['PYTHONIOENCODING'] = 'utf-8'
+
 # 添加项目根目录到 Python 路径
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if project_root not in sys.path:
@@ -37,7 +41,7 @@ def main():
     config_file = None
     if len(sys.argv) > 1:
         config_file = sys.argv[1]
-        print(f"📂 使用配置文件：{config_file}")
+        print(f"[INFO] 使用配置文件：{config_file}")
     
     # 创建主窗口
     root = tk.Tk()

@@ -411,7 +411,7 @@ class TranslationApp:
         log_manager = get_log_manager()
         log_manager.add_gui_handler(self.log_text)
         
-        logging.info("📝 日志系统已初始化")
+        logging.info("[LOG] 日志系统已初始化")
 
     def _on_canvas_configure(self, event):
         """Canvas 大小变化时调整内部框架宽度"""
@@ -450,7 +450,7 @@ class TranslationApp:
             log_manager = get_log_manager()
             log_manager.set_granularity(granularity)
             
-            log_with_tag(f"📊 日志粒度已设置为：{granularity_str}", level=LogLevel.INFO, tag=LogTag.IMPORTANT)
+            log_with_tag(f"[STATS] 日志粒度已设置为：{granularity_str}", level=LogLevel.INFO, tag=LogTag.IMPORTANT)
         except Exception as e:
             logging.error(f"设置日志粒度失败：{e}")
     
@@ -463,23 +463,23 @@ class TranslationApp:
             if filter_str == "all":
                 # 显示所有标签
                 log_manager.clear_tag_filter()
-                log_with_tag("🏷️ 标签过滤器已关闭 (显示所有)", level=LogLevel.INFO, tag=LogTag.IMPORTANT)
+                log_with_tag("[TAG] 标签过滤器已关闭 (显示所有)", level=LogLevel.INFO, tag=LogTag.IMPORTANT)
             elif filter_str == "errors_only":
                 # 只显示错误
                 log_manager.set_tag_filter([LogTag.CRITICAL, LogTag.ERROR])
-                log_with_tag("🏷️ 标签过滤器：只显示错误", level=LogLevel.INFO, tag=LogTag.IMPORTANT)
+                log_with_tag("[TAG] 标签过滤器：只显示错误", level=LogLevel.INFO, tag=LogTag.IMPORTANT)
             elif filter_str == "important_only":
                 # 只显示重要事件
                 log_manager.set_tag_filter([LogTag.CRITICAL, LogTag.ERROR, LogTag.WARNING, LogTag.IMPORTANT])
-                log_with_tag("🏷️ 标签过滤器：只显示重要事件", level=LogLevel.INFO, tag=LogTag.IMPORTANT)
+                log_with_tag("[TAG] 标签过滤器：只显示重要事件", level=LogLevel.INFO, tag=LogTag.IMPORTANT)
             elif filter_str == "progress_only":
                 # 只显示进度相关
                 log_manager.set_tag_filter([LogTag.PROGRESS, LogTag.IMPORTANT])
-                log_with_tag("🏷️ 标签过滤器：只显示进度", level=LogLevel.INFO, tag=LogTag.IMPORTANT)
+                log_with_tag("[TAG] 标签过滤器：只显示进度", level=LogLevel.INFO, tag=LogTag.IMPORTANT)
             elif filter_str == "no_debug":
                 # 不显示调试信息
                 log_manager.set_min_tag(LogTag.NORMAL)
-                log_with_tag("🏷️ 标签过滤器：隐藏调试信息", level=LogLevel.INFO, tag=LogTag.IMPORTANT)
+                log_with_tag("[TAG] 标签过滤器：隐藏调试信息", level=LogLevel.INFO, tag=LogTag.IMPORTANT)
         except Exception as e:
             logging.error(f"设置标签过滤器失败：{e}")
     
@@ -490,12 +490,12 @@ class TranslationApp:
                 self.log_granularity_var.set("verbose")
                 log_manager = get_log_manager()
                 log_manager.set_granularity(LogGranularity.VERBOSE)
-                logging.info("🔍 已切换到详细调试模式")
+                logging.info("[DEBUG] 已切换到详细调试模式")
             elif level_str == "minimal":
                 self.log_granularity_var.set("minimal")
                 log_manager = get_log_manager()
                 log_manager.set_granularity(LogGranularity.MINIMAL)
-                logging.info("🧹 已切换到最小化模式 (只显示错误)")
+                logging.info("[CLEAN] 已切换到最小化模式 (只显示错误)")
         except Exception as e:
             logging.error(f"设置日志级别失败：{e}")
     
@@ -507,23 +507,23 @@ class TranslationApp:
             if filter_str == "important_only":
                 # 只显示重要事件
                 log_manager.set_tag_filter([LogTag.CRITICAL, LogTag.ERROR, LogTag.WARNING, LogTag.IMPORTANT])
-                log_with_tag("⭐ 标签过滤器：只显示重要事件", level=LogLevel.INFO, tag=LogTag.IMPORTANT)
+                log_with_tag("[FILTER] 标签过滤器：只显示重要事件", level=LogLevel.INFO, tag=LogTag.IMPORTANT)
             elif filter_str == "errors_only":
                 # 只显示错误
                 log_manager.set_tag_filter([LogTag.CRITICAL, LogTag.ERROR])
-                log_with_tag("🧹 标签过滤器：只显示错误", level=LogLevel.INFO, tag=LogTag.IMPORTANT)
+                log_with_tag("[FILTER] 标签过滤器：只显示错误", level=LogLevel.INFO, tag=LogTag.IMPORTANT)
             elif filter_str == "progress_only":
                 # 只显示进度
                 log_manager.set_tag_filter([LogTag.PROGRESS, LogTag.IMPORTANT])
-                log_with_tag("📊 标签过滤器：只显示进度", level=LogLevel.INFO, tag=LogTag.IMPORTANT)
+                log_with_tag("[PROGRESS] 标签过滤器：只显示进度", level=LogLevel.INFO, tag=LogTag.IMPORTANT)
             elif filter_str == "no_debug":
                 # 隐藏调试
                 log_manager.set_min_tag(LogTag.NORMAL)
-                log_with_tag("🔍 标签过滤器：隐藏调试信息", level=LogLevel.INFO, tag=LogTag.IMPORTANT)
+                log_with_tag("[DEBUG] 标签过滤器：隐藏调试信息", level=LogLevel.INFO, tag=LogTag.IMPORTANT)
             elif filter_str == "all":
                 # 显示所有
                 log_manager.clear_tag_filter()
-                log_with_tag("🏷️ 标签过滤器：显示所有", level=LogLevel.INFO, tag=LogTag.IMPORTANT)
+                log_with_tag("[TAG] 标签过滤器：显示所有", level=LogLevel.INFO, tag=LogTag.IMPORTANT)
             
             # 更新下拉框显示
             self.log_tag_filter_var.set(filter_str)
@@ -537,7 +537,7 @@ class TranslationApp:
             self.log_text.configure(state='normal')
             self.log_text.delete('1.0', tk.END)
             self.log_text.configure(state='disabled')
-            logging.info("🗑️ 日志已清空")
+            logging.info("[CLEAR] 日志已清空")
         except Exception as e:
             logging.error(f"清空日志失败：{e}")
     
@@ -567,9 +567,9 @@ class TranslationApp:
                     # 加载并显示术语库预览
                     self._load_and_preview_terminology(path)
                 else:
-                    logging.info(f"📝 将创建新术语库：{path}")
+                    logging.info(f"[FILE] 将创建新术语库：{path}")
             else:
-                logging.info(f"📝 新术语库文件将自动创建：{path}")
+                logging.info(f"[FILE] 新术语库文件将自动创建：{path}")
                 # 显示提示信息
                 messagebox.showinfo(
                     "提示",
@@ -585,7 +585,7 @@ class TranslationApp:
             
             # 检查文件是否存在
             if not os.path.exists(path):
-                logging.info(f"📝 新术语库文件将自动创建：{path}")
+                logging.info(f"[FILE] 新术语库文件将自动创建：{path}")
                 return
             
             # 读取 Excel 文件

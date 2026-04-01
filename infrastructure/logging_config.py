@@ -66,10 +66,17 @@ def setup_logger(gui_handler=None):
     if logger.handlers:
         logger.handlers.clear()
 
-    # 控制台 Handler
+    # 控制台 Handler（设置 UTF-8 编码）
     ch = logging.StreamHandler(sys.stdout)
     ch.setLevel(logging.INFO)
     ch.setFormatter(ColorFormatter())
+    # 为 Windows 平台设置 UTF-8 编码
+    if sys.platform == 'win32':
+        try:
+            import codecs
+            ch.stream = codecs.getwriter('utf-8')(ch.stream.buffer, errors='replace')
+        except (AttributeError, LookupError):
+            pass  # 如果设置失败，使用默认编码
     logger.addHandler(ch)
 
     # GUI Handler (如果有)
