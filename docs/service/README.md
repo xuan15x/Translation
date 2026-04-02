@@ -2,9 +2,9 @@
 
 ## 📑 目录
 
-- [📋 概述](#概述)
-- [📁 文件结构](#文件结构)
-- [🔧 核心服务](#核心服务)
+- [📋 概述](#-概述)
+- [📁 文件结构](#-文件结构)
+- [🔧 核心服务](#-核心服务)
   - [1. API Provider (API 提供商)](#1-api-provider-api-提供商)
     - [get_provider_manager()](#get_provider_manager)
     - [switch_provider(provider_name)](#switch_providerprovider_name)
@@ -12,13 +12,13 @@
     - [get_history_manager()](#get_history_manager)
     - [get_recent_records(limit=100)](#get_recent_recordslimit100)
     - [get_statistics()](#get_statistics)
-- [📖 完整使用示例](#完整使用示例)
+- [📖 完整使用示例](#-完整使用示例)
   - [1. API 提供商管理](#1-api-提供商管理)
   - [2. 翻译历史查询](#2-翻译历史查询)
-- [💡 最佳实践](#最佳实践)
+- [💡 最佳实践](#-最佳实践)
   - [1. API 切换](#1-api-切换)
   - [2. 历史查询](#2-历史查询)
-- [🔗 相关文档](#相关文档)
+- [🔗 相关文档](#-相关文档)
 
 ---
 

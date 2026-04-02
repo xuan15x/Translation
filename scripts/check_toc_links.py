@@ -11,9 +11,10 @@ def extract_headings(content):
     GitHub 锚点生成规则参考:
     https://github.com/jch/html-pipeline/blob/master/lib/html/pipeline/toc_filter.rb
     
-    实际验证：https://github.com/xuan15x/Translation/blob/main/test_github_anchor.md
-    - 🛠️ 带变体选择符的 emoji → #️-带变体选择符的-emoji (变体选择符 U+FE0F 被保留)
-    - 🔧 不带变体选择符的 emoji → #-不带变体选择符的-emoji (emoji 被移除，生成横杠)
+    实际验证：https://github.com/xuan15x/Translation
+    - ✨ 核心特性 → #-核心特性 (emoji→横杠，空格→横杠，保留开头横杠)
+    - 🛠️ 技术特性 → #️-技术特性 (emoji→横杠，变体选择符保留，空格→横杠)
+    - 🔧 工具 → #-工具 (emoji→横杠，空格→横杠)
     """
     headings = {}
     # 匹配##到######的标题
@@ -26,11 +27,11 @@ def extract_headings(content):
 
         # GitHub 规则（已实际验证）：
         # 1. emoji → 转换为横杠 -
-        # 2. 变体选择符 (U+FE00-U+FE0F) → 保留（不移除）
+        # 2. 变体选择符 (U+FE00-U+FE0F) → 保留
         # 3. 其他标点符号 → 移除
         # 4. 空格 → 转换为横杠 -
         # 5. 连续横杠 → 简化为单个 -
-        # 6. 移除开头和结尾的横杠
+        # 6. 保留开头和结尾的横杠（GitHub 实际行为）
         def replace_emoji_with_dash(text):
             result = []
             for char in text:
@@ -57,10 +58,10 @@ def extract_headings(content):
         anchor = re.sub(r'[^\w\s\u4e00-\u9fff\ufe00-\ufe0f-]', '', anchor)
         # 空格转横杠
         anchor = re.sub(r'\s+', '-', anchor)
-        # 简化连续横杠（但保留变体选择符后的横杠）
+        # 简化连续横杠
         anchor = re.sub(r'-+', '-', anchor)
-        # 移除开头和结尾的横杠（GitHub 规则）
-        anchor = anchor.strip('-')
+        # 注意：GitHub 保留开头和结尾的横杠
+        # anchor = anchor.strip('-')  # 移除此行
 
         headings[anchor] = title
     return headings
