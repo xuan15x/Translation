@@ -4,6 +4,9 @@ GUI 应用模块 - 重构版
 """
 import asyncio
 import logging
+import os
+import os
+import os
 import tkinter as tk
 from datetime import datetime
 from tkinter import filedialog, messagebox, ttk, scrolledtext
@@ -293,11 +296,39 @@ class TranslationApp:
         )
         self.type_desc_label.pack(side=tk.LEFT, padx=10)
         
-        # --- 4. 语言选择区（按 T1/T2/T3 分页）---
+        # --- 4. 源语言选择区 ---
+        source_lang_frame = ttk.LabelFrame(main_frame, text="📝 源语言选择", padding="10")
+        source_lang_frame.pack(fill=tk.X, pady=(0, 10))
+        
+        # 源语言选择变量
+        self.source_lang_var = tk.StringVar(value="自动检测")
+        self.available_source_langs = []  # 从文件中读取的可用源语言
+        
+        source_select_frame = ttk.Frame(source_lang_frame)
+        source_select_frame.pack(fill=tk.X)
+        
+        ttk.Label(source_select_frame, text="选择源语言:").grid(row=0, column=0, sticky=tk.W, padx=5, pady=5)
+        
+        self.source_lang_combo = ttk.Combobox(
+            source_select_frame,
+            textvariable=self.source_lang_var,
+            values=["自动检测"],  # 默认只有"自动检测"
+            state='readonly',
+            width=30
+        )
+        self.source_lang_combo.grid(row=0, column=1, sticky=tk.W, padx=5, pady=5)
+        
+        ttk.Label(source_select_frame, text="💡 选择文件后将自动检测可用源语言", foreground="gray").grid(row=0, column=2, padx=10, pady=5)
+        
+        # 刷新按钮
+        ttk.Button(source_select_frame, text="🔄 刷新源语言列表", command=self._refresh_source_languages).grid(row=0, column=3, padx=5, pady=5)
+        
+        # --- 5. 语言选择区（按 T1/T2/T3 分页）---
         lang_frame = ttk.LabelFrame(main_frame, text="🌍 目标语言", padding="10")
         lang_frame.pack(fill=tk.X, pady=(0, 10))
         
         self.lang_vars = {}  # 所有语言变量的字典 {lang_name: BooleanVar}
+        self.favorite_langs = []  # 常用语言列表（上次使用的语言）
         
         # 顶部按钮行
         btn_row = ttk.Frame(lang_frame)
@@ -306,12 +337,16 @@ class TranslationApp:
         ttk.Button(btn_row, text="取消全选当前页", command=self._deselect_all_langs).pack(side=tk.LEFT, padx=5)
         ttk.Button(btn_row, text="➕ 添加自定义语言", command=self._add_custom_language).pack(side=tk.RIGHT, padx=5)
         
-        # 使用 Notebook 分页显示 T1/T2/T3
+        # 使用 Notebook 分页显示常用/T1/T2/T3
         self.lang_notebook = ttk.Notebook(lang_frame)
         self.lang_notebook.pack(fill=tk.BOTH, expand=True)
         
         # 存储每个分页的语言变量
         self.tier_lang_frames = {}
+        
+        # 创建常用语言分页（初始隐藏，有数据时显示）
+        self.favorite_frame = ttk.Frame(self.lang_notebook, padding="5")
+        # 先不添加到 notebook，等加载了常用语言后再添加
         
         # 创建 T1 分页
         t1_frame = ttk.Frame(self.lang_notebook, padding="5")
@@ -495,6 +530,8 @@ class TranslationApp:
         )
         if filename:
             self.source_path.set(filename)
+            # 选择文件后自动刷新源语言列表
+            self._refresh_source_languages()
     
     def _on_provider_changed(self, event):
         """API 提供商切换"""
@@ -577,6 +614,90 @@ class TranslationApp:
             logger.debug("已加载双阶段翻译参数配置")
         except Exception as e:
             logger.error(f"加载双阶段参数配置失败：{e}")
+    
+    def _refresh_source_languages(self):
+        """刷新源语言列表（从待翻译文件中读取）"""
+        source_file = self.source_path.get()
+        
+        if not source_file:
+            messagebox.showinfo("提示", "请先选择待翻译文件")
+            return
+        
+        # 检查 pandas 是否可用
+        try:
+            import pandas as pd
+        except ImportError:
+            error_msg = (
+                "❌ 缺少 pandas 模块，无法检测源语言\n\n"
+                "请通过以下方式安装依赖:\n\n"
+                "1. 激活虚拟环境：\.venv\\Scripts\activate\n"
+                "2. 安装依赖：pip install -r requirements.txt\n\n"
+                "如果当前不在虚拟环境中，请先激活环境再运行程序"
+            )
+            logger.error(error_msg)
+            messagebox.showerror("依赖缺失", error_msg)
+            return
+        
+        try:
+            # 读取 Excel 文件
+            df = pd.read_excel(source_file, engine='openpyxl')
+            columns = df.columns.tolist()
+            
+            # 排除常见的非源语言列名
+            exclude_patterns = ['key', 'id', '序号', '编号', 'status', '备注', 'note']
+            
+            # 过滤出可能的源语言列
+            available_langs = []
+            for col in columns:
+                col_lower = str(col).lower()
+                # 检查是否包含排除关键词
+                is_excluded = any(pattern in col_lower for pattern in exclude_patterns)
+                
+                if not is_excluded:
+                    # 进一步检查：该列是否有非空数据
+                    if df[col].notna().any():
+                        available_langs.append(str(col))
+            
+            # 更新可用源语言列表
+            self.available_source_langs = available_langs
+            
+            # 更新下拉框选项（保留"自动检测"作为第一个选项）
+            combo_values = ["自动检测"] + available_langs
+            self.source_lang_combo['values'] = combo_values
+            
+            # 设置默认值
+            if len(available_langs) == 1:
+                # 只有一个源语言，自动选中
+                self.source_lang_var.set(available_langs[0])
+            elif len(available_langs) > 1:
+                # 多个源语言，提示用户选择
+                self.source_lang_var.set("自动检测")
+                logger.info(f"📋 检测到 {len(available_langs)} 个可用源语言：{available_langs}")
+            else:
+                # 没有检测到源语言
+                logger.warning("⚠️ 未检测到可用的源语言列")
+            
+            # 构建提示信息
+            if available_langs:
+                lang_list = "\n".join([f"  • {lang}" for lang in available_langs])
+                message = (
+                    f"✅ 检测到 {len(available_langs)} 个可用源语言:\n\n"
+                    f"{lang_list}\n\n"
+                    f"💡 请在上方下拉框中选择要翻译的源语言"
+                )
+            else:
+                message = (
+                    f"⚠️ 未检测到可用的源语言列\n\n"
+                    f"请检查 Excel 文件是否包含有效的原文数据\n"
+                    f"（系统会自动排除 Key、ID、备注等非源语言列）"
+                )
+            
+            messagebox.showinfo("源语言检测完成", message)
+            
+        except Exception as e:
+            error_msg = f"❌ 读取源语言失败：{e}"
+            logger.error(error_msg)
+            messagebox.showerror("错误", error_msg)
     
     def _update_lang_status(self):
         """更新语言选择状态"""
@@ -989,6 +1110,16 @@ class TranslationApp:
                 messagebox.showwarning("警告", "请至少选择一个目标语言")
                 return
             
+            # 获取用户选择的源语言
+            selected_source_lang = self.source_lang_var.get()
+            if selected_source_lang == "自动检测":
+                # 使用默认源语言（从配置文件或默认值）
+                source_lang = None  # 让服务层自动检测
+                logger.info(f"🔍 使用自动检测源语言模式")
+            else:
+                source_lang = selected_source_lang
+                logger.info(f"📝 使用用户选择的源语言：{source_lang}")
+            
             self.is_running = True
             self.start_btn.config(state='disabled')
             self.stop_btn.config(state='normal')
@@ -998,12 +1129,13 @@ class TranslationApp:
             # 生成批次 ID
             batch_id = f"batch_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
             
-            # 执行翻译
+            # 执行翻译（传递源语言参数）
             result = await self.translation_facade.translate_file(
                 source_excel_path=self.source_path.get(),
                 target_langs=self.selected_langs,
                 output_excel_path=None,  # TODO: 指定输出路径
-                concurrency_limit=10
+                concurrency_limit=10,
+                source_lang=source_lang  # 新增：传递源语言
             )
             
             # 记录翻译历史
@@ -1029,6 +1161,11 @@ class TranslationApp:
             # 显示结果
             success_rate = result.success_rate
             messagebox.showinfo("完成", f"翻译完成！\n成功率：{success_rate:.1f}%")
+            
+            # 保存常用语言（在翻译完成后）
+            if self.selected_langs:
+                self._save_favorite_languages(self.selected_langs)
+                logger.info(f"📌 已保存 {len(self.selected_langs)} 个常用语言")
             
         except Exception as e:
             logger.error(f"❌ 翻译失败：{e}")
@@ -1168,6 +1305,11 @@ class TranslationApp:
             # 加载上次的会话配置
             self._load_last_session()
             
+            # 加载常用语言（必须在 UI 创建后）
+            self._load_favorite_languages_from_config()
+            if self.favorite_langs:
+                self._create_favorite_tab()
+            
             # 记录版本使用
             if self.session_manager:
                 session = self.session_manager.get_current_session()
@@ -1250,6 +1392,68 @@ class TranslationApp:
         
         logger.info("✅ 会话配置还原完成")
     
+    def _create_favorite_tab(self):
+        """创建常用语言分页"""
+        try:
+            # 检查是否已经有常用语言分页
+            for i in range(self.lang_notebook.index("end")):
+                if self.lang_notebook.tab(i, "text") == "⭐ 常用语言":
+                    # 已存在，移除旧内容
+                    self.lang_notebook.forget(i)
+                    break
+            
+            # 清空常用语言框架
+            for widget in self.favorite_frame.winfo_children():
+                widget.destroy()
+            
+            # 创建常用语言复选框
+            if not self.favorite_langs:
+                return False
+            
+            # 添加到 notebook 的第一页
+            self.lang_notebook.insert(0, self.favorite_frame, text="⭐ 常用语言")
+            
+            # 放置语言选项（5 列布局）
+            for i, lang in enumerate(self.favorite_langs):
+                var = tk.BooleanVar(value=False)
+                self.lang_vars[lang] = var
+                lang_text = f"{lang} (常用)"
+                cb = ttk.Checkbutton(self.favorite_frame, text=lang_text, variable=var, command=self._update_lang_status)
+                cb.grid(row=i // 5, column=i % 5, sticky=tk.W, padx=10, pady=2)
+            
+            # 存储该分级的框架
+            self.tier_lang_frames["FAVORITE"] = self.favorite_frame
+            
+            logger.info(f"✅ 已创建常用语言分页，包含 {len(self.favorite_langs)} 个语言")
+            return True
+            
+        except Exception as e:
+            logger.error(f"❌ 创建常用语言分页失败：{e}")
+            return False
+    
+    def _load_favorite_languages(self, selected_langs: List[str]):
+        """
+        加载常用语言列表
+        
+        Args:
+            selected_langs: 上次选择的语言列表
+        """
+        try:
+            # 去重并过滤有效语言
+            unique_langs = list(dict.fromkeys(selected_langs))
+            valid_langs = [lang for lang in unique_langs if lang in TARGET_LANGUAGES or lang in self.lang_vars]
+            
+            if valid_langs:
+                self.favorite_langs = valid_langs
+                # 创建或更新常用语言分页
+                if self._create_favorite_tab():
+                    logger.info(f"📌 已加载 {len(valid_langs)} 个常用语言：{valid_langs}")
+            else:
+                logger.debug("没有可用常用语言")
+                
+        except Exception as e:
+            logger.error(f"❌ 加载常用语言失败：{e}")
+    
     def _save_current_session(self):
         """保存当前会话配置"""
         if not self.session_manager:
@@ -1290,8 +1494,57 @@ class TranslationApp:
             self.session_manager.save_to_file()
             logger.debug("💾 会话配置已保存")
             
+            # 保存常用语言（用于下次显示）
+            if self.selected_langs:
+                self._save_favorite_languages(self.selected_langs)
+            
         except Exception as e:
             logger.error(f"❌ 保存会话配置失败：{e}")
+    
+    def _save_favorite_languages(self, selected_langs: List[str]):
+        """
+        保存常用语言列表到配置文件
+        
+        Args:
+            selected_langs: 当前选择的语言列表
+        """
+        try:
+            # 读取现有配置
+            config_data = {}
+            if self.config_file and os.path.exists(self.config_file):
+                import json
+                with open(self.config_file, 'r', encoding='utf-8') as f:
+                    config_data = json.load(f)
+            
+            # 更新常用语言配置
+            config_data['favorite_languages'] = selected_langs
+            
+            # 保存回配置文件
+            if self.config_file:
+                import json
+                with open(self.config_file, 'w', encoding='utf-8') as f:
+                    json.dump(config_data, f, indent=2, ensure_ascii=False)
+                
+                logger.debug(f"💾 已保存 {len(selected_langs)} 个常用语言到配置")
+                
+        except Exception as e:
+            logger.error(f"❌ 保存常用语言失败：{e}")
+    
+    def _load_favorite_languages_from_config(self):
+        """从配置文件加载常用语言"""
+        try:
+            if self.config_file and os.path.exists(self.config_file):
+                import json
+                with open(self.config_file, 'r', encoding='utf-8') as f:
+                    config_data = json.load(f)
+                
+                favorite_langs = config_data.get('favorite_languages', [])
+                if favorite_langs:
+                    self.favorite_langs = favorite_langs
+                    logger.info(f"📌 从配置加载了 {len(favorite_langs)} 个常用语言")
+                    
+        except Exception as e:
+            logger.error(f"❌ 加载常用语言配置失败：{e}")
     
     def _on_closing(self):
         """窗口关闭事件处理"""

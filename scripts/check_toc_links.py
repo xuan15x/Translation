@@ -8,7 +8,7 @@ from pathlib import Path
 def extract_headings(content):
     """提取所有标题及其锚点 ID"""
     headings = {}
-    # 匹配 ## 到 ###### 的标题
+    # 匹配##到######的标题
     pattern = r'^(#{2,6})\s+(.+)$'
     for match in re.finditer(pattern, content, re.MULTILINE):
         level = len(match.group(1))
@@ -21,6 +21,11 @@ def extract_headings(content):
         anchor = re.sub(r'\s+', '-', anchor)
         # 移除多余横杠
         anchor = re.sub(r'-+', '-', anchor).strip('-')
+        
+        # 关键修正：如果原标题以 emoji 开头，移除后会在前面留下横杠
+        # 例如："✨ 核心特性" -> "#-核心特性" 而不是 "#核心特性"
+        if title and ord(title[0]) > 0xFFFF:  # emoji 字符
+            anchor = '-' + anchor
         
         headings[anchor] = title
     return headings

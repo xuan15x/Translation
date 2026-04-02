@@ -110,6 +110,65 @@
   "review_prompt": "Role: Senior Language Editor.\nTask: Polish 'Draft' into native {target_lang}.\nConstraints:\n1. Output JSON ONLY: \"Trans\": \"string\", \"Reason\": \"string\".\n2. 'Reason': Max 10 chars. If no change, Reason=\"\".\n3. Focus on flow and tone.",
   
   // ============================================================
+  // 【禁止事项配置】- 自动注入到提示词中的禁止规则
+  // ============================================================
+  // 说明：这些禁止事项会自动注入到每个翻译请求中，确保翻译质量
+  // 可以按翻译类型配置不同的禁止规则
+  "prohibition_config": {
+    // 通用禁止事项（适用于所有翻译类型）
+    "global_prohibitions": [
+      "禁止输出原文或保留未翻译的内容",
+      "禁止添加解释性文字或注释",
+      "禁止改变原文的语气和情感色彩",
+      "禁止使用过于书面化或学术化的表达",
+      "禁止创造原文没有的新内容",
+      "禁止遗漏原文的关键信息",
+      "禁止使用敏感或不适当的词汇",
+      "禁止混用不同语言的表达方式"
+    ],
+    
+    // 三消游戏专项禁止事项
+    "match3_prohibitions": [
+      "禁止使用超过 4 个字的道具名称（UI 限制）",
+      "禁止使用生僻字或难以识别的汉字",
+      "禁止使用可能引起文化误解的颜色/形状描述",
+      "禁止使用过于复杂或晦涩的比喻",
+      "禁止使用成人向或暴力倾向的描述"
+    ],
+    
+    // UI 界面专项禁止事项
+    "ui_prohibitions": [
+      "禁止使用超过按钮容量的长文本",
+      "禁止使用需要思考才能理解的表达",
+      "禁止使用非标准的 UI 术语（如用'设定'代替'设置'）",
+      "禁止使用可能产生歧义的简短表达"
+    ],
+    
+    // 对话剧情专项禁止事项
+    "dialogue_prohibitions": [
+      "禁止使用不符合角色性格的语言风格",
+      "禁止过度本地化导致失去原作韵味",
+      "禁止使用与时代背景不符的流行语",
+      "禁止改变对话的情感倾向（严肃→玩笑等）"
+    ]
+  },
+  
+  // 各翻译类型对应的禁止事项映射（一般不需要修改）
+  "prohibition_type_map": {
+    "match3_item": ["global", "match3"],
+    "match3_skill": ["global", "match3"],
+    "match3_level": ["global", "match3"],
+    "match3_dialogue": ["global", "match3", "dialogue"],
+    "match3_ui": ["global", "match3", "ui"],
+    "dialogue": ["global", "dialogue"],
+    "ui": ["global", "ui"],
+    "scene": ["global"],
+    "tutorial": ["global"],
+    "achievement": ["global"],
+    "custom": ["global"]
+  },
+  
+  // ============================================================
   // 【语言配置】- 支持的语言（按游戏市场 T1/T2/T3 分级）
   // ============================================================
   "target_languages": [
@@ -125,6 +184,9 @@
     "豪萨语", "哈萨克语", "乌兹别克语"
   ],
   
+  // 常用语言（上次翻译任务使用的语言，自动显示在"⭐ 常用语言"分页）
+  "favorite_languages": ["英语", "日语", "韩语"],
+  
   "default_source_lang": "中文",  // 默认源语言
   "supported_source_langs": ["中文", "英语", "日语", "韩语", "法语", "德语", "西班牙语", "意大利语", "葡萄牙语", "俄语"],
   
@@ -138,8 +200,6 @@
     "match3_level",     // 三消 - 关卡目标
     "match3_dialogue",  // 三消 - 角色对话
     "match3_ui",        // 三消 - UI 界面
-    "rpg_item",         // RPG - 道具装备
-    "rpg_skill",        // RPG - 技能效果
     "dialogue",         // 通用 - 对话剧情
     "ui",               // 通用 - UI 界面
     "scene",            // 通用 - 场景描述

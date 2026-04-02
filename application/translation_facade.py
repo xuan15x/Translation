@@ -46,13 +46,26 @@ class TranslationServiceFacade:
                            source_excel_path: str,
                            target_langs: List[str],
                            output_excel_path: Optional[str] = None,
-                           concurrency_limit: int = 10) -> BatchResult:
-        """翻译 Excel 文件"""
+                           concurrency_limit: int = 10,
+                           source_lang: Optional[str] = None) -> BatchResult:
+        """翻译 Excel 文件
+        
+        Args:
+            source_excel_path: 源 Excel 文件路径
+            target_langs: 目标语言列表
+            output_excel_path: 输出文件路径（可选）
+            concurrency_limit: 并发数限制
+            source_lang: 源语言（可选，None 表示自动检测）
+        """
         logger.info(f"开始翻译文件：{source_excel_path}")
         logger.info(f"目标语言：{target_langs}")
+        if source_lang:
+            logger.info(f"源语言：{source_lang}")
+        else:
+            logger.info("源语言：自动检测")
         
-        # 1. 从 Excel 创建任务
-        tasks = TaskFactory.from_excel_file(source_excel_path, target_langs)
+        # 1. 从 Excel 创建任务（传递源语言参数）
+        tasks = TaskFactory.from_excel_file(source_excel_path, target_langs, source_lang)
         logger.info(f"创建了 {len(tasks)} 个翻译任务")
         
         # 2. 创建批量处理器

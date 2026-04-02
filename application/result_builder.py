@@ -4,7 +4,7 @@
 """
 from typing import List, Dict, Any, Optional
 import pandas as pd
-from domain.models import TranslationResult, BatchResult, TranslationStatus
+from domain.models import TranslationResult, BatchResult, TranslationStatus, TranslationTask
 
 
 class ResultBuilder:
@@ -101,7 +101,7 @@ class TaskFactory:
     """任务工厂 - 从各种数据源创建翻译任务"""
     
     @staticmethod
-    def from_excel_row(idx: int, row: Dict[str, Any], target_lang: str) -> TranslationTask:
+    def from_excel_row(idx: int, row: Dict[str, Any], target_lang: str, source_lang: Optional[str] = None) -> TranslationTask:
         """
         从 Excel 行创建任务
         
@@ -109,27 +109,37 @@ class TaskFactory:
             idx: 行索引
             row: 行数据（字典）
             target_lang: 目标语言
+            source_lang: 源语言列名（可选，None 表示使用默认的'中文原文'）
             
         Returns:
             翻译任务
         """
+        # 确定使用哪一列作为原文
+        if source_lang and source_lang in row:
+            # 使用用户指定的源语言列
+            source_text = row.get(source_lang, '')
+        else:
+            # 使用默认的'中文原文'列
+            source_text = row.get('中文原文', '')
+        
         return TranslationTask(
             idx=idx,
             key=row.get('Key', f'row_{idx}'),
-            source_text=row.get('中文原文', ''),
+            source_text=source_text,
             original_trans=row.get(target_lang, None),
             target_lang=target_lang,
-            source_lang=row.get('源语言', None)
+            source_lang=source_lang
         )
     
     @staticmethod
-    def from_excel_file(excel_path: str, target_langs: List[str]) -> List[TranslationTask]:
+    def from_excel_file(excel_path: str, target_langs: List[str], source_lang: Optional[str] = None) -> List[TranslationTask]:
         """
         从 Excel 文件批量创建任务
         
         Args:
             excel_path: Excel 文件路径
             target_langs: 目标语言列表
+            source_lang: 源语言列名（可选，None 表示使用默认的'中文原文'）
             
         Returns:
             任务列表
@@ -144,7 +154,7 @@ class TaskFactory:
             
             for lang in target_langs:
                 if lang in row_dict:
-                    task = TaskFactory.from_excel_row(idx, row_dict, lang)
+                    task = TaskFactory.from_excel_row(idx, row_dict, lang, source_lang)
                     if task.source_text:  # 只添加有原文的任务
                         tasks.append(task)
         

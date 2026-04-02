@@ -20,6 +20,19 @@ if errorlevel 1 (
 echo [OK] Python found
 echo.
 
+REM Activate virtual environment if it exists
+set VENV_DIR=%~dp0.venv
+if exist "%VENV_DIR%\Scripts\activate.bat" (
+    echo [INFO] Activating virtual environment...
+    call "%VENV_DIR%\Scripts\activate.bat"
+    echo [OK] Virtual environment activated
+    echo.
+) else (
+    echo [WARNING] Virtual environment not found at %VENV_DIR%
+    echo [INFO] Continuing with system Python
+    echo.
+)
+
 REM Get current directory
 set SCRIPT_DIR=%~dp0
 set CONFIG_FILE_JSON=%SCRIPT_DIR%config\config.json

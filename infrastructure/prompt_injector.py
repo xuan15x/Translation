@@ -22,7 +22,7 @@ class PromptInjector:
         根据翻译类型获取对应的禁止事项列表
         
         Args:
-            translation_type: 翻译类型（如 'match3_item', 'rpg_skill' 等）
+            translation_type: 翻译类型（如 'match3_item', 'match3_dialogue' 等）
             
         Returns:
             禁止事项列表

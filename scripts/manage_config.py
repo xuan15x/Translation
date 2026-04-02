@@ -7,6 +7,11 @@ import sys
 import json
 from pathlib import Path
 
+# 添加项目根目录到路径
+root_path = str(Path(__file__).parent.parent)
+if root_path not in sys.path:
+    sys.path.insert(0, root_path)
+
 
 def create_sample_config(output_path: str = "config.yaml", format: str = "yaml"):
     """创建示例配置文件"""
@@ -158,37 +163,76 @@ def merge_configs(base_config: str, override_config: str, output: str):
 
 def list_all_config_options():
     """列出所有可用的配置选项"""
-    from config.config import get_default_config
+    from config.config import get_default_config, DEFAULT_PROHIBITION_CONFIG
     
     default_config = get_default_config()
     
-    print("\n📋 所有可用的配置选项:\n")
+    print("\n" + "=" * 70)
+    print("All Available Configuration Options")
+    print("=" * 70)
     
     categories = {
-        "API 配置": ["api_provider", "api_key", "base_url", "model_name"],
-        "模型参数": ["temperature", "top_p"],
-        "并发控制": ["initial_concurrency", "max_concurrency", "concurrency_cooldown_seconds"],
-        "重试配置": ["retry_streak_threshold", "base_retry_delay", "max_retries", "timeout"],
-        "工作流配置": ["enable_two_pass", "skip_review_if_local_hit", "batch_size", "gc_interval"],
-        "术语库配置": ["similarity_low", "exact_match_score", "multiprocess_threshold"],
-        "性能优化": ["pool_size", "cache_capacity", "cache_ttl_seconds"],
-        "日志配置": ["log_level", "log_granularity", "log_max_lines"],
-        "GUI 配置": ["gui_window_title", "gui_window_width", "gui_window_height"],
-        "提示词配置": ["draft_prompt", "review_prompt"],
-        "语言配置": ["target_languages", "default_source_lang", "supported_source_langs"],
-        "版本控制和备份": ["enable_version_control", "enable_auto_backup", "backup_dir", "backup_strategy"],
-        "性能监控": ["enable_performance_monitor", "perf_sample_interval", "perf_history_size"],
+        "API Configuration": ["api_provider", "api_key", "base_url", "model_name"],
+        "Model Parameters": ["temperature", "top_p"],
+        "Concurrency Control": ["initial_concurrency", "max_concurrency", "concurrency_cooldown_seconds"],
+        "Retry Configuration": ["retry_streak_threshold", "base_retry_delay", "max_retries", "timeout"],
+        "Workflow Configuration": ["enable_two_pass", "skip_review_if_local_hit", "batch_size", "gc_interval"],
+        "Terminology Configuration": ["similarity_low", "exact_match_score", "multiprocess_threshold"],
+        "Performance Optimization": ["pool_size", "cache_capacity", "cache_ttl_seconds"],
+        "Logging Configuration": ["log_level", "log_granularity", "log_max_lines"],
+        "GUI Configuration": ["gui_window_title", "gui_window_width", "gui_window_height"],
+        "Prompt Configuration": ["draft_prompt", "review_prompt"],
+        "Prohibition Configuration": ["prohibition_config", "prohibition_type_map"],
+        "Language Configuration": ["target_languages", "default_source_lang", "supported_source_langs"],
+        "Version Control & Backup": ["enable_version_control", "enable_auto_backup", "backup_dir", "backup_strategy"],
+        "Performance Monitoring": ["enable_performance_monitor", "perf_sample_interval", "perf_history_size"],
     }
     
     for category, keys in categories.items():
         print(f"\n{category}:")
         print("-" * 50)
         for key in keys:
-            value = default_config.get(key, "N/A")
-            value_str = str(value)[:60]
-            if isinstance(value, str) and '\n' in value:
-                value_str = "(多行文本)"
-            print(f"  {key:<30} = {value_str}")
+            if key == 'prohibition_config':
+                # 特殊处理禁止事项配置
+                print(f"  {key:<30} = Contains {len(DEFAULT_PROHIBITION_CONFIG)} categories of rules")
+                for ptype, rules in DEFAULT_PROHIBITION_CONFIG.items():
+                    print(f"    - {ptype}: {len(rules)} rules")
+            elif key == 'prohibition_type_map':
+                print(f"  {key:<30} = Maps translation types to prohibition rules")
+            else:
+                value = default_config.get(key, "N/A")
+                value_str = str(value)[:60]
+                if isinstance(value, str) and '\n' in value:
+                    value_str = "(multi-line text)"
+                print(f"  {key:<30} = {value_str}")
+
+
+def show_prohibition_details():
+    """显示禁止事项配置详情"""
+    from config.config import DEFAULT_PROHIBITION_CONFIG, DEFAULT_PROHIBITION_TYPE_MAP
+    
+    print("\n" + "=" * 70)
+    print("Prohibition Configuration Details")
+    print("=" * 70)
+    
+    # 显示禁止事项类别
+    print("\nProhibition Categories:")
+    print("-" * 70)
+    for category, rules in DEFAULT_PROHIBITION_CONFIG.items():
+        print(f"\n{category}:")
+        print(f"  Rules: {len(rules)}")
+        for i, rule in enumerate(rules, 1):
+            print(f"  {i}. {rule}")
+    
+    # 显示类型映射
+    print("\n\nTranslation Type Mapping:")
+    print("-" * 70)
+    for trans_type, categories in DEFAULT_PROHIBITION_TYPE_MAP.items():
+        print(f"  {trans_type:<20} -> {', '.join(categories)} ({len(categories)} categories)")
+    
+    print("\n" + "=" * 70)
+    print("Tip: Customize these rules in config/config.json")
+    print("Docs: docs/guides/PROHIBITION_CONFIG_GUIDE.md")
 
 
 def main():
@@ -227,6 +271,9 @@ def main():
     # list 命令
     list_parser = subparsers.add_parser('list', help='列出所有配置选项')
     
+    # prohibitions 命令
+    prohibit_parser = subparsers.add_parser('prohibitions', help='显示禁止事项配置详情')
+    
     args = parser.parse_args()
     
     if args.command == 'create':
@@ -242,6 +289,8 @@ def main():
         merge_configs(args.base, args.override, args.output)
     elif args.command == 'list':
         list_all_config_options()
+    elif args.command == 'prohibitions':
+        show_prohibition_details()
     else:
         parser.print_help()
         print("\n示例用法:")
@@ -251,6 +300,7 @@ def main():
         print("  python manage_config.py export-env")
         print("  python manage_config.py merge base.yaml custom.yaml")
         print("  python manage_config.py list")
+        print("  python manage_config.py prohibitions  # 查看禁止事项配置详情")
 
 
 if __name__ == "__main__":

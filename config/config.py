@@ -90,10 +90,11 @@ GUI_CONFIG = {
 }
 
 # ============================================================================
-# 提示词注入配置 - 禁止事项（用户不可修改，自动注入）
+# 提示词注入配置 - 禁止事项（通过配置文件配置，自动注入）
 # ============================================================================
 
-PROMPT_INJECTION_CONFIG = {
+# 默认禁止事项配置（如果配置文件中没有提供，则使用以下默认值）
+DEFAULT_PROHIBITION_CONFIG = {
     # 通用禁止事项（适用于所有翻译方向）
     'global_prohibitions': [
         "禁止输出原文或保留未翻译的内容",
@@ -115,14 +116,6 @@ PROMPT_INJECTION_CONFIG = {
         "禁止使用成人向或暴力倾向的描述",
     ],
     
-    # RPG 游戏专项禁止事项
-    'rpg_prohibitions': [
-        "禁止使用现代网络用语破坏奇幻氛围",
-        "禁止混淆不同文化背景的神话体系",
-        "禁止使用过于直白的数值描述（如'增加 10 点攻击力'应优化）",
-        "禁止创造不符合世界观的装备名称",
-    ],
-    
     # UI 界面专项禁止事项
     'ui_prohibitions': [
         "禁止使用超过按钮容量的长文本",
@@ -140,15 +133,13 @@ PROMPT_INJECTION_CONFIG = {
     ],
 }
 
-# 各类型对应的禁止事项映射
-PROHIBITION_TYPE_MAP = {
+# 默认禁止事项类型映射
+DEFAULT_PROHIBITION_TYPE_MAP = {
     'match3_item': ['global', 'match3'],
     'match3_skill': ['global', 'match3'],
     'match3_level': ['global', 'match3'],
     'match3_dialogue': ['global', 'match3', 'dialogue'],
     'match3_ui': ['global', 'match3', 'ui'],
-    'rpg_item': ['global', 'rpg'],
-    'rpg_skill': ['global', 'rpg'],
     'dialogue': ['global', 'dialogue'],
     'ui': ['global', 'ui'],
     'scene': ['global'],
@@ -156,6 +147,75 @@ PROHIBITION_TYPE_MAP = {
     'achievement': ['global'],
     'custom': ['global'],
 }
+
+# 全局变量：从配置文件加载的禁止事项配置
+PROMPT_INJECTION_CONFIG = None
+PROHIBITION_TYPE_MAP = None
+
+
+def get_prohibition_config():
+    """
+    获取禁止事项配置（优先从配置文件加载，否则使用默认值）
+    
+    Returns:
+        禁止事项配置字典
+    """
+    global PROMPT_INJECTION_CONFIG
+    
+    if PROMPT_INJECTION_CONFIG is not None:
+        return PROMPT_INJECTION_CONFIG
+    
+    # 尝试从配置文件加载
+    try:
+        from config.loader import get_config_loader
+        loader = get_config_loader()
+        
+        prohibition_config = loader.get('prohibition_config')
+        if prohibition_config:
+            PROMPT_INJECTION_CONFIG = prohibition_config
+        else:
+            PROMPT_INJECTION_CONFIG = DEFAULT_PROHIBITION_CONFIG
+            
+    except Exception as e:
+        # 如果加载失败，使用默认配置
+        PROMPT_INJECTION_CONFIG = DEFAULT_PROHIBITION_CONFIG
+    
+    return PROMPT_INJECTION_CONFIG
+
+
+def get_prohibition_type_map():
+    """
+    获取禁止事项类型映射（优先从配置文件加载，否则使用默认值）
+    
+    Returns:
+        禁止事项类型映射字典
+    """
+    global PROHIBITION_TYPE_MAP
+    
+    if PROHIBITION_TYPE_MAP is not None:
+        return PROHIBITION_TYPE_MAP
+    
+    # 尝试从配置文件加载
+    try:
+        from config.loader import get_config_loader
+        loader = get_config_loader()
+        
+        type_map = loader.get('prohibition_type_map')
+        if type_map:
+            PROHIBITION_TYPE_MAP = type_map
+        else:
+            PROHIBITION_TYPE_MAP = DEFAULT_PROHIBITION_TYPE_MAP
+            
+    except Exception as e:
+        # 如果加载失败，使用默认映射
+        PROHIBITION_TYPE_MAP = DEFAULT_PROHIBITION_TYPE_MAP
+    
+    return PROHIBITION_TYPE_MAP
+
+
+# 初始化时加载配置
+PROMPT_INJECTION_CONFIG = get_prohibition_config()
+PROHIBITION_TYPE_MAP = get_prohibition_type_map()
 
 # ============================================================================
 # 游戏翻译方向配置（特别强化三消游戏）
@@ -168,8 +228,6 @@ GAME_TRANSLATION_TYPES = {
     'match3_level': '🏆 三消 - 关卡目标',
     'match3_dialogue': '💬 三消 - 角色对话',
     'match3_ui': '🖥️ 三消 - UI 界面',
-    'rpg_item': '⚔️ RPG - 道具装备',
-    'rpg_skill': '✨ RPG - 技能效果',
     'dialogue': '📖 通用 - 对话剧情',
     'ui': '🖥️ 通用 - UI 界面',
     'scene': '🌍 通用 - 场景描述',
@@ -276,32 +334,6 @@ Common UI Elements:
 Example:
 Input: "Play Again"
 Output: {{"Trans": "再玩一次"}}""",
-
-    'rpg_item': """Role: RPG Item/Equipment Translator.
-Task: Translate RPG items/equipment to {target_lang}.
-Constraints:
-1. Output JSON ONLY: {{"Trans": "string"}}.
-2. Use epic, fantasy-appropriate language.
-3. Make names sound legendary and powerful.
-4. Preserve item rarity indicators.
-5. Maintain lore consistency.
-
-Example:
-Input: "Dragon Slayer Sword"
-Output: {{"Trans": "屠龙之剑"}}""",
-
-    'rpg_skill': """Role: RPG Skill Effect Translator.
-Task: Translate RPG skill names and effects to {target_lang}.
-Constraints:
-1. Output JSON ONLY: {{"Trans": "string"}}.
-2. Make skill names impactful and memorable.
-3. Clearly describe mechanical effects.
-4. Use consistent terminology for stats.
-5. Preserve numerical precision.
-
-Example:
-Input: "Fireball - Deals 100 damage to all enemies"
-Output: {{"Trans": "火球术 - 对所有敌人造成 100 点伤害"}}""",
 
     'dialogue': """Role: Game Dialogue Translator.
 Task: Translate character dialogue to {target_lang}.
@@ -421,28 +453,6 @@ Constraints:
 5. Instant recognition priority.
 
 Focus: Brevity, convention, clarity""",
-
-    'rpg_item': """Role: Senior RPG Item Editor.
-Task: Polish item translation into epic {target_lang}.
-Constraints:
-1. Output JSON ONLY: {{"Trans": "string", "Reason": "string"}}.
-2. 'Reason': Max 10 chars.
-3. Enhance legendary quality.
-4. Verify lore consistency.
-5. Check rarity appropriateness.
-
-Focus: Epicness, lore, consistency""",
-
-    'rpg_skill': """Role: Senior RPG Skill Editor.
-Task: Polish skill translation into impactful {target_lang}.
-Constraints:
-1. Output JSON ONLY: {{"Trans": "string", "Reason": "string"}}.
-2. 'Reason': Max 10 chars.
-3. Ensure memorable naming.
-4. Verify mechanical precision.
-5. Check stat terminology.
-
-Focus: Impact, precision, consistency""",
 
     'dialogue': """Role: Senior Dialogue Editor.
 Task: Polish dialogue into natural {target_lang}.
