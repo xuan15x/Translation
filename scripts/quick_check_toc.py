@@ -14,10 +14,9 @@ def extract_headings(content):
         anchor = re.sub(r'\s+', '-', anchor)
         anchor = re.sub(r'-+', '-', anchor).strip('-')
         
-        # GitHub 规则：emoji 开头会留下前导横杠
-        import unicodedata
-        if title and unicodedata.category(title[0]) == 'So':  # Symbol, other (emoji)
-            anchor = '-' + anchor
+        # GitHub 规则：完全移除 emoji，不留下前导横杠
+        # 例如："✨ 核心特性" -> "#核心特性"
+        anchor = re.sub(r'[\U0001F300-\U0001F9FF]', '', anchor)  # 移除 emoji
         
         headings[anchor] = title
     return headings
