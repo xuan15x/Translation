@@ -22,11 +22,6 @@ def extract_headings(content):
         # 移除多余横杠
         anchor = re.sub(r'-+', '-', anchor).strip('-')
         
-        # 关键修正：如果原标题以 emoji 开头，移除后会在前面留下横杠
-        # 例如："✨ 核心特性" -> "#-核心特性" 而不是 "#核心特性"
-        if title and ord(title[0]) > 0xFFFF:  # emoji 字符
-            anchor = '-' + anchor
-        
         headings[anchor] = title
     return headings
 
