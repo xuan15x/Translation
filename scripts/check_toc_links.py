@@ -44,8 +44,8 @@ def extract_headings(content):
         anchor = re.sub(r'[^\w\s\u4e00-\u9fff-]', '', anchor)
         # 空格转横杠
         anchor = re.sub(r'\s+', '-', anchor)
-        # 移除多余横杠
-        anchor = re.sub(r'-+', '-', anchor).strip('-')
+        # 简化连续横杠（不要移除开头结尾的横杠，因为 GitHub 会保留）
+        anchor = re.sub(r'-+', '-', anchor)
         
         headings[anchor] = title
     return headings
