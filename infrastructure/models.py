@@ -35,86 +35,110 @@ from config.constants import (
 
 @dataclass
 class Config(ModuleLoggerMixin):
-    """配置类，存储所有系统和 API 参数"""
+    """配置类，存储所有系统和 API 参数 - 支持 DeepSeek 完整配置"""
     LOG_CATEGORY: LogCategory = LogCategory.MODEL
 
-    # API 基础配置
+    # ========== API 基础配置 ==========
     api_key: str = ""  # 必须在配置文件中设置
     base_url: str = "https://api.deepseek.com"
     api_provider: str = "deepseek"
 
-    # 多 API 提供商配置（新增）
+    # 多 API 提供商配置（支持配置文件管理）
     api_providers: Dict[str, Dict[str, Any]] = field(default_factory=dict)
 
-    # 全局模型配置（默认配置）
+    # ========== 全局模型配置 ==========
     model_name: str = "deepseek-chat"
+    
+    # OpenAI 兼容采样参数（支持 DeepSeek）
     temperature: float = APIConfig.DEFAULT_TEMPERATURE
     top_p: float = APIConfig.DEFAULT_TOP_P
+    presence_penalty: float = 0.0  # DeepSeek 支持的存在惩罚
+    frequency_penalty: float = 0.0  # DeepSeek 支持的频率惩罚
+    stop: Optional[List[str]] = None  # 停止序列
+    
+    # 高级参数
     timeout: int = APIConfig.DEFAULT_TIMEOUT
     max_retries: int = APIConfig.DEFAULT_MAX_RETRIES
     retry_streak_threshold: int = ConcurrencyConfig.DEFAULT_RETRY_STREAK_THRESHOLD
     base_retry_delay: float = APIConfig.DEFAULT_RETRY_DELAY
+    max_tokens: int = APIConfig.DEFAULT_MAX_TOKENS
+    
+    # 上下文窗口控制
+    context_window_size: Optional[int] = None  # 上下文窗口大小（None=自动）
+    enable_cache_control: bool = True  # 启用缓存控制
+    enable_stream: bool = False  # 启用流式输出
+    
+    # 自定义请求头（高级用户）
+    custom_headers: Dict[str, str] = field(default_factory=dict)
+    
+    # 额外请求体参数（OpenAI 兼容）
+    extra_body: Dict[str, Any] = field(default_factory=dict)
 
-    # 翻译阶段（Draft）专用模型配置
-    draft_model_name: Optional[str] = None  # 如果为 None 则使用全局 model_name
-    draft_temperature: Optional[float] = None  # 如果为 None 则使用全局 temperature
-    draft_top_p: Optional[float] = None  # 如果为 None 则使用全局 top_p
-    draft_timeout: Optional[int] = None  # 如果为 None 则使用全局 timeout
+    # ========== 双阶段翻译专用配置 ==========
+    # 初译阶段（Draft）
+    draft_model_name: Optional[str] = None
+    draft_temperature: Optional[float] = None
+    draft_top_p: Optional[float] = None
+    draft_presence_penalty: Optional[float] = None
+    draft_frequency_penalty: Optional[float] = None
+    draft_timeout: Optional[int] = None
     draft_max_tokens: int = APIConfig.DEFAULT_MAX_TOKENS
 
-    # 校对阶段（Review）专用模型配置
-    review_model_name: Optional[str] = None  # 如果为 None 则使用全局 model_name
-    review_temperature: Optional[float] = None  # 如果为 None 则使用全局 temperature
-    review_top_p: Optional[float] = None  # 如果为 None 则使用全局 top_p
-    review_timeout: Optional[int] = None  # 如果为 None 则使用全局 timeout
+    # 校对阶段（Review）
+    review_model_name: Optional[str] = None
+    review_temperature: Optional[float] = None
+    review_top_p: Optional[float] = None
+    review_presence_penalty: Optional[float] = None
+    review_frequency_penalty: Optional[float] = None
+    review_timeout: Optional[int] = None
     review_max_tokens: int = APIConfig.DEFAULT_MAX_TOKENS
 
-    # 并发控制
+    # ========== 并发控制 ==========
     initial_concurrency: int = ConcurrencyConfig.DEFAULT_INITIAL_CONCURRENCY
     max_concurrency: int = ConcurrencyConfig.DEFAULT_MAX_CONCURRENCY
     concurrency_cooldown_seconds: float = ConcurrencyConfig.DEFAULT_COOLDOWN_SECONDS
 
-    # 工作流配置
+    # ========== 工作流配置 ==========
     enable_two_pass: bool = WorkflowConfig.DEFAULT_ENABLE_TWO_PASS
     skip_review_if_local_hit: bool = WorkflowConfig.DEFAULT_SKIP_REVIEW_IF_LOCAL_HIT
     batch_size: int = WorkflowConfig.DEFAULT_BATCH_SIZE
     gc_interval: int = WorkflowConfig.DEFAULT_GC_INTERVAL
 
-    # 术语库配置
+    # ========== 术语库配置 ==========
     similarity_low: int = TerminologyConfig.DEFAULT_SIMILARITY_LOW
     exact_match_score: int = TerminologyConfig.DEFAULT_EXACT_MATCH_SCORE
     multiprocess_threshold: int = TerminologyConfig.DEFAULT_MULTIPROCESS_THRESHOLD
 
-    # 性能配置
+    # ========== 性能配置 ==========
     pool_size: int = CacheConfig.DEFAULT_POOL_SIZE
     cache_capacity: int = CacheConfig.DEFAULT_CACHE_CAPACITY
     cache_ttl_seconds: int = CacheConfig.DEFAULT_CACHE_TTL_SECONDS
 
-    # 日志配置
+    # ========== 日志配置 ==========
     log_level: str = LogConfig.DEFAULT_LOG_LEVEL
     log_granularity: str = LogConfig.DEFAULT_LOG_GRANULARITY
     log_max_lines: int = LogConfig.DEFAULT_LOG_MAX_LINES
 
-    # GUI 配置
+    # ========== GUI 配置 ==========
     gui_window_title: str = GUIConfig.DEFAULT_WINDOW_TITLE
     gui_window_width: int = GUIConfig.DEFAULT_WINDOW_WIDTH
     gui_window_height: int = GUIConfig.DEFAULT_WINDOW_HEIGHT
 
-    # 提示词配置
+    # ========== 提示词配置 ==========
     draft_prompt: str = DEFAULT_DRAFT_PROMPT
     review_prompt: str = DEFAULT_REVIEW_PROMPT
 
-    # 语言配置
+    # ========== 语言配置 ==========
     default_source_lang: str = LanguageConfig.DEFAULT_SOURCE_LANG
     supported_source_langs: List[str] = field(default_factory=lambda: LanguageConfig.DEFAULT_SUPPORTED_SOURCE_LANGS)
 
-    # 版本控制和备份
+    # ========== 版本控制和备份 ==========
     enable_version_control: bool = VersionConfig.DEFAULT_ENABLE_VERSION_CONTROL
     enable_auto_backup: bool = VersionConfig.DEFAULT_ENABLE_AUTO_BACKUP
     backup_dir: str = BackupConfig.DEFAULT_BACKUP_DIR
     backup_strategy: str = BackupConfig.DEFAULT_BACKUP_STRATEGY
 
-    # 性能监控
+    # ========== 性能监控 ==========
     enable_performance_monitor: bool = PerformanceMonitorConfig.DEFAULT_ENABLE
     perf_sample_interval: float = PerformanceMonitorConfig.DEFAULT_SAMPLE_INTERVAL
     perf_history_size: int = PerformanceMonitorConfig.DEFAULT_HISTORY_SIZE

@@ -178,3 +178,48 @@ class RetryConfig:
     DEFAULT_MAX_RETRIES = 3
     DEFAULT_BASE_RETRY_DELAY = 3.0
     RATE_LIMIT_RETRY_AFTER_DEFAULT = 5.0
+
+
+# ========== DeepSeek 模型配置 ==========
+class DeepSeekConfig:
+    """DeepSeek 模型特定配置常量"""
+    # 支持的 DeepSeek 模型列表
+    SUPPORTED_MODELS = [
+        "deepseek-chat",      # DeepSeek Chat 模型
+        "deepseek-coder",     # DeepSeek Coder 代码模型
+        "deepseek-v2-chat",   # DeepSeek V2 Chat 模型
+        "deepseek-v2-coder",  # DeepSeek V2 Coder 模型
+    ]
+    
+    # 默认配置
+    DEFAULT_MODEL = "deepseek-chat"
+    DEFAULT_BASE_URL = "https://api.deepseek.com"
+    
+    # 采样参数范围
+    TEMPERATURE_MIN = 0.0
+    TEMPERATURE_MAX = 2.0
+    TEMPERATURE_DEFAULT = 0.7
+    
+    TOP_P_MIN = 0.0
+    TOP_P_MAX = 1.0
+    TOP_P_DEFAULT = 0.9
+    
+    # DeepSeek 特有参数
+    PRESENCE_PENALTY_MIN = -2.0
+    PRESENCE_PENALTY_MAX = 2.0
+    PRESENCE_PENALTY_DEFAULT = 0.0
+    
+    FREQUENCY_PENALTY_MIN = -2.0
+    FREQUENCY_PENALTY_MAX = 2.0
+    FREQUENCY_PENALTY_DEFAULT = 0.0
+    
+    # 上下文窗口
+    MAX_CONTEXT_WINDOW = 32768  # 32K tokens
+    
+    # 速率限制（每分钟请求数）
+    RATE_LIMITS = {
+        "deepseek-chat": 100,
+        "deepseek-coder": 50,
+        "deepseek-v2-chat": 100,
+        "deepseek-v2-coder": 50,
+    }
