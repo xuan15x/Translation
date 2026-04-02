@@ -15,7 +15,32 @@ def extract_headings(content):
         title = match.group(2).strip()
         # 生成锚点 ID（GitHub 规则）
         anchor = title.lower()
-        # 移除特殊字符，保留中文
+        
+        # 关键修正：GitHub 会将 emoji 替换为横杠 -
+        # 但变体选择符（U+FE00-U+FE0F）会被直接移除，不会生成横杠
+        def replace_emoji_with_dash(text):
+            result = []
+            for char in text:
+                code = ord(char)
+                # 检测是否是 emoji（不包括变体选择符）
+                is_emoji_char = (
+                    0x1F300 <= code <= 0x1F9FF or  # Miscellaneous Symbols and Pictographs
+                    0x1FA00 <= code <= 0x1FAFF or  # Chess Symbols, Alchemical Symbols
+                    0x2600 <= code <= 0x26FF or    # Miscellaneous Symbols
+                    0x2700 <= code <= 0x27BF       # Dingbats
+                )
+                if is_emoji_char:
+                    result.append('-')
+                elif 0xFE00 <= code <= 0xFE0F:
+                    # 变体选择符，直接移除（不添加横杠）
+                    pass
+                else:
+                    result.append(char)
+            return ''.join(result)
+        
+        anchor = replace_emoji_with_dash(anchor)
+        
+        # 移除其他特殊字符，保留中文、字母、数字、横杠
         anchor = re.sub(r'[^\w\s\u4e00-\u9fff-]', '', anchor)
         # 空格转横杠
         anchor = re.sub(r'\s+', '-', anchor)

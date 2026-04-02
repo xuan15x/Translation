@@ -14,9 +14,27 @@ def extract_headings(content):
         anchor = re.sub(r'\s+', '-', anchor)
         anchor = re.sub(r'-+', '-', anchor).strip('-')
         
-        # GitHub 规则：完全移除 emoji，不留下前导横杠
-        # 例如："✨ 核心特性" -> "#核心特性"
-        anchor = re.sub(r'[\U0001F300-\U0001F9FF]', '', anchor)  # 移除 emoji
+        # GitHub 规则：将 emoji 替换为横杠 -，变体选择符直接移除
+        def replace_emoji_with_dash(text):
+            result = []
+            for char in text:
+                code = ord(char)
+                is_emoji_char = (
+                    0x1F300 <= code <= 0x1F9FF or
+                    0x1FA00 <= code <= 0x1FAFF or
+                    0x2600 <= code <= 0x26FF or
+                    0x2700 <= code <= 0x27BF
+                )
+                if is_emoji_char:
+                    result.append('-')
+                elif 0xFE00 <= code <= 0xFE0F:
+                    # 变体选择符，直接移除
+                    pass
+                else:
+                    result.append(char)
+            return ''.join(result)
+        
+        anchor = replace_emoji_with_dash(anchor)
         
         headings[anchor] = title
     return headings
