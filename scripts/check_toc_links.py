@@ -64,12 +64,18 @@ def check_file(filepath):
     return issues
 
 def main():
-    # 查找所有 Markdown 文件
-    files = (
-        glob.glob('docs/**/*.md', recursive=True) + 
-        glob.glob('*.md') +
-        glob.glob('docs/*.md')
-    )
+    import sys
+    
+    # 支持命令行参数指定文件
+    if len(sys.argv) > 1:
+        files = sys.argv[1:]
+    else:
+        # 默认检查所有 Markdown 文件
+        files = (
+            glob.glob('docs/**/*.md', recursive=True) + 
+            glob.glob('*.md') +
+            glob.glob('docs/*.md')
+        )
     
     total_issues = 0
     
@@ -90,8 +96,10 @@ def main():
     
     if total_issues == 0:
         print("\n✅ 所有文件的目录链接都正确！")
+        return 0
     else:
         print(f"\n📊 共发现 {total_issues} 个问题")
+        return 1  # 返回错误码，用于 CI/CD
 
 if __name__ == '__main__':
     main()
