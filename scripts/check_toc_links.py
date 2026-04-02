@@ -10,6 +10,10 @@ def extract_headings(content):
     
     GitHub 锚点生成规则参考:
     https://github.com/jch/html-pipeline/blob/master/lib/html/pipeline/toc_filter.rb
+    
+    实际验证：https://github.com/xuan15x/Translation/blob/main/test_github_anchor.md
+    - 🛠️ 带变体选择符的 emoji → #️-带变体选择符的-emoji (变体选择符 U+FE0F 被保留)
+    - 🔧 不带变体选择符的 emoji → #-不带变体选择符的-emoji (emoji 被移除，生成横杠)
     """
     headings = {}
     # 匹配##到######的标题
@@ -20,9 +24,9 @@ def extract_headings(content):
         # 生成锚点 ID（GitHub 规则）
         anchor = title.lower()
 
-        # GitHub 规则：
+        # GitHub 规则（已实际验证）：
         # 1. emoji → 转换为横杠 -
-        # 2. 变体选择符 (U+FE00-U+FE0F) → 直接移除（不生成横杠）
+        # 2. 变体选择符 (U+FE00-U+FE0F) → 保留（不移除）
         # 3. 其他标点符号 → 移除
         # 4. 空格 → 转换为横杠 -
         # 5. 连续横杠 → 简化为单个 -
@@ -31,7 +35,7 @@ def extract_headings(content):
             result = []
             for char in text:
                 code = ord(char)
-                # 检测是否是 emoji
+                # 检测是否是 emoji（不包括变体选择符）
                 is_emoji_char = (
                     0x1F300 <= code <= 0x1F9FF or  # Miscellaneous Symbols and Pictographs
                     0x1FA00 <= code <= 0x1FAFF or  # Chess Symbols, Alchemical Symbols
@@ -41,19 +45,19 @@ def extract_headings(content):
                 if is_emoji_char:
                     result.append('-')
                 elif 0xFE00 <= code <= 0xFE0F:
-                    # 变体选择符，直接移除（不添加横杠）
-                    pass
+                    # 变体选择符，保留（GitHub 实际行为）
+                    result.append(char)
                 else:
                     result.append(char)
             return ''.join(result)
 
         anchor = replace_emoji_with_dash(anchor)
 
-        # 移除其他特殊字符，保留中文、字母、数字、横杠
-        anchor = re.sub(r'[^\w\s\u4e00-\u9fff-]', '', anchor)
+        # 移除其他特殊字符，保留中文、字母、数字、横杠、变体选择符
+        anchor = re.sub(r'[^\w\s\u4e00-\u9fff\ufe00-\ufe0f-]', '', anchor)
         # 空格转横杠
         anchor = re.sub(r'\s+', '-', anchor)
-        # 简化连续横杠
+        # 简化连续横杠（但保留变体选择符后的横杠）
         anchor = re.sub(r'-+', '-', anchor)
         # 移除开头和结尾的横杠（GitHub 规则）
         anchor = anchor.strip('-')
