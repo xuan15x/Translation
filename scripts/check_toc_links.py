@@ -6,7 +6,11 @@ import glob
 from pathlib import Path
 
 def extract_headings(content):
-    """提取所有标题及其锚点 ID"""
+    """提取所有标题及其锚点 ID
+    
+    GitHub 锚点生成规则参考:
+    https://github.com/jch/html-pipeline/blob/master/lib/html/pipeline/toc_filter.rb
+    """
     headings = {}
     # 匹配##到######的标题
     pattern = r'^(#{2,6})\s+(.+)$'
@@ -15,14 +19,19 @@ def extract_headings(content):
         title = match.group(2).strip()
         # 生成锚点 ID（GitHub 规则）
         anchor = title.lower()
-        
-        # 关键修正：GitHub 会将 emoji 替换为横杠 -
-        # 但变体选择符（U+FE00-U+FE0F）会被直接移除，不会生成横杠
+
+        # GitHub 规则：
+        # 1. emoji → 转换为横杠 -
+        # 2. 变体选择符 (U+FE00-U+FE0F) → 直接移除（不生成横杠）
+        # 3. 其他标点符号 → 移除
+        # 4. 空格 → 转换为横杠 -
+        # 5. 连续横杠 → 简化为单个 -
+        # 6. 移除开头和结尾的横杠
         def replace_emoji_with_dash(text):
             result = []
             for char in text:
                 code = ord(char)
-                # 检测是否是 emoji（不包括变体选择符）
+                # 检测是否是 emoji
                 is_emoji_char = (
                     0x1F300 <= code <= 0x1F9FF or  # Miscellaneous Symbols and Pictographs
                     0x1FA00 <= code <= 0x1FAFF or  # Chess Symbols, Alchemical Symbols
@@ -37,16 +46,18 @@ def extract_headings(content):
                 else:
                     result.append(char)
             return ''.join(result)
-        
+
         anchor = replace_emoji_with_dash(anchor)
-        
+
         # 移除其他特殊字符，保留中文、字母、数字、横杠
         anchor = re.sub(r'[^\w\s\u4e00-\u9fff-]', '', anchor)
         # 空格转横杠
         anchor = re.sub(r'\s+', '-', anchor)
-        # 简化连续横杠（不要移除开头结尾的横杠，因为 GitHub 会保留）
+        # 简化连续横杠
         anchor = re.sub(r'-+', '-', anchor)
-        
+        # 移除开头和结尾的横杠（GitHub 规则）
+        anchor = anchor.strip('-')
+
         headings[anchor] = title
     return headings
 
