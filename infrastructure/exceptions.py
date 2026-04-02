@@ -1,6 +1,7 @@
 """
 异常处理模块
 定义全项目统一的异常体系和错误处理标准
+提供友好的错误消息和解决方案建议
 """
 from enum import Enum
 from typing import Any, Dict, List, Optional
@@ -13,51 +14,85 @@ class ErrorCategory(Enum):
     RATE_LIMIT_ERROR = "rate_limit_error"
     TIMEOUT_ERROR = "timeout_error"
     AUTHENTICATION_ERROR = "authentication_error"
-    
+
     # 配置相关错误
     CONFIG_ERROR = "config_error"
     VALIDATION_ERROR = "validation_error"
-    
+
     # 文件操作错误
     FILE_ERROR = "file_error"
     FILE_NOT_FOUND_ERROR = "file_not_found_error"
     IO_ERROR = "io_error"
-    
+
     # 数据处理错误
     DATA_ERROR = "data_error"
     PARSING_ERROR = "parsing_error"
-    
+
     # 业务逻辑错误
     TRANSLATION_ERROR = "translation_error"
     TERMINOLOGY_ERROR = "terminology_error"
     WORKFLOW_ERROR = "workflow_error"
-    
+
     # 系统错误
     SYSTEM_ERROR = "system_error"
     NETWORK_ERROR = "network_error"
     UNKNOWN_ERROR = "unknown_error"
 
 
+# 错误代码到解决方案的映射
+ERROR_SOLUTIONS = {
+    'AUTHENTICATION_ERROR_001': {
+        'title': 'API 密钥配置无效',
+        'solution': '请在配置文件或 GUI 界面中设置有效的 API 密钥',
+        'docs_url': 'https://docs.example.com/config#api-key'
+    },
+    'VALIDATION_ERROR_001': {
+        'title': '配置验证失败',
+        'solution': '请检查配置文件中相关参数的格式和取值范围',
+        'docs_url': 'https://docs.example.com/config#validation'
+    },
+    'FILE_NOT_FOUND_ERROR_001': {
+        'title': '文件未找到',
+        'solution': '请确认文件路径正确且文件存在',
+        'docs_url': 'https://docs.example.com/file-paths'
+    },
+    'TIMEOUT_ERROR_001': {
+        'title': 'API 请求超时',
+        'solution': '请检查网络连接或增加 timeout 配置值',
+        'docs_url': 'https://docs.example.com/networking'
+    },
+    'RATE_LIMIT_ERROR_001': {
+        'title': 'API 请求频率超限',
+        'solution': '请降低并发度或等待一段时间后重试',
+        'docs_url': 'https://docs.example.com/rate-limits'
+    },
+}
+
+
 class TranslationBaseError(Exception):
     """翻译系统基础异常类 - 所有自定义异常的基类"""
-    
+
     def __init__(
         self,
         message: str,
         category: ErrorCategory = ErrorCategory.UNKNOWN_ERROR,
         error_code: Optional[str] = None,
         details: Optional[Dict[str, Any]] = None,
-        original_exception: Optional[Exception] = None
+        original_exception: Optional[Exception] = None,
+        solution: Optional[str] = None,
+        docs_url: Optional[str] = None
     ):
         """
         初始化异常
-        
+
         Args:
             message: 错误消息
             category: 错误分类
             error_code: 错误代码（可选）
             details: 详细错误信息（可选）
             original_exception: 原始异常（用于包装其他异常）
+            solution: 解决方案建议（可选）
+            docs_url: 文档链接（可选）
         """
         super().__init__(message)
         self.message = message
@@ -66,9 +101,17 @@ class TranslationBaseError(Exception):
         self.details = details or {}
         self.original_exception = original_exception
         
+        # 尝试从预设映射中获取解决方案
+        self.solution = solution
+        self.docs_url = docs_url
+        if not solution and self.error_code in ERROR_SOLUTIONS:
+            solution_info = ERROR_SOLUTIONS[self.error_code]
+            self.solution = solution_info.get('solution')
+            self.docs_url = solution_info.get('docs_url')
+
         # 生成完整的错误报告
         self.error_report = self._generate_error_report()
-    
+
     def _generate_error_report(self) -> Dict[str, Any]:
         """生成错误报告"""
         report = {
@@ -78,22 +121,48 @@ class TranslationBaseError(Exception):
             'details': self.details,
         }
         
+        if self.solution:
+            report['solution'] = self.solution
+        
+        if self.docs_url:
+            report['docs_url'] = self.docs_url
+
         if self.original_exception:
             report['original_exception'] = {
                 'type': type(self.original_exception).__name__,
                 'message': str(self.original_exception)
             }
-        
+
         return report
-    
+
+    def get_solution(self) -> Optional[str]:
+        """获取解决方案建议"""
+        return self.solution
+
+    def get_docs_url(self) -> Optional[str]:
+        """获取文档链接"""
+        return self.docs_url
+
     def to_dict(self) -> Dict[str, Any]:
         """转换为字典格式"""
         return self.error_report
-    
+
+    def to_user_friendly_string(self) -> str:
+        """生成用户友好的错误消息"""
+        lines = [f"❌ 错误：{self.message}"]
+        
+        if self.solution:
+            lines.append(f"💡 解决方案：{self.solution}")
+        
+        if self.docs_url:
+            lines.append(f"📖 文档：{self.docs_url}")
+        
+        return "\n".join(lines)
+
     def __str__(self) -> str:
         """字符串表示"""
         return f"[{self.error_code}] {self.message}"
-    
+
     def __repr__(self) -> str:
         """详细信息"""
         return f"{self.__class__.__name__}(code={self.error_code}, category={self.category.value})"
@@ -424,16 +493,103 @@ def raise_error(
     raise error_class(message, category=category, error_code=error_code, **kwargs)
 
 
+class ErrorHandler:
+    """
+    错误处理器
+    提供统一的错误处理、日志记录和用户友好消息生成
+    """
+    
+    @staticmethod
+    def handle_error(
+        error: Exception,
+        context: Optional[Dict[str, Any]] = None
+    ) -> TranslationBaseError:
+        """
+        处理错误，转换为友好的异常类型
+
+        Args:
+            error: 原始异常
+            context: 错误上下文信息
+
+        Returns:
+            翻译系统异常对象
+        """
+        # 如果已经是翻译系统异常，直接返回
+        if isinstance(error, TranslationBaseError):
+            if context:
+                error.details.update(context)
+            return error
+        
+        # 根据异常类型转换
+        error_mapping = {
+            # API 相关
+            'RateLimitError': RateLimitError,
+            'APITimeoutError': APITimeoutError,
+            'AuthenticationError': AuthenticationError,
+            
+            # 文件相关
+            'FileNotFoundError': FileNotFoundError,
+            'IOError': IOError,
+            
+            # 数据相关
+            'JSONDecodeError': ParsingError,
+            'ValueError': ValidationError,
+        }
+        
+        error_type = type(error).__name__
+        error_class = error_mapping.get(error_type, TranslationError)
+        
+        # 创建友好的错误消息
+        return error_class(
+            message=str(error),
+            original_exception=error,
+            details=context or {}
+        )
+    
+    @staticmethod
+    def format_for_user(error: Exception) -> str:
+        """
+        格式化错误消息为用户友好格式
+
+        Args:
+            error: 异常对象
+
+        Returns:
+            用户友好的错误消息
+        """
+        if isinstance(error, TranslationBaseError):
+            return error.to_user_friendly_string()
+        return f"❌ 发生错误：{str(error)}"
+    
+    @staticmethod
+    def format_for_api(error: Exception) -> Dict[str, Any]:
+        """
+        格式化错误消息为 API 响应格式
+
+        Args:
+            error: 异常对象
+
+        Returns:
+            API 响应格式的错误字典
+        """
+        if isinstance(error, TranslationBaseError):
+            return error.to_dict()
+        return {
+            'error': type(error).__name__,
+            'message': str(error)
+        }
+
+
 def safe_execute(func, *args, default=None, **kwargs):
     """
     安全执行函数，捕获并处理所有异常
-    
+
     Args:
         func: 要执行的函数
         *args: 位置参数
         default: 默认返回值（发生异常时）
         **kwargs: 关键字参数
-        
+
     Returns:
         函数执行结果或默认值
     """
@@ -448,34 +604,34 @@ def safe_execute(func, *args, default=None, **kwargs):
 __all__ = [
     # 枚举
     'ErrorCategory',
-    
+
     # 基础异常
     'TranslationBaseError',
-    
+
     # API 异常
     'APIError',
     'RateLimitError',
     'APITimeoutError',
     'AuthenticationError',
-    
+
     # 配置异常
     'ConfigError',
     'ValidationError',
-    
+
     # 文件异常
     'FileError',
     'FileNotFoundError',
     'IOError',
-    
+
     # 数据异常
     'DataError',
     'ParsingError',
-    
+
     # 业务异常
     'TranslationError',
     'TerminologyError',
     'WorkflowError',
-    
+
     # 系统异常
     'SystemError',
     'NetworkError',

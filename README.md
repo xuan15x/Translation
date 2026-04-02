@@ -117,16 +117,16 @@ cp config/config.example.json config/config.json
 ### ⚠️ 重要提示
 
 **完整的使用教程请查看：**
-- 📘 [完整使用手册](COMPLETE_MANUAL.md) - 包含详细的配置、使用教程和故障排查
+- 📘 [完整使用手册](COMPLETE_MANUAL.md) ⭐⭐⭐ **一站式解决方案，包含所有核心内容**
 - 🔧 [配置填入手册](docs/guides/CONFIG_SETUP_HANDBOOK.md) - 手把手教你配置
-- 🚀 [快速开始指南](docs/guides/QUICKSTART.md) - 5 分钟上手
+- 🚀 [快速开始指南](docs/archive/old_quickstarts/QUICKSTART.md) - 5 分钟上手（已归档）
 
 ## 📖 文档导航
 
 ### 📘 核心文档
 - [**完整使用手册**](COMPLETE_MANUAL.md) ⭐⭐⭐ **一站式解决方案，包含所有核心内容**
 - [配置填入手册](docs/guides/CONFIG_SETUP_HANDBOOK.md) ⭐⭐⭐ 最详细配置教程
-- [快速开始指南](docs/guides/QUICKSTART.md) - 5 分钟上手
+- [快速开始指南](docs/archive/old_quickstarts/QUICKSTART.md) - 5 分钟上手（已归档）
 - [最佳实践](docs/guides/BEST_PRACTICES.md) ⭐ 全面详细的使用教程
 - [故障排查手册](docs/guides/TROUBLESHOOTING.md) ⭐ 常见问题快速解决
 
@@ -155,7 +155,7 @@ pytest --cov=translation tests/
 **A:** 编辑 `config/config.json` 文件，填入你的 API Key。详见 [配置填入手册](docs/guides/CONFIG_SETUP_HANDBOOK.md)。
 
 ### Q2: 翻译速度慢怎么办？
-**A:** 适当增加并发数（调整 `initial_concurrency`），或查看 [故障排查手册](docs/guides/TROUBLESHOOTING.md)。
+**A:** 适当增加并发数（调整 `initial_concurrency`），或查看 [故障排查手册](docs/guides/TROUBLESHOOTING.md) 和 [完整使用手册](COMPLETE_MANUAL.md) 的配置指南章节。
 
 ### Q3: 如何添加新的目标语言？
 **A:** 在 GUI 界面的语言选择区域勾选新语言即可。支持 33 种语言。
@@ -219,8 +219,9 @@ Translation Team
 
 ---
 
-**遇到问题？** 
-- ⭐ **[完整使用手册](COMPLETE_MANUAL.md)** - 一站式解决方案
+**遇到问题？**
+- ⭐⭐⭐ **[完整使用手册](COMPLETE_MANUAL.md)** - 一站式解决方案
 - [故障排查指南](docs/guides/TROUBLESHOOTING.md) - 详细排查步骤
+- [配置填入手册](docs/guides/CONFIG_SETUP_HANDBOOK.md) - 详细配置教程
 - 提交 Issue
 - 联系开发团队

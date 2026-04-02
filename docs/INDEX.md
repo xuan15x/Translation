@@ -1,6 +1,8 @@
-# AI 智能翻译系统 - 文档中心
+# AI 智能翻译系统 - 文档中心 v3.0
 
 欢迎使用 AI 智能翻译系统！本文档中心提供完整的文档导航和索引。
+
+> **💡 提示**：新用户请优先阅读 **[完整使用手册](../COMPLETE_MANUAL.md)** ⭐⭐⭐，一站式解决方案包含所有核心内容。
 
 ## 🎯 快速导航（按角色）
 
@@ -8,7 +10,7 @@
 → **[完整使用手册](../COMPLETE_MANUAL.md)** ⭐⭐⭐ **必读！一站式解决方案**
 
 ### 🔧 我是开发者
-→ **[架构设计](architecture/ARCHITECTURE.md)** | **[测试指南](development/TESTING_GUIDE.md)**
+→ **[架构设计](architecture/ARCHITECTURE_DESIGN.md)** | **[测试指南](development/TESTING_GUIDE.md)**
 
 ### 🏗️ 我是架构师
 → **[六层架构详解](architecture/ARCHITECTURE_DESIGN.md)** | **[项目结构](../PROJECT_STRUCTURE.md)**
@@ -17,10 +19,6 @@
 
 ## 📚 核心文档（必读）
 
-## 📚 文档分类
-
-### 🚀 入门指南 (适合新用户)
-
 | 文档 | 说明 | 位置 | 重要度 |
 |------|------|------|--------|
 | [完整使用手册](../COMPLETE_MANUAL.md) | ⭐⭐⭐ **一站式解决方案，包含所有核心内容** | 根目录 | ⭐⭐⭐ |
@@ -28,20 +26,17 @@
 | [更新日志](../CHANGELOG.md) | 版本历史和更新记录 | 根目录 | ⭐⭐ |
 | [项目结构](../PROJECT_STRUCTURE.md) | 六层架构详细说明 | 根目录 | ⭐⭐ |
 
----
-
 ## 📖 使用指南（用户）
 
 | 文档 | 说明 | 位置 | 重要度 |
 |------|------|------|--------|
 | [最佳实践](guides/BEST_PRACTICES.md) | 详细的使用说明和优化建议 | guides/ | ⭐⭐⭐ |
 | [故障排查](guides/TROUBLESHOOTING.md) | 常见问题解决方案 | guides/ | ⭐⭐⭐ |
-| [配置填入手册](guides/CONFIG_SETUP_HANDBOOK.md) | 最详细配置教程 | guides/ | ⭐⭐ |
+| [配置填入手册](guides/CONFIG_SETUP_HANDBOOK.md) | 最详细配置教程 | guides/ | ⭐⭐⭐ |
 | [模型配置指南](guides/MODEL_CONFIG_GUIDE.md) | 模型配置拆分详解 | guides/ | ⭐⭐ |
+| [禁止事项配置指南](guides/PROHIBITION_CONFIG_GUIDE.md) | 禁止规则配置详解 | guides/ | ⭐⭐ |
 | [支持的语言](guides/SUPPORTED_LANGUAGES.md) | 33 种目标语言介绍 | guides/ | ⭐ |
-| [快速开始](guides/QUICKSTART.md) | 5 分钟快速上手（已归档） | archive/old_quickstarts/ | ⭐ |
-
----
+| [快速开始](archive/old_quickstarts/QUICKSTART.md) | 5 分钟快速上手（已归档） | archive/old_quickstarts/ | ⭐ |
 
 ## 🔧 开发指南（贡献者）
 
@@ -50,18 +45,8 @@
 | [架构设计](architecture/ARCHITECTURE_DESIGN.md) | 六层分层架构详解 | architecture/ | ⭐⭐⭐ |
 | [架构概览](architecture/ARCHITECTURE.md) | 架构简介 v3.0 | architecture/ | ⭐⭐ |
 | [重构总结](architecture/REFACTORING_SUMMARY.md) | 全面重构过程 | architecture/ | ⭐ |
-
----
-
-## 🏛️ 架构文档（深入了解）
-
-| 文档 | 说明 | 位置 | 重要度 |
-|------|------|------|--------|
 | [测试指南](development/TESTING_GUIDE.md) | 单元测试和集成测试 | development/ | ⭐⭐⭐ |
 | [错误处理指南](development/ERROR_HANDLING_GUIDE.md) | 统一异常体系使用手册 | development/ | ⭐⭐⭐ |
-| [性能优化](development/PERFORMANCE_OPTIMIZATIONS.md) | 性能调优技巧 | development/ | ⭐⭐ |
-| [异步处理](development/ASYNC_BACKGROUND_PROCESSING.md) | 异步编程指南 | development/ | ⭐⭐ |
-| [UI/UX 优化](development/UI_UX_OPTIMIZATIONS.md) | 界面优化实践 | development/ | ⭐ |
 
 ---
 
@@ -135,7 +120,12 @@
 
 ### 文档更新记录
 
-- **2026-04-01**: 创建完整使用手册，整合所有核心文档 ⭐
+- **2026-04-01 (v3.0.0)**: 
+  - ✨ 创建完整使用手册，整合所有核心文档
+  - ✨ 双阶段翻译参数 GUI 控制文档
+  - ✨ 语言扩展至 33 种目标语言 + 10 种源语言
+  - ✨ 错误处理手册（776 行）
+  - 🐛 修复文档中的断链和过时引用
 - **2026-03-31**: 更新架构文档和测试指南
 - **2026-03-28**: 添加性能监控和日志控制
 

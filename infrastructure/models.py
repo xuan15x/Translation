@@ -25,111 +25,128 @@ Constraints:
 2. 'Reason': Max 10 chars. If no change, Reason="".
 3. Focus on flow and tone."""
 
+# 导入常量配置
+from config.constants import (
+    APIConfig, ConcurrencyConfig, CacheConfig, TerminologyConfig,
+    WorkflowConfig, LogConfig, GUIConfig, PerformanceMonitorConfig,
+    BackupConfig, LanguageConfig, VersionConfig
+)
+
 
 @dataclass
 class Config(ModuleLoggerMixin):
     """配置类，存储所有系统和 API 参数"""
     LOG_CATEGORY: LogCategory = LogCategory.MODEL
-    
+
     # API 基础配置
     api_key: str = ""  # 必须在配置文件中设置
     base_url: str = "https://api.deepseek.com"
     api_provider: str = "deepseek"
-    
+
     # 多 API 提供商配置（新增）
     api_providers: Dict[str, Dict[str, Any]] = field(default_factory=dict)
-    
+
     # 全局模型配置（默认配置）
     model_name: str = "deepseek-chat"
-    temperature: float = 0.3
-    top_p: float = 0.8
-    timeout: int = 60
-    max_retries: int = 3
-    retry_streak_threshold: int = 3
-    base_retry_delay: float = 3.0
-    
+    temperature: float = APIConfig.DEFAULT_TEMPERATURE
+    top_p: float = APIConfig.DEFAULT_TOP_P
+    timeout: int = APIConfig.DEFAULT_TIMEOUT
+    max_retries: int = APIConfig.DEFAULT_MAX_RETRIES
+    retry_streak_threshold: int = ConcurrencyConfig.DEFAULT_RETRY_STREAK_THRESHOLD
+    base_retry_delay: float = APIConfig.DEFAULT_RETRY_DELAY
+
     # 翻译阶段（Draft）专用模型配置
     draft_model_name: Optional[str] = None  # 如果为 None 则使用全局 model_name
     draft_temperature: Optional[float] = None  # 如果为 None 则使用全局 temperature
     draft_top_p: Optional[float] = None  # 如果为 None 则使用全局 top_p
     draft_timeout: Optional[int] = None  # 如果为 None 则使用全局 timeout
-    draft_max_tokens: int = 512
-    
+    draft_max_tokens: int = APIConfig.DEFAULT_MAX_TOKENS
+
     # 校对阶段（Review）专用模型配置
     review_model_name: Optional[str] = None  # 如果为 None 则使用全局 model_name
     review_temperature: Optional[float] = None  # 如果为 None 则使用全局 temperature
     review_top_p: Optional[float] = None  # 如果为 None 则使用全局 top_p
     review_timeout: Optional[int] = None  # 如果为 None 则使用全局 timeout
-    review_max_tokens: int = 512
-    
+    review_max_tokens: int = APIConfig.DEFAULT_MAX_TOKENS
+
     # 并发控制
-    initial_concurrency: int = 8
-    max_concurrency: int = 10
-    concurrency_cooldown_seconds: float = 5.0
-    
+    initial_concurrency: int = ConcurrencyConfig.DEFAULT_INITIAL_CONCURRENCY
+    max_concurrency: int = ConcurrencyConfig.DEFAULT_MAX_CONCURRENCY
+    concurrency_cooldown_seconds: float = ConcurrencyConfig.DEFAULT_COOLDOWN_SECONDS
+
     # 工作流配置
-    enable_two_pass: bool = True
-    skip_review_if_local_hit: bool = True
-    batch_size: int = 1000
-    gc_interval: int = 2
-    
+    enable_two_pass: bool = WorkflowConfig.DEFAULT_ENABLE_TWO_PASS
+    skip_review_if_local_hit: bool = WorkflowConfig.DEFAULT_SKIP_REVIEW_IF_LOCAL_HIT
+    batch_size: int = WorkflowConfig.DEFAULT_BATCH_SIZE
+    gc_interval: int = WorkflowConfig.DEFAULT_GC_INTERVAL
+
     # 术语库配置
-    similarity_low: int = 60
-    exact_match_score: int = 100
-    multiprocess_threshold: int = 1000
-    
+    similarity_low: int = TerminologyConfig.DEFAULT_SIMILARITY_LOW
+    exact_match_score: int = TerminologyConfig.DEFAULT_EXACT_MATCH_SCORE
+    multiprocess_threshold: int = TerminologyConfig.DEFAULT_MULTIPROCESS_THRESHOLD
+
     # 性能配置
-    pool_size: int = 5
-    cache_capacity: int = 2000
-    cache_ttl_seconds: int = 3600
-    
+    pool_size: int = CacheConfig.DEFAULT_POOL_SIZE
+    cache_capacity: int = CacheConfig.DEFAULT_CACHE_CAPACITY
+    cache_ttl_seconds: int = CacheConfig.DEFAULT_CACHE_TTL_SECONDS
+
     # 日志配置
-    log_level: str = "INFO"
-    log_granularity: str = "normal"
-    log_max_lines: int = 1000
-    
+    log_level: str = LogConfig.DEFAULT_LOG_LEVEL
+    log_granularity: str = LogConfig.DEFAULT_LOG_GRANULARITY
+    log_max_lines: int = LogConfig.DEFAULT_LOG_MAX_LINES
+
     # GUI 配置
-    gui_window_title: str = "AI 智能翻译工作台 v3.0"
-    gui_window_width: int = 950
-    gui_window_height: int = 800
-    
+    gui_window_title: str = GUIConfig.DEFAULT_WINDOW_TITLE
+    gui_window_width: int = GUIConfig.DEFAULT_WINDOW_WIDTH
+    gui_window_height: int = GUIConfig.DEFAULT_WINDOW_HEIGHT
+
     # 提示词配置
     draft_prompt: str = DEFAULT_DRAFT_PROMPT
     review_prompt: str = DEFAULT_REVIEW_PROMPT
-    
+
     # 语言配置
-    default_source_lang: str = "中文"
-    supported_source_langs: List[str] = field(default_factory=lambda: ["中文", "英语", "日语", "韩语", "法语", "德语"])
-    
+    default_source_lang: str = LanguageConfig.DEFAULT_SOURCE_LANG
+    supported_source_langs: List[str] = field(default_factory=lambda: LanguageConfig.DEFAULT_SUPPORTED_SOURCE_LANGS)
+
     # 版本控制和备份
-    enable_version_control: bool = False
-    enable_auto_backup: bool = False
-    backup_dir: str = ".terminology_backups"
-    backup_strategy: str = "daily"
-    
+    enable_version_control: bool = VersionConfig.DEFAULT_ENABLE_VERSION_CONTROL
+    enable_auto_backup: bool = VersionConfig.DEFAULT_ENABLE_AUTO_BACKUP
+    backup_dir: str = BackupConfig.DEFAULT_BACKUP_DIR
+    backup_strategy: str = BackupConfig.DEFAULT_BACKUP_STRATEGY
+
     # 性能监控
-    enable_performance_monitor: bool = False
-    perf_sample_interval: float = 1.0
-    perf_history_size: int = 300
+    enable_performance_monitor: bool = PerformanceMonitorConfig.DEFAULT_ENABLE
+    perf_sample_interval: float = PerformanceMonitorConfig.DEFAULT_SAMPLE_INTERVAL
+    perf_history_size: int = PerformanceMonitorConfig.DEFAULT_HISTORY_SIZE
     
     def __post_init__(self):
-        """初始化后验证"""
+        """初始化后验证 - 增强安全模式"""
         # 确保 ModuleLoggerMixin 已初始化
         if not hasattr(self, '_logger_slice'):
             self._logger_slice = LoggerSlice(self.LOG_CATEGORY)
-        
+
         self.log_info("Config 初始化", api_key_set=bool(self.api_key), provider=self.api_provider)
-        if not self.api_key or not self.api_key.strip():
-            error_msg = f"❌ 致命错误：API 密钥不能为空，请在配置文件或 GUI 界面中设置 api_key。"
-            self.log_error(error_msg)
-            raise AuthenticationError(error_msg, details={'env_var': 'api_key'})
+
+        # 安全修复：TEST_MODE 环境变量不再绕过 API key 验证
+        # 仅在显式设置 TEST_MODE=skip_all 时跳过验证（仅用于测试）
+        test_mode = os.getenv('TEST_MODE', '').lower()
+        skip_all_checks = test_mode == 'skip_all'
         
-        # 记录配置使用情况（打点上报）
-        self._track_config_usage()
-        
-        # 验证配置参数的有效性
-        self._validate_config()
-        
+        if skip_all_checks:
+            # 仅在明确指定 TEST_MODE=skip_all 时跳过所有验证
+            self.log_warning("测试模式：跳过所有配置验证（仅限测试环境）")
+        else:
+            # 正常模式下必须验证 API key
+            if not self.api_key or not self.api_key.strip():
+                error_msg = f"❌ 致命错误：API 密钥不能为空，请在配置文件或 GUI 界面中设置 api_key。"
+                self.log_error(error_msg)
+                raise AuthenticationError(error_msg, details={'env_var': 'api_key'})
+            
+            # 记录配置使用情况
+            self._track_config_usage()
+            # 验证配置参数的有效性
+            self._validate_config()
+
         self.log_debug(f"Config 参数：base_url={self.base_url}, model={self.model_name}, provider={self.api_provider}")
         self.log_debug(f"Draft 模型：{self.get_draft_model_name()}, temperature={self.get_draft_temperature()}")
         self.log_debug(f"Review 模型：{self.get_review_model_name()}, temperature={self.get_review_temperature()}")
@@ -613,7 +630,21 @@ class Config(ModuleLoggerMixin):
         lines.append(f"总计：{len(errors)} 个配置错误需要修正")
         
         return "\n".join(lines)
-    
+
+    def _track_config_usage(self):
+        """
+        跟踪配置使用情况（用于分析和监控）
+        记录哪些配置项被使用，帮助优化默认配置
+        """
+        # 简单实现：记录配置使用日志
+        self.log_debug(
+            "配置使用跟踪",
+            provider=self.api_provider,
+            model=self.model_name,
+            concurrency=self.initial_concurrency,
+            batch_size=self.batch_size
+        )
+
     def _validate_config(self):
         """验证配置参数的有效性 - 增强版，暴露具体出错点"""
         errors = []
@@ -1214,11 +1245,14 @@ class TaskContext:
 
 @dataclass
 class StageResult:
-    """阶段执行结果 - 只保留必要字段"""
+    """阶段执行结果 - 支持双阶段翻译"""
     success: bool
     translation: str
     error_msg: Optional[str] = None
-    
+    reason: str = ""  # 校对原因（如果有修改）
+    source: str = ""  # 源文本
+    diagnosis: str = ""  # 诊断信息
+
     def __post_init__(self):
         """验证阶段结果的有效性"""
         if self.success and not self.translation:

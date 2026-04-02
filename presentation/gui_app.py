@@ -5,8 +5,6 @@ GUI 应用模块 - 重构版
 import asyncio
 import logging
 import os
-import os
-import os
 import tkinter as tk
 from datetime import datetime
 from tkinter import filedialog, messagebox, ttk, scrolledtext
@@ -514,22 +512,34 @@ class TranslationApp:
         control_frame.pack(fill=tk.X, pady=(0, 5))
     
     def _select_term_file(self):
-        """选择术语库文件"""
+        """选择术语库文件（支持 Excel/CSV/JSON）"""
         filename = filedialog.askopenfilename(
             title="选择术语库文件",
-            filetypes=[("Excel files", "*.xlsx")]
+            filetypes=[
+                ("Excel files", "*.xlsx"),
+                ("CSV files", "*.csv"),
+                ("JSON files", "*.json"),
+                ("All files", "*.*")
+            ]
         )
         if filename:
             self.term_path.set(filename)
-    
+            logger.info(f"已选择术语库文件：{filename}")
+
     def _select_source_file(self):
-        """选择源文件"""
+        """选择源文件（支持 Excel/CSV/JSON）"""
         filename = filedialog.askopenfilename(
             title="选择待翻译文件",
-            filetypes=[("Excel files", "*.xlsx")]
+            filetypes=[
+                ("Excel files", "*.xlsx"),
+                ("CSV files", "*.csv"),
+                ("JSON files", "*.json"),
+                ("All files", "*.*")
+            ]
         )
         if filename:
             self.source_path.set(filename)
+            logger.info(f"已选择待翻译文件：{filename}")
             # 选择文件后自动刷新源语言列表
             self._refresh_source_languages()
     

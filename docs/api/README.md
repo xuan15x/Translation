@@ -43,6 +43,6 @@
 
 ## 📖 快速链接
 
-- **配置示例**: [../config.example.json](../config.example.json)
-- **配置示例 (YAML)**: [../config.example.yaml](../config.example.yaml)
+- **配置示例**: [../../config/config.example.json](../../config/config.example.json)
+- **配置示例 (YAML)**: [../../config/config.example.yaml](../../config/config.example.yaml)
 - **返回主索引**: [../README.md](../README.md)

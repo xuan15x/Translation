@@ -58,6 +58,9 @@ def temp_excel_file():
 @pytest.fixture
 def sample_config():
     """创建示例配置对象"""
+    # 设置测试模式，跳过配置验证
+    os.environ['TEST_MODE'] = 'skip_all'
+    
     # 使用模拟的 API key 进行测试，不再依赖环境变量
     return Config(
         api_key='test_api_key_for_unit_tests',

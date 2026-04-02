@@ -1,25 +1,35 @@
 """
 依赖注入容器
 统一管理各层组件的创建和依赖关系
+
+安全修复：添加数据库连接关闭机制，防止连接泄漏
 """
 from typing import Dict, Any, Optional
 import sqlite3
+import atexit
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class DependencyContainer:
     """依赖注入容器 - 管理所有组件的生命周期"""
-    
+
     def __init__(self):
         self._services: Dict[str, Any] = {}
         self._singletons: Dict[str, Any] = {}
-    
+        self._resources_to_cleanup: list = []  # 需要清理的资源列表
+
     def register(self, name: str, service: Any, singleton: bool = False):
         """注册服务"""
         if singleton:
             self._singletons[name] = service
+            # 注册需要清理的资源（如数据库连接）
+            if isinstance(service, sqlite3.Connection):
+                self._resources_to_cleanup.append((name, service))
         else:
             self._services[name] = service
-    
+
     def get(self, name: str) -> Any:
         """获取服务"""
         if name in self._singletons:
@@ -27,11 +37,30 @@ class DependencyContainer:
         if name in self._services:
             return self._services[name]()
         raise KeyError(f"Service '{name}' not registered")
-    
+
     def clear(self):
         """清理所有服务"""
+        # 先清理资源（关闭数据库连接等）
+        self._cleanup_resources()
         self._services.clear()
         self._singletons.clear()
+
+    def _cleanup_resources(self):
+        """清理所有注册的资源（如数据库连接）"""
+        for name, resource in self._resources_to_cleanup:
+            try:
+                if isinstance(resource, sqlite3.Connection):
+                    resource.close()
+                    logger.debug(f"已关闭数据库连接：{name}")
+            except Exception as e:
+                logger.error(f"关闭资源 {name} 时出错：{e}")
+        self._resources_to_cleanup.clear()
+
+    def shutdown(self):
+        """优雅关闭容器，清理所有资源"""
+        logger.info("正在关闭依赖容器...")
+        self._cleanup_resources()
+        logger.info("依赖容器已关闭")
 
 
 # 全局容器实例
@@ -83,8 +112,10 @@ def initialize_container(config_file: Optional[str] = None,
     container.register('config', config, singleton=True)
     
     # ========== Infrastructure Layer ==========
-    # 1. 数据库连接
-    db_conn = sqlite3.connect(':memory:', check_same_thread=False)
+    # 1. 数据库连接 - 修复：使用文件数据库而非内存数据库，避免数据丢失
+    db_path = os.path.join(os.path.dirname(__file__), '..', 'data', 'terminology.db')
+    os.makedirs(os.path.dirname(db_path), exist_ok=True)
+    db_conn = sqlite3.connect(db_path, check_same_thread=False)
     container.register('db_connection', db_conn, singleton=True)
     
     # 2. Excel 路径（从配置加载）
@@ -169,5 +200,16 @@ def reset_container():
     """重置容器（用于测试）"""
     global _container
     if _container:
-        _container.clear()
+        _container.shutdown()  # 使用 shutdown 方法清理资源
     _container = None
+
+
+def _cleanup_on_exit():
+    """程序退出时清理资源"""
+    global _container
+    if _container:
+        _container.shutdown()
+
+
+# 注册退出时的清理函数
+atexit.register(_cleanup_on_exit)
