@@ -142,6 +142,13 @@ class Config(ModuleLoggerMixin):
     enable_performance_monitor: bool = PerformanceMonitorConfig.DEFAULT_ENABLE
     perf_sample_interval: float = PerformanceMonitorConfig.DEFAULT_SAMPLE_INTERVAL
     perf_history_size: int = PerformanceMonitorConfig.DEFAULT_HISTORY_SIZE
+
+    # ========== 统一模型提供商配置（新增） ==========
+    # 参考 Qwen modelProviders 配置结构
+    model_providers: Dict[str, Any] = field(default_factory=dict)
+    
+    # 当前选择的模型 ID（从 model_providers 中选择）
+    current_model_id: Optional[str] = None
     
     def __post_init__(self):
         """初始化后验证 - 增强安全模式"""
