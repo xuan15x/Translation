@@ -154,6 +154,7 @@ def initialize_container(config_file: Optional[str] = None,
     if api_client and draft_prompt and review_prompt:
         from domain.translation_service_impl import TranslationDomainServiceImpl
         translation_service = TranslationDomainServiceImpl(
+            config=config,  # 添加 config 参数
             client=api_client,
             terminology_service=term_service,
             draft_prompt=draft_prompt,
