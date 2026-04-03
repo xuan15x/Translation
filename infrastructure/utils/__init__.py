@@ -11,7 +11,7 @@ from .memory_manager import (
     get_memory_manager,
     init_memory_manager
 )
-from .performance_monitor import PerformanceMonitor
+from .performance_monitor import PerformanceMonitor, get_performance_monitor
 from .progress_estimator import ProgressEstimator
 from .conflict_resolver import ConflictResolver
 from .undo_manager import UndoManager
@@ -31,6 +31,7 @@ __all__ = [
     'get_memory_manager',
     'init_memory_manager',
     'PerformanceMonitor',
+    'get_performance_monitor',
     'ProgressEstimator',
     'ConflictResolver',
     'UndoManager',

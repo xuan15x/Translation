@@ -164,6 +164,20 @@ class ConfigLoader:
         filtered_config = {k: v for k, v in self._config_cache.items()
                           if k in valid_keys}
 
+        # 支持新的多提供商配置结构：从 api_keys.[provider].api_key 提取
+        if 'api_key' not in filtered_config or not filtered_config.get('api_key'):
+            api_keys = self._config_cache.get('api_keys', {})
+            api_provider = self._config_cache.get('api_provider', 'deepseek')
+            
+            if isinstance(api_keys, dict) and api_provider in api_keys:
+                provider_config = api_keys[api_provider]
+                if isinstance(provider_config, dict):
+                    # 提取 API Key
+                    filtered_config['api_key'] = provider_config.get('api_key', '')
+                    # 同时提取 base_url（如果未设置）
+                    if 'base_url' not in filtered_config or not filtered_config.get('base_url'):
+                        filtered_config['base_url'] = provider_config.get('base_url', '')
+
         return config_class(**filtered_config)
     
     def get_api_config(self) -> Dict[str, Any]:
