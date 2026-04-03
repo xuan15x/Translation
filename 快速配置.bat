@@ -28,17 +28,23 @@ if errorlevel 1 (
 echo [OK] Python is installed
 echo.
 
+:: Change to script directory
+cd /d "%~dp0"
+
 :: Check config file
-if not exist "config/config.json" (
+if not exist "config\config.json" (
     echo [INFO] Config file not found, creating from example...
-    if exist "config/config.example.json" (
-        copy "config/config.example.json" "config/config.json" >nul
-        echo [OK] Config file created
+    if exist "config\config.example.json" (
+        copy "config\config.example.json" "config\config.json" >nul
+        echo [OK] Config file created: config\config.json
     ) else (
         echo [ERROR] Config example file not found
         pause
         exit /b 1
     )
+    echo.
+) else (
+    echo [OK] Config file found: config\config.json
     echo.
 )
 
