@@ -816,8 +816,27 @@ class TranslationApp:
             try:
                 if self.config_persistence:
                     config_data = self.config_persistence.load(self.config_file)
+                    # 支持两种配置格式：
+                    # 1. 直接格式: {"api_key": "xxx"}
+                    # 2. 嵌套格式: {"api_keys": {"deepseek": {"api_key": "xxx"}}}
                     api_key = config_data.get('api_key', '')
-                    logger.debug(f"从配置文件读取API密钥: {'已配置' if api_key else '未配置'}")
+                    
+                    if not api_key and 'api_keys' in config_data:
+                        # 嵌套格式，获取当前选择的API提供商的密钥
+                        api_provider = self.current_provider_var.get()
+                        logger.debug(f"当前API提供商: {api_provider}")
+                        
+                        api_keys_config = config_data.get('api_keys', {})
+                        if api_provider in api_keys_config:
+                            provider_config = api_keys_config[api_provider]
+                            api_key = provider_config.get('api_key', '')
+                            logger.debug(f"从api_keys.{api_provider}读取API密钥: {'已配置' if api_key else '未配置'}")
+                        else:
+                            logger.warning(f"未找到提供商 '{api_provider}' 的配置")
+                    elif api_key:
+                        logger.debug("从api_key字段读取API密钥: 已配置")
+                    else:
+                        logger.debug("配置文件中未找到API密钥")
                 else:
                     api_key = ''
             except Exception as e:
