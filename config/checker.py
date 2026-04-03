@@ -149,36 +149,65 @@ class ConfigChecker:
     
     def _check_required_fields(self, config: Dict[str, Any]):
         """检查必填字段"""
-        required_fields = ['api_key']
+        # 支持新的多提供商配置结构和旧的单 api_key 配置
+        api_keys = config.get('api_keys', {})
+        api_provider = config.get('api_provider', 'deepseek')
         
-        for field in required_fields:
-            value = config.get(field)
-            if not value or (isinstance(value, str) and not value.strip()):
+        # 检查新配置结构：api_keys.[provider].api_key
+        if api_keys and isinstance(api_keys, dict):
+            provider_config = api_keys.get(api_provider, {})
+            if isinstance(provider_config, dict):
+                api_key = provider_config.get('api_key', '')
+                if not api_key or (isinstance(api_key, str) and not api_key.strip()):
+                    self._add_result(
+                        CheckLevel.ERROR,
+                        CheckCategory.SECURITY,
+                        f'api_keys.{api_provider}.api_key',
+                        f"API 密钥未设置（提供商：{api_provider}）",
+                        f"请在 api_keys.{api_provider}.api_key 中设置有效的 API Key"
+                    )
+        else:
+            # 兼容旧配置：顶层 api_key
+            api_key = config.get('api_key', '')
+            if not api_key or (isinstance(api_key, str) and not api_key.strip()):
                 self._add_result(
                     CheckLevel.ERROR,
-                    CheckCategory.SYNTAX,
-                    field,
-                    f"必填字段 '{field}' 不能为空",
-                    f"请设置有效的 {field} 值"
+                    CheckCategory.SECURITY,
+                    'api_key',
+                    "API 密钥未设置",
+                    "请设置 api_key 或使用新的 api_keys 配置结构"
                 )
     
     def _check_api_config(self, config: Dict[str, Any]):
         """检查 API 配置"""
-        # api_provider
-        provider = config.get('api_provider', 'deepseek')
-        valid_providers = list(self.PROVIDER_ENV_MAPPING.keys())
-        if provider not in valid_providers:
+        # 支持新旧两种配置结构
+        api_keys = config.get('api_keys', {})
+        api_provider = config.get('api_provider', 'deepseek')
+        
+        # 获取 base_url（优先从新结构中获取）
+        if api_keys and isinstance(api_keys, dict):
+            provider_config = api_keys.get(api_provider, {})
+            if isinstance(provider_config, dict):
+                base_url = provider_config.get('base_url', '')
+            else:
+                base_url = config.get('base_url', '')
+        else:
+            base_url = config.get('base_url', '')
+        
+        # 检查提供商有效性
+        valid_providers = ['deepseek', 'openai', 'azure_openai', 'custom',
+                          'anthropic', 'moonshot', 'zhipu', 'qwen', 'gemini']
+        if api_provider not in valid_providers:
             self._add_result(
                 CheckLevel.WARNING,
                 CheckCategory.SYNTAX,
                 'api_provider',
-                f"未知的 API 提供商：'{provider}'",
+                f"未知的 API 提供商：'{api_provider}'",
                 f"支持的提供商：{', '.join(valid_providers)}",
-                provider
+                api_provider
             )
-        
-        # base_url
-        base_url = config.get('base_url', '')
+
+        # base_url 格式检查
         if base_url and not self.URL_PATTERN.match(base_url):
             self._add_result(
                 CheckLevel.WARNING,
@@ -188,20 +217,6 @@ class ConfigChecker:
                 "URL 应以 http:// 或 https:// 开头",
                 base_url
             )
-        
-        # api_key 和 provider 的匹配性
-        if provider in self.PROVIDER_ENV_MAPPING:
-            env_var = self.PROVIDER_ENV_MAPPING[provider]
-            if not config.get('api_key'):
-                # 检查环境变量
-                if not os.getenv(env_var):
-                    self._add_result(
-                        CheckLevel.ERROR,
-                        CheckCategory.SECURITY,
-                        'api_key',
-                        f"API 密钥未设置（提供商：{provider}）",
-                        f"请设置 api_key 或环境变量 {env_var}"
-                    )
     
     def _check_model_params(self, config: Dict[str, Any]):
         """检查模型参数"""
