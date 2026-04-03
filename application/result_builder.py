@@ -4,7 +4,10 @@
 """
 from typing import List, Dict, Any, Optional
 import pandas as pd
+import logging
 from domain.models import TranslationResult, BatchResult, TranslationStatus, TranslationTask
+
+logger = logging.getLogger(__name__)
 
 
 class ResultBuilder:
@@ -76,25 +79,52 @@ class ResultBuilder:
     def print_summary(batch_result: BatchResult):
         """打印汇总报告"""
         summary = ResultBuilder.summarize(batch_result)
-        
-        print("\n" + "="*50)
-        print("📊 翻译结果汇总")
-        print("="*50)
+
+        logger.info("\n" + "="*60)
+        logger.info("📊 翻译结果汇总")
+        logger.info("="*60)
         for key, value in summary.items():
-            print(f"{key}: {value}")
-        print("="*50)
-        
+            logger.info(f"{key}: {value}")
+        logger.info("="*60)
+
         # 详细分类统计
         status_counts = {}
+        failure_reasons = {}  # 记录失败原因
+        
         for result in batch_result.results:
             status = result.status.value
             status_counts[status] = status_counts.get(status, 0) + 1
-        
-        print("\n📈 状态分布:")
+            
+            # 记录失败原因
+            if not result.success and result.reason:
+                reason = result.reason[:100]  # 截断过长的原因
+                failure_reasons[reason] = failure_reasons.get(reason, 0) + 1
+
+        logger.info("\n📈 状态分布:")
         for status, count in sorted(status_counts.items()):
             percentage = count / max(batch_result.total, 1) * 100
-            print(f"  {status}: {count} ({percentage:.1f}%)")
-        print("="*50 + "\n")
+            logger.info(f"  {status}: {count} ({percentage:.1f}%)")
+        
+        # 输出失败原因统计
+        if failure_reasons:
+            logger.info("\n❌ 失败原因统计（Top 10）:")
+            sorted_reasons = sorted(failure_reasons.items(), key=lambda x: x[1], reverse=True)
+            for i, (reason, count) in enumerate(sorted_reasons[:10], 1):
+                logger.info(f"  {i}. [{count}次] {reason}")
+        
+        # 如果有失败，输出前3个详细示例
+        failed_results = [r for r in batch_result.results if not r.success]
+        if failed_results:
+            logger.info(f"\n💡 失败示例详情（前3个）:")
+            for i, result in enumerate(failed_results[:3], 1):
+                logger.info(f"  示例{i}:")
+                logger.info(f"    - Key: {result.task.key if result.task else 'N/A'}")
+                logger.info(f"    - 原文: {result.task.source_text[:50] if result.task else 'N/A'}")
+                logger.info(f"    - 目标语言: {result.task.target_lang if result.task else 'N/A'}")
+                logger.info(f"    - 错误原因: {result.reason}")
+                logger.info(f"    - 诊断信息: {result.diagnosis}")
+        
+        logger.info("="*60 + "\n")
 
 
 class TaskFactory:
