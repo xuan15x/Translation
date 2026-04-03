@@ -1,4 +1,4 @@
-# AI 智能翻译系统 - 文档中心 v3.0
+# AI 智能翻译系统 - 文档中心 v3.1
 
 欢迎使用 AI 智能翻译系统！本文档中心提供完整的文档导航和索引。
 
@@ -42,9 +42,13 @@
 
 | 文档 | 说明 | 位置 | 重要度 |
 |------|------|------|--------|
-| [架构设计](architecture/ARCHITECTURE_DESIGN.md) | 六层分层架构详解 | architecture/ | ⭐⭐⭐ |
-| [架构概览](architecture/ARCHITECTURE.md) | 架构简介 v3.0 | architecture/ | ⭐⭐ |
+| [架构设计](architecture/ARCHITECTURE.md) | 六层分层架构详解 v3.1 | architecture/ | ⭐⭐⭐ |
+| [架构概览](architecture/ARCHITECTURE.md) | 架构概览 v3.1 | architecture/ | ⭐⭐ |
+| [架构变更记录](architecture/ARCHITECTURE_CHANGES.md) | v3.0→v3.1 架构变更 | architecture/ | ⭐⭐⭐ |
+| [模块使用指南](architecture/MODULE_GUIDE.md) | 各模块职责和使用方法 | architecture/ | ⭐⭐⭐ |
+| [迁移指南](architecture/MIGRATION_GUIDE.md) | v3.0→v3.1 迁移步骤 | architecture/ | ⭐⭐⭐ |
 | [重构总结](architecture/REFACTORING_SUMMARY.md) | 全面重构过程 | architecture/ | ⭐ |
+| [重构执行计划](../REFACTORING_EXECUTION_PLAN.md) | 重构任务清单 | 根目录 | ⭐⭐ |
 | [测试指南](development/TESTING_GUIDE.md) | 单元测试和集成测试 | development/ | ⭐⭐⭐ |
 | [错误处理指南](development/ERROR_HANDLING_GUIDE.md) | 统一异常体系使用手册 | development/ | ⭐⭐⭐ |
 
@@ -120,7 +124,15 @@
 
 ### 文档更新记录
 
-- **2026-04-01 (v3.0.0)**: 
+- **2026-04-03 (v3.1.0)**:
+  - ✨ Infrastructure 层拆分为 6 个子模块 (cache/config/database/di/logging/utils)
+  - ✨ 更新架构文档 (ARCHITECTURE.md) 反映最新结构
+  - ✨ 创建架构变更记录 (ARCHITECTURE_CHANGES.md)
+  - ✨ 创建模块使用指南 (MODULE_GUIDE.md)
+  - ✨ 创建迁移指南 (MIGRATION_GUIDE.md)
+  - 🐛 修复 Domain 层依赖 Service 层问题 (P0)
+  - 🐛 移动仓储接口到 Domain 层 (P0)
+- **2026-04-01 (v3.0.0)**:
   - ✨ 创建完整使用手册，整合所有核心文档
   - ✨ 双阶段翻译参数 GUI 控制文档
   - ✨ 语言扩展至 33 种目标语言 + 10 种源语言
@@ -165,6 +177,6 @@
 
 ---
 
-**文档中心版本**: 3.0  
-**最后更新**: 2026-04-01  
+**文档中心版本**: 3.1
+**最后更新**: 2026-04-03
 **维护者**: Documentation Team

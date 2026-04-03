@@ -4,7 +4,7 @@ concurrency_controller.py 单元测试
 """
 import pytest
 import asyncio
-from infrastructure.concurrency_controller import AdaptiveConcurrencyController
+from infrastructure.utils import AdaptiveConcurrencyController
 from infrastructure.models import Config
 
 

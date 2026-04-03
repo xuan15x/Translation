@@ -14,7 +14,7 @@ from domain.models import (
 )
 from infrastructure.models import Config, TaskContext, FinalResult
 from service.api_stages import APIDraftStage, APIReviewStage
-from infrastructure.concurrency_controller import AdaptiveConcurrencyController
+from infrastructure.utils import AdaptiveConcurrencyController
 import asyncio
 
 logger = logging.getLogger(__name__)

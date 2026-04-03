@@ -16,7 +16,10 @@ from .config import (
 
 from .formatter import (
     ColorFormatter,
-    GUILogHandler,
+    GUILogHandler
+)
+
+from .gui_log_controller import (
     GUILogController
 )
 

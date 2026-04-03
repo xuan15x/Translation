@@ -1,6 +1,6 @@
 """
-翻译服务外观模式 - 精简版
-基于新架构，零依赖旧代码
+翻译服务外观模式 - 重构版
+支持新旧两种翻译模式
 """
 import asyncio
 from typing import List, Optional, Callable
@@ -10,20 +10,20 @@ from domain.models import TranslationTask, BatchResult
 from application.result_builder import TaskFactory, ResultBuilder
 from application.batch_processor import BatchTaskProcessor
 from application.workflow_coordinator import TranslationWorkflowCoordinator
-
+from application.enhanced_translator import EnhancedTranslator, TranslationState, TranslationProgress
 
 logger = logging.getLogger(__name__)
 
 
 class TranslationServiceFacade:
-    """翻译服务外观 - 精简版"""
-    
+    """翻译服务外观 - 重构版"""
+
     def __init__(self,
                  terminology_service,
                  translation_service):
         """
         初始化翻译服务外观
-        
+
         Args:
             terminology_service: 术语服务
             translation_service: 翻译服务
@@ -34,13 +34,75 @@ class TranslationServiceFacade:
             translation_service=translation_service,
             batch_processor=None
         )
-        
+
         # 进度回调
         self.progress_callback: Optional[Callable[[int, int], None]] = None
+        
+        # 增强型翻译器（支持断点续传）
+        self.enhanced_translator: Optional[EnhancedTranslator] = None
+        self._use_enhanced = False  # 是否使用增强型翻译器
+        
+        # 保存服务引用供增强型翻译器使用
+        self._terminology_service = terminology_service
+        self._translation_service = translation_service
     
     def set_progress_callback(self, callback: Callable[[int, int], None]):
         """设置进度回调函数"""
         self.progress_callback = callback
+    
+    def enable_enhanced_translator(self, enable: bool = True) -> None:
+        """
+        启用/禁用增强型翻译器
+        
+        Args:
+            enable: 是否启用
+        """
+        self._use_enhanced = enable
+        if enable and not self.enhanced_translator:
+            self.enhanced_translator = EnhancedTranslator(
+                translation_facade=self,
+                state_dir=".translation_state",
+                preview_lines=10
+            )
+            logger.info("✅ 增强型翻译器已启用（支持断点续传）")
+    
+    def set_progress_callback_enhanced(self, callback: Callable[[TranslationProgress], None]) -> None:
+        """
+        设置增强型进度回调
+        
+        Args:
+            callback: 进度回调函数
+        """
+        if self.enhanced_translator:
+            self.enhanced_translator.on_progress = callback
+    
+    def set_preview_callback(self, callback: Callable[[List[dict]], None]) -> None:
+        """
+        设置预览回调
+        
+        Args:
+            callback: 预览回调函数
+        """
+        if self.enhanced_translator:
+            self.enhanced_translator.on_preview = callback
+    
+    def pause_translation(self) -> bool:
+        """暂停翻译"""
+        if self.enhanced_translator:
+            return self.enhanced_translator.pause()
+        return False
+    
+    def resume_translation(self) -> bool:
+        """恢复翻译"""
+        if self.enhanced_translator:
+            return self.enhanced_translator.resume()
+        return False
+    
+    def stop_translation(self) -> bool:
+        """停止翻译"""
+        if self.enhanced_translator:
+            return self.enhanced_translator.stop()
+        return False
     
     async def translate_file(self,
                            source_excel_path: str,

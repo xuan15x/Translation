@@ -134,6 +134,22 @@ cp config/config.example.json config/config.json
 - [架构设计](docs/architecture/ARCHITECTURE.md) - 深入了解系统架构
 - [测试指南](docs/development/TESTING_GUIDE.md) - 编写和运行测试
 - [API 参考](docs/api/MODEL_CONFIG_API.md) ⭐ 所有类和方法详细说明
+- [代码审查报告](docs/development/CODE_REVIEW_REPORT.md) ⭐ 最新代码审查结果
+
+## ⚠️ 已知问题和改进计划
+
+### 已修复的严重问题
+- ✅ **P0级**: 修复了依赖容器初始化时的缺失导入问题 (2026-04-03)
+- ✅ **P0级**: 修复了异常处理模块的重复类定义问题 (2026-04-03)
+
+### 待改进项
+详细的已知问题和改进计划请查看 [代码审查报告](docs/development/CODE_REVIEW_REPORT.md)
+
+**主要待改进项：**
+- 🟡 `Config._validate_config` 方法过长（约400行），建议拆分
+- 🟡 GUI应用类过长（1859行），建议拆分为多个控制器
+- 🟡 测试覆盖率不足（约45%），目标80%+
+- 🟢 类型注解不完整（约60%），目标90%+
 
 ## 🧪 测试
 

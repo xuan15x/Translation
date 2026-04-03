@@ -9,7 +9,7 @@ import logging
 from openai import AsyncOpenAI
 
 from infrastructure.models import Config, StageResult, TaskContext
-from infrastructure.concurrency_controller import AdaptiveConcurrencyController
+from infrastructure.utils import AdaptiveConcurrencyController
 from .api_stage_base import APIDraftStage as APIDraftStageBase, APIReviewStage as APIReviewStageBase
 
 logger = logging.getLogger(__name__)

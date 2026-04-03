@@ -5,7 +5,7 @@
 from typing import Optional
 from domain.services import ITerminologyDomainService
 from domain.models import TermMatch
-from infrastructure.repositories import ITermRepository
+from infrastructure.database import ITermRepository
 
 
 class TerminologyDomainService(ITerminologyDomainService):

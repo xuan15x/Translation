@@ -15,7 +15,7 @@ if root_path not in sys.path:
 
 def create_sample_config(output_path: str = "config.yaml", format: str = "yaml"):
     """创建示例配置文件"""
-    from config.config import create_sample_config_file
+    from infrastructure.config.config import create_sample_config_file
     
     print(f"📝 创建示例配置文件：{output_path}")
     create_sample_config_file(output_path, format)
@@ -163,7 +163,7 @@ def merge_configs(base_config: str, override_config: str, output: str):
 
 def list_all_config_options():
     """列出所有可用的配置选项"""
-    from config.config import get_default_config, DEFAULT_PROHIBITION_CONFIG
+    from infrastructure.config.config import get_default_config, DEFAULT_PROHIBITION_CONFIG
     
     default_config = get_default_config()
     
@@ -209,7 +209,7 @@ def list_all_config_options():
 
 def show_prohibition_details():
     """显示禁止事项配置详情"""
-    from config.config import DEFAULT_PROHIBITION_CONFIG, DEFAULT_PROHIBITION_TYPE_MAP
+    from infrastructure.config.config import DEFAULT_PROHIBITION_CONFIG, DEFAULT_PROHIBITION_TYPE_MAP
     
     print("\n" + "=" * 70)
     print("Prohibition Configuration Details")

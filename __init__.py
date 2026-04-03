@@ -12,7 +12,7 @@ AI 智能翻译系统 - 六层分层架构 v3.0
 """
 
 # 配置常量
-from config import (
+from infrastructure.config import (
     DEFAULT_DRAFT_PROMPT,
     DEFAULT_REVIEW_PROMPT,
     TARGET_LANGUAGES,
@@ -26,7 +26,7 @@ from infrastructure import (
 )
 
 # 日志配置
-from infrastructure.log_config import (
+from infrastructure.logging import (
     LogManager, get_log_manager, LogConfig,
     LogLevel, LogGranularity, LogTag, log_with_tag,
     get_logger

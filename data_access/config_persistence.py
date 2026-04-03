@@ -222,40 +222,23 @@ class ConfigPersistence:
         """
         if not self._config_cache:
             self.load()
-        
-        # 支持嵌套键，如 "api.base_url"
-        keys = key.split('.')
-        value = self._config_cache
-        
-        for k in keys:
-            if isinstance(value, dict) and k in value:
-                value = value[k]
-            else:
-                return default
-        
-        return value
-    
+
+        from infrastructure.utils import get_nested_value
+        return get_nested_value(self._config_cache, key, default)
+
     def set(self, key: str, value: Any) -> None:
         """
         设置配置值
-        
+
         Args:
             key: 配置键
             value: 配置值
         """
         if not self._config_cache:
             self.load()
-        
-        # 支持嵌套键
-        keys = key.split('.')
-        config = self._config_cache
-        
-        for k in keys[:-1]:
-            if k not in config:
-                config[k] = {}
-            config = config[k]
-        
-        config[keys[-1]] = value
+
+        from infrastructure.utils import set_nested_value
+        set_nested_value(self._config_cache, key, value)
     
     def update(self, updates: Dict[str, Any]) -> None:
         """

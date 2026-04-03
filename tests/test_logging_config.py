@@ -7,7 +7,7 @@ import pytest
 from unittest.mock import MagicMock, patch
 import tkinter as tk
 
-from infrastructure.logging_config import ColorFormatter, GUILogHandler, setup_logger
+from infrastructure.logging import ColorFormatter, GUILogHandler, setup_logger
 
 
 class TestColorFormatter:

@@ -11,7 +11,7 @@ import logging
 import tkinter as tk
 from tkinter import ttk
 from typing import Optional
-from infrastructure.log_slice import LogCategory, LoggerSlice
+from infrastructure.logging import LogCategory, LoggerSlice
 
 
 class GUILogController:
@@ -36,7 +36,7 @@ class GUILogController:
     def _track_gui_initialization(self):
         """跟踪 GUI 初始化（打点上报）"""
         try:
-            from infrastructure.config_metrics import record_config_usage
+            from infrastructure.utils import record_config_usage
             
             config_data = {
                 'gui_initialized': True,
@@ -59,7 +59,7 @@ class GUILogController:
             **kwargs: 其他参数
         """
         try:
-            from infrastructure.config_metrics import record_performance_metric
+            from infrastructure.utils import record_performance_metric
             
             # 记录用户行为
             event_data = {
@@ -90,7 +90,7 @@ class GUILogController:
             count: 任务数量
         """
         try:
-            from infrastructure.config_metrics import record_performance_metric
+            from infrastructure.utils import record_performance_metric
             
             self.logger_slice.info(
                 f"开始翻译：{source_lang} -> {target_lang}",
@@ -118,7 +118,7 @@ class GUILogController:
             context: 上下文
         """
         try:
-            from infrastructure.config_metrics import record_config_validation_error
+            from infrastructure.utils import record_config_validation_error
             
             self.logger_slice.error(f"{context}: {error_msg}")
             

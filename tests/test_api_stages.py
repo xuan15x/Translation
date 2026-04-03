@@ -8,7 +8,7 @@ import pytest
 from unittest.mock import MagicMock, AsyncMock, patch
 
 from infrastructure.models import Config, StageResult, TaskContext
-from infrastructure.concurrency_controller import AdaptiveConcurrencyController
+from infrastructure.utils import AdaptiveConcurrencyController
 from service.api_stages import APIDraftStage, APIReviewStage
 
 

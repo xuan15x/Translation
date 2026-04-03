@@ -57,6 +57,7 @@ translation/
 │   ├── models.py                         # 数据模型 ⭐
 │   ├── cache.py                          # 缓存管理（LRU）⭐
 │   ├── concurrency_controller.py         # 并发控制器 ⭐
+│   ├── exceptions.py                     # 统一异常处理 ⭐
 │   ├── log_config.py                     # 日志配置
 │   ├── logging_config.py                 # 日志系统
 │   ├── log_slice.py                      # 日志切片
@@ -94,7 +95,8 @@ translation/
 │   │   ├── BEST_PRACTICES.md             # 最佳实践
 │   │   ├── TROUBLESHOOTING.md            # 故障排查
 │   │   ├── CONFIG_GUIDE_DETAILED.md      # 详细配置指南 ⭐ NEW
-│   │   └── MODEL_CONFIG_GUIDE.md         # 模型配置指南
+│   │   ├── MODEL_CONFIG_GUIDE.md         # 模型配置指南
+│   │   └── ERROR_HANDLING_MANUAL.md      # 错误处理手册 ⭐ NEW
 │   │
 │   ├── 📂 architecture/                  # 架构文档
 │   │   ├── ARCHITECTURE.md               # 系统架构
@@ -104,7 +106,8 @@ translation/
 │   └── 📂 development/                   # 开发指南
 │       ├── TESTING_GUIDE.md              # 测试指南
 │       ├── PERFORMANCE_OPTIMIZATIONS.md  # 性能优化
-│       └── ERROR_HANDLING_GUIDE.md       # 错误处理指南
+│       ├── ERROR_HANDLING_GUIDE.md       # 错误处理指南
+│       └── CODE_REVIEW_REPORT.md         # 代码审查报告 ⭐ NEW
 │
 └── 📂 .idea/                             # IDE 配置（已忽略）
     └── ...

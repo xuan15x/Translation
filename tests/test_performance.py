@@ -15,7 +15,7 @@ from infrastructure.models import Config, TaskContext
 # from business_logic.terminology_manager import TerminologyManager
 # from business_logic.workflow_orchestrator import WorkflowOrchestrator
 from infrastructure.cache import TerminologyCache, LRUCache
-from infrastructure.performance_monitor import PerformanceMonitor
+from infrastructure.utils import PerformanceMonitor
 
 
 class TestPerformance:

@@ -6,7 +6,7 @@
 """
 from typing import Optional, List, Dict, Any
 import sqlite3
-from infrastructure.repositories import ITermRepository
+from infrastructure.database import ITermRepository
 from domain.models import TermMatch, MatchType
 
 

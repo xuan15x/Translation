@@ -1,0 +1,230 @@
+{
+  "_comment": "AI 智能翻译工作台 - 统一模型配置示例（参考 Qwen modelProviders 结构）",
+  "_version": "v3.0.3",
+  "_description": "支持多模型提供商的完整配置示例",
+
+  "// ========== 传统配置方式（向后兼容） ==========" : "",
+  "api_key": "sk-your-deepseek-api-key-here",
+  "base_url": "https://api.deepseek.com",
+  "api_provider": "deepseek",
+  "model_name": "deepseek-chat",
+  
+  "temperature": 0.7,
+  "top_p": 0.9,
+  "presence_penalty": 0.0,
+  "frequency_penalty": 0.0,
+
+  "// ========== 统一模型配置（新增，推荐使用） ==========" : "",
+  "// 参考 Qwen modelProviders 配置结构，支持多模型兼容",
+  
+  "modelProviders": {
+    "// --- OpenAI 兼容模型（DeepSeek、OpenAI、Moonshot、Zhipu 等） ---" : "",
+    "openai": [
+      {
+        "id": "deepseek-chat",
+        "name": "DeepSeek Chat",
+        "description": "DeepSeek 最新聊天模型",
+        "envKey": "DEEPSEEK_API_KEY",
+        "baseUrl": "https://api.deepseek.com",
+        "generationConfig": {
+          "timeout": 60000,
+          "max_retries": 3,
+          "enable_cache_control": true,
+          "context_window_size": 32768,
+          "enable_stream": false,
+          "samplingParams": {
+            "temperature": 0.7,
+            "top_p": 0.9,
+            "max_tokens": 4096,
+            "presence_penalty": 0.0,
+            "frequency_penalty": 0.0,
+            "stop": null
+          }
+        }
+      },
+      {
+        "id": "gpt-4o",
+        "name": "GPT-4o",
+        "description": "OpenAI 旗舰模型",
+        "envKey": "OPENAI_API_KEY",
+        "baseUrl": "https://api.openai.com/v1",
+        "generationConfig": {
+          "timeout": 90000,
+          "max_retries": 3,
+          "context_window_size": 128000,
+          "samplingParams": {
+            "temperature": 0.7,
+            "top_p": 0.9,
+            "max_tokens": 4096
+          }
+        }
+      },
+      {
+        "id": "moonshot-v1-8k",
+        "name": "Kimi (Moonshot V1 8K)",
+        "description": "月之暗面 Kimi 大模型",
+        "envKey": "MOONSHOT_API_KEY",
+        "baseUrl": "https://api.moonshot.cn/v1",
+        "generationConfig": {
+          "timeout": 60000,
+          "samplingParams": {
+            "temperature": 0.7,
+            "top_p": 0.9,
+            "max_tokens": 8192
+          }
+        }
+      },
+      {
+        "id": "glm-4",
+        "name": "智谱 GLM-4",
+        "description": "智谱 AI 最新模型",
+        "envKey": "ZHIPU_API_KEY",
+        "baseUrl": "https://open.bigmodel.cn/api/paas/v4",
+        "generationConfig": {
+          "timeout": 60000,
+          "samplingParams": {
+            "temperature": 0.7,
+            "top_p": 0.9,
+            "max_tokens": 2048
+          }
+        }
+      },
+      {
+        "id": "qwen-turbo",
+        "name": "通义千问 Turbo",
+        "description": "阿里云通义千问快速版",
+        "envKey": "DASHSCOPE_API_KEY",
+        "baseUrl": "https://dashscope.aliyuncs.com/api/v1",
+        "generationConfig": {
+          "timeout": 60000,
+          "samplingParams": {
+            "temperature": 0.7,
+            "top_p": 0.9,
+            "max_tokens": 2048
+          }
+        }
+      }
+    ],
+
+    "// --- Anthropic Claude 模型 ---" : "",
+    "anthropic": [
+      {
+        "id": "claude-3-5-sonnet-20240229",
+        "name": "Claude 3.5 Sonnet",
+        "description": "Anthropic 最新智能模型",
+        "envKey": "ANTHROPIC_API_KEY",
+        "baseUrl": "https://api.anthropic.com/v1",
+        "generationConfig": {
+          "timeout": 120000,
+          "max_retries": 3,
+          "context_window_size": 200000,
+          "samplingParams": {
+            "temperature": 0.7,
+            "max_tokens": 4096
+          }
+        }
+      },
+      {
+        "id": "claude-3-opus-20240229",
+        "name": "Claude 3 Opus",
+        "description": "Anthropic 最强模型",
+        "envKey": "ANTHROPIC_API_KEY",
+        "baseUrl": "https://api.anthropic.com/v1",
+        "generationConfig": {
+          "timeout": 120000,
+          "context_window_size": 200000,
+          "samplingParams": {
+            "temperature": 0.7,
+            "max_tokens": 4096
+          }
+        }
+      }
+    ],
+
+    "// --- Google Gemini 模型 ---" : "",
+    "gemini": [
+      {
+        "id": "gemini-1.5-pro",
+        "name": "Gemini 1.5 Pro",
+        "description": "Google 最强多模态模型",
+        "envKey": "GEMINI_API_KEY",
+        "baseUrl": "https://generativelanguage.googleapis.com/v1beta",
+        "capabilities": {
+          "vision": true,
+          "audio": false
+        },
+        "generationConfig": {
+          "timeout": 90000,
+          "context_window_size": 1048576,
+          "schemaCompliance": "auto",
+          "samplingParams": {
+            "temperature": 0.7,
+            "top_p": 0.9,
+            "max_tokens": 8192,
+            "top_k": 40
+          }
+        }
+      },
+      {
+        "id": "gemini-1.5-flash",
+        "name": "Gemini 1.5 Flash",
+        "description": "Google 快速模型",
+        "envKey": "GEMINI_API_KEY",
+        "baseUrl": "https://generativelanguage.googleapis.com/v1beta",
+        "generationConfig": {
+          "timeout": 60000,
+          "samplingParams": {
+            "temperature": 0.7,
+            "top_p": 0.9,
+            "max_tokens": 8192
+          }
+        }
+      }
+    ],
+
+    "// --- 阿里云通义千问（专用） ---" : "",
+    "qwen": [
+      {
+        "id": "qwen-max",
+        "name": "通义千问 Max",
+        "description": "阿里云通义千问最强模型",
+        "envKey": "DASHSCOPE_API_KEY",
+        "baseUrl": "https://dashscope.aliyuncs.com/api/v1",
+        "generationConfig": {
+          "timeout": 90000,
+          "samplingParams": {
+            "temperature": 0.7,
+            "top_p": 0.9,
+            "max_tokens": 2048
+          }
+        }
+      },
+      {
+        "id": "qwen-plus",
+        "name": "通义千问 Plus",
+        "description": "阿里云通义千问增强版",
+        "envKey": "DASHSCOPE_API_KEY",
+        "baseUrl": "https://dashscope.aliyuncs.com/api/v1",
+        "generationConfig": {
+          "timeout": 60000,
+          "samplingParams": {
+            "temperature": 0.7,
+            "top_p": 0.9,
+            "max_tokens": 2048
+          }
+        }
+      }
+    ]
+  },
+
+  "// 当前选择的模型 ID（从 modelProviders 中选择）" : "",
+  "current_model_id": "deepseek-chat",
+
+  "// ========== 其他配置（保持不变） ==========" : "",
+  "initial_concurrency": 8,
+  "max_concurrency": 10,
+  "batch_size": 1000,
+  "enable_two_pass": true,
+  "temperature": 0.7,
+  "top_p": 0.9
+}

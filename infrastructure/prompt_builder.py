@@ -3,8 +3,8 @@
 负责构建发送给 AI 的用户消息
 """
 import logging
-from .models import TaskContext
-from .log_slice import ModuleLoggerMixin, LogCategory, log_slice
+from infrastructure.models import TaskContext
+from infrastructure.logging import ModuleLoggerMixin, LogCategory
 
 
 class PromptBuilder(ModuleLoggerMixin):

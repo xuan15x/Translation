@@ -1,6 +1,12 @@
 """
-GUI 应用模块 - 重构版
+GUI 应用模块 - 优化版
 基于新的分层架构，使用依赖注入和外观模式
+优化功能：
+- 实时进度显示（进度条、进度百分比、速度、预计剩余时间）
+- 性能监控数据显示（CPU、内存、API调用次数）
+- 翻译预览面板（显示已完成的翻译结果）
+- 日志粒度控制
+- 暂停/恢复功能（配合EnhancedTranslator使用）
 """
 import asyncio
 import logging
@@ -8,21 +14,22 @@ import os
 import tkinter as tk
 from datetime import datetime
 from tkinter import filedialog, messagebox, ttk, scrolledtext
-from typing import List
+from typing import List, Dict, Any, Optional
 
 from config import DEFAULT_DRAFT_PROMPT, DEFAULT_REVIEW_PROMPT, TARGET_LANGUAGES, GUI_CONFIG, GAME_TRANSLATION_TYPES, GAME_DRAFT_PROMPTS, GAME_REVIEW_PROMPTS, T1_LANGUAGES, T2_LANGUAGES, T3_LANGUAGES
 from infrastructure.prompt_injector import inject_prompts
-from infrastructure.log_config import setup_logger, LogTag, log_with_tag, LogLevel
-from infrastructure.log_slice import LoggerSlice, LogCategory
+from infrastructure.logging import setup_logger, LogTag, log_with_tag, LogLevel
+from infrastructure.logging import LoggerSlice, LogCategory
 from infrastructure.models import Config
-from infrastructure.di_container import initialize_container
+from infrastructure.di import initialize_container
 from data_access.config_persistence import ConfigPersistence
 from service.api_provider import get_provider_manager
-from infrastructure.gui_log_controller import GUILogController
+from infrastructure.logging import GUILogController
 from service.session_config import get_session_manager, SessionConfigManager
 from service.version_history import get_version_manager, VersionHistoryManager
 from service.translation_history import get_history_manager, TranslationHistoryManager, record_translation
 from service.terminology_history import get_history_manager as get_terminology_history_manager
+from presentation.error_handler import show_error_dialog, log_error_with_solution
 
 logger = logging.getLogger(__name__)
 
@@ -50,52 +57,79 @@ class TranslationApp:
         # 状态变量
         self.term_path = tk.StringVar()
         self.source_path = tk.StringVar()
+        self.output_path = tk.StringVar()  # 输出路径
+        self.output_path.set("")  # 空表示自动生成
         self.mode_var = tk.IntVar(value=1)
         self.selected_langs = []
         self.prompt_draft = tk.StringVar()
         self.prompt_review = tk.StringVar()
         self.is_running = False
-        
+        self.is_paused = False  # 暂停状态标志
+
         # 默认提示词
         self.default_draft = DEFAULT_DRAFT_PROMPT
         self.default_review = DEFAULT_REVIEW_PROMPT
         self.prompt_draft.set(self.default_draft)
         self.prompt_review.set(self.default_review)
-        
+
         # 游戏翻译方向
         self.translation_type_var = tk.StringVar(value="match3_item")
-        
+
         # API 提供商管理
         self.provider_manager = get_provider_manager()
         self.current_provider_var = tk.StringVar(value="deepseek")
-        
+
         # 日志控制器
         self.log_controller = None
-        
+
         # 历史记录管理器
         self.session_manager = None
         self.version_manager = None
         self.translation_history_manager = None
         self.terminology_history_manager = None
-        
+
         # 加载配置 - 只暂存数据
         if config_file:
             self._pending_config_data = self._load_config_data()
-        
+
         # 初始化 API 提供商列表
         self.available_providers = self._get_available_providers_from_config()
         if self.available_providers:
             # _get_available_providers_from_config 返回的是列表，需要转换为字典
             providers_dict = {provider: provider for provider in self.available_providers}
             self.available_providers = providers_dict
-            
+
             # 使用第一个可用的提供商作为默认值
             default_provider = list(self.available_providers.keys())[0]
             self.current_provider_var.set(default_provider)
-        
+
         # 服务容器（延迟初始化）
         self.container = None
         self.translation_facade = None
+
+        # UI组件引用（用于动态更新）
+        self.progress_details_frame = None  # 进度详情区域
+        self.performance_frame = None  # 性能监控区域
+        self.preview_frame = None  # 翻译预览面板
+        self.preview_text = None  # 预览文本控件
+
+        # 进度相关状态变量
+        self.progress_current_var = tk.StringVar(value="0")  # 当前行数
+        self.progress_total_var = tk.StringVar(value="0")  # 总行数
+        self.progress_percent_var = tk.StringVar(value="0.0%")  # 进度百分比
+        self.progress_speed_var = tk.StringVar(value="0 行/秒")  # 速度
+        self.progress_eta_var = tk.StringVar(value="--:--:--")  # 预计剩余时间
+        self.progress_status_var = tk.StringVar(value="等待开始")  # 当前状态
+
+        # 性能监控状态变量
+        self.perf_cpu_var = tk.StringVar(value="0%")  # CPU使用率
+        self.perf_memory_var = tk.StringVar(value="0 MB")  # 内存使用
+        self.perf_api_calls_var = tk.StringVar(value="0")  # API调用次数
+        self.perf_success_rate_var = tk.StringVar(value="0%")  # 成功率
+        self.perf_monitor_task = None  # 性能监控任务
+
+        # 翻译预览数据
+        self.preview_data: List[Dict[str, Any]] = []  # 存储预览数据
         
         # 绑定窗口关闭事件
         self.root.protocol("WM_DELETE_WINDOW", self._on_closing)
@@ -317,9 +351,27 @@ class TranslationApp:
         self.source_lang_combo.grid(row=0, column=1, sticky=tk.W, padx=5, pady=5)
         
         ttk.Label(source_select_frame, text="💡 选择文件后将自动检测可用源语言", foreground="gray").grid(row=0, column=2, padx=10, pady=5)
-        
+
         # 刷新按钮
         ttk.Button(source_select_frame, text="🔄 刷新源语言列表", command=self._refresh_source_languages).grid(row=0, column=3, padx=5, pady=5)
+
+        # --- 4.5 输出路径选择区 ---
+        output_select_frame = ttk.Frame(source_lang_frame)
+        output_select_frame.pack(fill=tk.X, pady=(10, 0))
+
+        ttk.Label(output_select_frame, text="输出路径:").grid(row=0, column=0, sticky=tk.W, padx=5, pady=5)
+
+        # 输出路径输入框（留空表示自动生成）
+        self.output_path_entry = ttk.Entry(output_select_frame, textvariable=self.output_path, width=50)
+        self.output_path_entry.grid(row=0, column=1, sticky=tk.W, padx=5, pady=5)
+
+        # 浏览按钮
+        ttk.Button(output_select_frame, text="📁 浏览", command=self._browse_output_path).grid(row=0, column=2, padx=5, pady=5)
+
+        # 清空按钮
+        ttk.Button(output_select_frame, text="🔄 自动", command=lambda: self.output_path.set("")).grid(row=0, column=3, padx=5, pady=5)
+
+        ttk.Label(output_select_frame, text="💡 留空将自动生成输出文件", foreground="gray").grid(row=0, column=4, padx=10, pady=5)
         
         # --- 5. 语言选择区（按 T1/T2/T3 分页）---
         lang_frame = ttk.LabelFrame(main_frame, text="🌍 目标语言", padding="10")
@@ -425,13 +477,22 @@ class TranslationApp:
         self.start_btn.pack(side=tk.LEFT, padx=5)
         
         self.stop_btn = ttk.Button(
-            btn_frame, 
-            text="⏹️ 停止", 
+            btn_frame,
+            text="⏹️ 停止",
             command=self._stop_translation,
             state='disabled'
         )
         self.stop_btn.pack(side=tk.LEFT, padx=5)
-        
+
+        # 暂停/恢复按钮（新增）
+        self.pause_btn = ttk.Button(
+            btn_frame,
+            text="⏸️ 暂停",
+            command=self._pause_translation,
+            state='disabled'
+        )
+        self.pause_btn.pack(side=tk.LEFT, padx=5)
+
         # 历史记录按钮
         self.history_btn = ttk.Button(
             btn_frame,
@@ -443,25 +504,283 @@ class TranslationApp:
         # 进度条
         self.progress_var = tk.DoubleVar()
         self.progress_bar = ttk.Progressbar(
-            control_frame, 
-            variable=self.progress_var, 
+            control_frame,
+            variable=self.progress_var,
             maximum=100,
             mode='determinate'
         )
-        self.progress_bar.pack(fill=tk.X, pady=5)
+        self.progress_bar.pack(fill=tk.X, pady=(5, 2))
+
+        # 进度详情区域（新增）
+        self._create_progress_details(control_frame)
+
+        # 性能监控区域（新增，默认隐藏，启用后显示）
+        self._create_performance_panel(control_frame)
         
         # 日志
         log_frame = ttk.LabelFrame(main_frame, text="📋 运行日志", padding="10")
         log_frame.pack(fill=tk.BOTH, expand=True)
-        
+
         self.log_text = scrolledtext.ScrolledText(log_frame, height=15, font=("Consolas", 9))
         self.log_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
-        
+
         # 重定向日志到 GUI
         self._setup_gui_logging()
-        
+
         # 日志控制器已在上面初始化
-    
+
+        # 翻译预览面板（新增）
+        self._create_translation_preview_panel(main_frame)
+
+    def _create_progress_details(self, parent):
+        """
+        创建进度详情显示区域
+
+        Args:
+            parent: 父容器（控制区域）
+        """
+        self.progress_details_frame = ttk.Frame(parent)
+        self.progress_details_frame.pack(fill=tk.X, pady=(2, 5))
+
+        # 第一行：进度百分比和状态
+        top_row = ttk.Frame(self.progress_details_frame)
+        top_row.pack(fill=tk.X, pady=2)
+
+        ttk.Label(top_row, text="📊 进度:", font=("", 9, "bold")).pack(side=tk.LEFT, padx=5)
+        ttk.Label(top_row, textvariable=self.progress_percent_var, font=("", 9, "bold"),
+                  foreground="#0066cc").pack(side=tk.LEFT, padx=5)
+
+        # 状态指示器
+        self.status_indicator = ttk.Label(top_row, text="⏸ 等待", font=("", 8),
+                                          foreground="gray")
+        self.status_indicator.pack(side=tk.RIGHT, padx=5)
+
+        # 第二行：详细信息（使用网格布局）
+        detail_grid = ttk.Frame(self.progress_details_frame)
+        detail_grid.pack(fill=tk.X, pady=2)
+
+        # 当前行数
+        ttk.Label(detail_grid, text="当前行:", foreground="#666666").grid(row=0, column=0, sticky=tk.W, padx=10)
+        ttk.Label(detail_grid, textvariable=self.progress_current_var,
+                  foreground="#0066cc", font=("Consolas", 9)).grid(row=0, column=1, sticky=tk.W, padx=5)
+
+        ttk.Label(detail_grid, text="/", foreground="#666666").grid(row=0, column=2, sticky=tk.W, padx=2)
+
+        # 总行数
+        ttk.Label(detail_grid, text="总行数:", foreground="#666666").grid(row=0, column=3, sticky=tk.W, padx=10)
+        ttk.Label(detail_grid, textvariable=self.progress_total_var,
+                  foreground="#0066cc", font=("Consolas", 9)).grid(row=0, column=4, sticky=tk.W, padx=5)
+
+        # 速度
+        ttk.Label(detail_grid, text="⚡ 速度:", foreground="#666666").grid(row=0, column=5, sticky=tk.W, padx=15)
+        ttk.Label(detail_grid, textvariable=self.progress_speed_var,
+                  foreground="#00aa00", font=("Consolas", 9, "bold")).grid(row=0, column=6, sticky=tk.W, padx=5)
+
+        # 预计剩余时间
+        ttk.Label(detail_grid, text="⏱ ETA:", foreground="#666666").grid(row=0, column=7, sticky=tk.W, padx=15)
+        ttk.Label(detail_grid, textvariable=self.progress_eta_var,
+                  foreground="#cc6600", font=("Consolas", 9, "bold")).grid(row=0, column=8, sticky=tk.W, padx=5)
+
+    def _create_performance_panel(self, parent):
+        """
+        创建性能监控显示面板
+
+        Args:
+            parent: 父容器（控制区域）
+        """
+        self.performance_frame = ttk.LabelFrame(parent, text="📊 性能监控", padding="8")
+        # 默认不显示，用户启用性能监控后才显示
+        # self.performance_frame.pack(fill=tk.X, pady=(5, 5))
+
+        # 性能指标网格
+        perf_grid = ttk.Frame(self.performance_frame)
+        perf_grid.pack(fill=tk.X)
+
+        # CPU使用率
+        cpu_frame = ttk.Frame(perf_grid)
+        cpu_frame.grid(row=0, column=0, padx=10, pady=5)
+        ttk.Label(cpu_frame, text="CPU:", font=("", 8, "bold"), foreground="#666666").pack(side=tk.LEFT, padx=5)
+        ttk.Label(cpu_frame, textvariable=self.perf_cpu_var,
+                  font=("Consolas", 10, "bold"), foreground="#0066cc").pack(side=tk.LEFT)
+
+        # 内存使用
+        mem_frame = ttk.Frame(perf_grid)
+        mem_frame.grid(row=0, column=1, padx=10, pady=5)
+        ttk.Label(mem_frame, text="内存:", font=("", 8, "bold"), foreground="#666666").pack(side=tk.LEFT, padx=5)
+        ttk.Label(mem_frame, textvariable=self.perf_memory_var,
+                  font=("Consolas", 10, "bold"), foreground="#00aa00").pack(side=tk.LEFT)
+
+        # API调用次数
+        api_frame = ttk.Frame(perf_grid)
+        api_frame.grid(row=0, column=2, padx=10, pady=5)
+        ttk.Label(api_frame, text="API调用:", font=("", 8, "bold"), foreground="#666666").pack(side=tk.LEFT, padx=5)
+        ttk.Label(api_frame, textvariable=self.perf_api_calls_var,
+                  font=("Consolas", 10, "bold"), foreground="#cc6600").pack(side=tk.LEFT)
+
+        # 成功率
+        success_frame = ttk.Frame(perf_grid)
+        success_frame.grid(row=0, column=3, padx=10, pady=5)
+        ttk.Label(success_frame, text="成功率:", font=("", 8, "bold"), foreground="#666666").pack(side=tk.LEFT, padx=5)
+        ttk.Label(success_frame, textvariable=self.perf_success_rate_var,
+                  font=("Consolas", 10, "bold"), foreground="#00aa00").pack(side=tk.LEFT)
+
+    def _create_translation_preview_panel(self, parent):
+        """
+        创建翻译预览面板
+
+        Args:
+            parent: 父容器（主内容区域）
+        """
+        self.preview_frame = ttk.LabelFrame(parent, text="🔍 翻译预览（前10行）", padding="8")
+        # 默认不显示，开始翻译后才显示
+        # self.preview_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
+
+        # 预览文本区域
+        self.preview_text = scrolledtext.ScrolledText(
+            self.preview_frame,
+            height=10,
+            font=("Consolas", 9),
+            state='disabled',  # 默认只读
+            bg="#f8f8f8"
+        )
+        self.preview_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+
+        # 初始化提示文本
+        self.preview_text.config(state='normal')
+        self.preview_text.insert('1.0', "翻译预览将在此显示...\n\n开始翻译后，这里会显示前10行翻译结果。")
+        self.preview_text.config(state='disabled')
+
+    def _update_preview_panel(self, preview_data: List[Dict[str, Any]]):
+        """
+        更新翻译预览面板
+
+        Args:
+            preview_data: 预览数据列表，每项包含原文和译文
+        """
+        if not self.preview_text:
+            return
+
+        self.preview_text.config(state='normal')
+        self.preview_text.delete('1.0', tk.END)
+
+        if not preview_data:
+            self.preview_text.insert('1.0', "等待翻译数据...")
+            self.preview_text.config(state='disabled')
+            return
+
+        # 格式化显示预览数据
+        for i, item in enumerate(preview_data, 1):
+            source = item.get('source', '')
+            target = item.get('target', '')
+            lang = item.get('lang', '')
+
+            self.preview_text.insert(tk.END, f"【行 {i}】({lang})\n", "header")
+            self.preview_text.insert(tk.END, f"原文: {source}\n", "source")
+            self.preview_text.insert(tk.END, f"译文: {target}\n\n", "target")
+
+        # 配置文本标签样式
+        self.preview_text.tag_config("header", font=("Consolas", 9, "bold"), foreground="#0066cc")
+        self.preview_text.tag_config("source", font=("Consolas", 9), foreground="#666666")
+        self.preview_text.tag_config("target", font=("Consolas", 9), foreground="#00aa00")
+
+        self.preview_text.config(state='disabled')
+
+    def _toggle_preview_panel(self, show: bool):
+        """
+        切换翻译预览面板的显示/隐藏
+
+        Args:
+            show: True显示，False隐藏
+        """
+        if show:
+            # 显示预览面板（如果还未显示）
+            if self.preview_frame.winfo_ismapped():
+                return  # 已经显示，无需重复
+            self.preview_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 10), before=self.root.nametowidget(
+                self.preview_frame.master.winfo_children()[-2].winfo_name()
+            ) if len(self.preview_frame.master.winfo_children()) > 2 else None)
+        else:
+            # 隐藏预览面板
+            if self.preview_frame.winfo_ismapped():
+                self.preview_frame.pack_forget()
+
+    def _update_progress_details(self, current: int, total: int, speed: float = 0, eta_seconds: float = 0):
+        """
+        更新进度详情显示
+
+        Args:
+            current: 当前行数
+            total: 总行数
+            speed: 速度（行/秒）
+            eta_seconds: 预计剩余时间（秒）
+        """
+        # 更新变量
+        self.progress_current_var.set(str(current))
+        self.progress_total_var.set(str(total))
+
+        # 计算百分比
+        percent = (current / total * 100) if total > 0 else 0
+        self.progress_percent_var.set(f"{percent:.1f}%")
+
+        # 更新速度
+        if speed > 0:
+            self.progress_speed_var.set(f"{speed:.1f} 行/秒")
+        else:
+            self.progress_speed_var.set("0 行/秒")
+
+        # 更新ETA
+        if eta_seconds > 0:
+            hours = int(eta_seconds // 3600)
+            minutes = int((eta_seconds % 3600) // 60)
+            seconds = int(eta_seconds % 60)
+            self.progress_eta_var.set(f"{hours:02d}:{minutes:02d}:{seconds:02d}")
+        else:
+            self.progress_eta_var.set("--:--:--")
+
+    def _update_status_indicator(self, status: str):
+        """
+        更新状态指示器
+
+        Args:
+            status: 状态文本（running, paused, stopped, completed）
+        """
+        status_map = {
+            "running": ("▶ 运行中", "#00aa00"),
+            "paused": ("⏸ 已暂停", "#cc6600"),
+            "stopped": ("⏹ 已停止", "#cc0000"),
+            "completed": ("✅ 已完成", "#0066cc"),
+            "waiting": ("⏸ 等待", "gray")
+        }
+
+        text, color = status_map.get(status, ("⏸ 等待", "gray"))
+        self.status_indicator.config(text=text, foreground=color)
+
+    def _update_performance_display(self, metrics: Optional[Dict[str, Any]] = None):
+        """
+        更新性能监控显示
+
+        Args:
+            metrics: 性能指标字典（可选）
+        """
+        if metrics:
+            # 更新CPU
+            cpu = metrics.get('cpu_percent', 0)
+            self.perf_cpu_var.set(f"{cpu:.1f}%")
+
+            # 更新内存
+            memory_mb = metrics.get('memory_mb', 0)
+            self.perf_memory_var.set(f"{memory_mb:.1f} MB")
+
+        # 更新API调用次数（从facade获取）
+        if self.translation_facade and hasattr(self.translation_facade, 'get_api_call_count'):
+            api_calls = self.translation_facade.get_api_call_count()
+            self.perf_api_calls_var.set(str(api_calls))
+
+        # 更新成功率（从facade获取）
+        if self.translation_facade and hasattr(self.translation_facade, 'get_success_rate'):
+            success_rate = self.translation_facade.get_success_rate()
+            self.perf_success_rate_var.set(f"{success_rate:.1f}%")
+
     def _setup_gui_logging(self):
         """设置 GUI 日志重定向"""
         class GUILogHandler(logging.Handler):
@@ -542,6 +861,31 @@ class TranslationApp:
             logger.info(f"已选择待翻译文件：{filename}")
             # 选择文件后自动刷新源语言列表
             self._refresh_source_languages()
+
+    def _browse_output_path(self):
+        """浏览选择输出路径"""
+        # 基于源文件生成默认输出文件名
+        source_file = self.source_path.get()
+        if source_file:
+            # 提取源文件名和扩展名
+            import os
+            from datetime import datetime
+            base_name, ext = os.path.splitext(os.path.basename(source_file))
+            default_output = f"{base_name}_translated_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+            initial_dir = os.path.dirname(source_file)
+            initial_file = os.path.join(initial_dir, default_output)
+        else:
+            initial_file = "translated_output.xlsx"
+
+        file_path = filedialog.asksaveasfilename(
+            title="选择输出文件",
+            filetypes=[("Excel files", "*.xlsx"), ("All files", "*.*")],
+            defaultextension=".xlsx",
+            initialfile=os.path.basename(initial_file) if initial_file else None
+        )
+        if file_path:
+            self.output_path.set(file_path)
+            logger.info(f"已设置输出路径：{file_path}")
     
     def _on_provider_changed(self, event):
         """API 提供商切换"""
@@ -640,7 +984,7 @@ class TranslationApp:
             error_msg = (
                 "❌ 缺少 pandas 模块，无法检测源语言\n\n"
                 "请通过以下方式安装依赖:\n\n"
-                "1. 激活虚拟环境：\.venv\\Scripts\activate\n"
+                "1. 激活虚拟环境：.venv\\Scripts\\activate\n"
                 "2. 安装依赖：pip install -r requirements.txt\n\n"
                 "如果当前不在虚拟环境中，请先激活环境再运行程序"
             )
@@ -1081,11 +1425,17 @@ class TranslationApp:
             
             # 获取外观服务
             self.translation_facade = self.container.get('translation_facade')
-            
+
             # 设置进度回调
             self.translation_facade.set_progress_callback(self._update_progress)
             
-            logger.info("✅ 服务初始化完成（使用配置文件 + 注入禁止事项）")
+            # 设置预览回调（新增）
+            self.translation_facade.set_preview_callback(self._on_translation_preview)
+            
+            # 启用增强型翻译器（支持暂停/恢复）
+            self.translation_facade.enable_enhanced_translator(True)
+
+            logger.info("✅ 服务初始化完成（使用配置文件 + 注入禁止事项 + 增强型翻译器）")
             
         except Exception as e:
             logger.error(f"❌ 服务初始化失败：{e}")
@@ -1093,7 +1443,7 @@ class TranslationApp:
     
     def _create_config(self) -> Config:
         """从配置文件或 GUI 状态创建 Config 对象"""
-        from config.loader import get_config_loader
+        from infrastructure.config.loader import get_config_loader
         
         loader = get_config_loader()
         
@@ -1131,19 +1481,35 @@ class TranslationApp:
                 logger.info(f"📝 使用用户选择的源语言：{source_lang}")
             
             self.is_running = True
+            self.is_paused = False
             self.start_btn.config(state='disabled')
             self.stop_btn.config(state='normal')
+            self.pause_btn.config(state='normal')  # 启用暂停按钮
+            self.pause_btn.config(text="⏸️ 暂停")  # 重置按钮文本
             
+            # 更新状态指示器
+            self._update_status_indicator("running")
+            
+            # 显示预览面板（如果开始翻译时还未显示）
+            if not self.preview_frame.winfo_ismapped():
+                self.preview_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 10),
+                                       before=self.preview_frame.master.winfo_children()[-1])
+
             logger.info("🚀 开始翻译任务...")
             
             # 生成批次 ID
             batch_id = f"batch_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-            
-            # 执行翻译（传递源语言参数）
+
+            # 确定输出路径
+            output_path = self.output_path.get().strip() if self.output_path.get() else None
+            if not output_path:
+                output_path = None  # 让facade自动生成
+
+            # 执行翻译（传递源语言参数和输出路径）
             result = await self.translation_facade.translate_file(
                 source_excel_path=self.source_path.get(),
                 target_langs=self.selected_langs,
-                output_excel_path=None,  # TODO: 指定输出路径
+                output_excel_path=output_path,  # 使用用户选择的输出路径
                 concurrency_limit=10,
                 source_lang=source_lang  # 新增：传递源语言
             )
@@ -1178,14 +1544,23 @@ class TranslationApp:
                 logger.info(f"📌 已保存 {len(self.selected_langs)} 个常用语言")
             
         except Exception as e:
-            logger.error(f"❌ 翻译失败：{e}")
-            messagebox.showerror("错误", f"翻译失败：{e}")
+            log_error_with_solution(e, logger)
+            show_error_dialog("翻译失败", e, self.root)
         
         finally:
             self.is_running = False
+            self.is_paused = False
             self.start_btn.config(state='normal')
             self.stop_btn.config(state='disabled')
+            self.pause_btn.config(state='disabled')  # 禁用暂停按钮
+            self.pause_btn.config(text="⏸️ 暂停")  # 重置按钮文本
             self.progress_var.set(0)
+            
+            # 更新状态指示器
+            if hasattr(self, 'status_indicator'):
+                current_status = self.status_indicator.cget('text')
+                if '运行中' in current_status or '已暂停' in current_status:
+                    self._update_status_indicator("completed" if self.progress_var.get() >= 100 else "stopped")
     
     def _start_translation(self):
         """启动翻译（同步调用）"""
@@ -1194,13 +1569,169 @@ class TranslationApp:
     def _stop_translation(self):
         """停止翻译"""
         self.is_running = False
+        self.is_paused = False
+        self._update_status_indicator("stopped")
+        
+        # 如果使用了EnhancedTranslator，调用其stop方法
+        if self.translation_facade and hasattr(self.translation_facade, 'stop'):
+            self.translation_facade.stop()
+        
         logger.info("⏹️ 用户取消翻译")
+
+    def _pause_translation(self):
+        """暂停/恢复翻译"""
+        if not self.is_running:
+            return
+
+        if not self.is_paused:
+            # 暂停翻译
+            self.is_paused = True
+            self.pause_btn.config(text="▶️ 恢复")
+            self._update_status_indicator("paused")
+            
+            # 如果使用了EnhancedTranslator，调用其pause方法
+            if self.translation_facade and hasattr(self.translation_facade, 'pause'):
+                self.translation_facade.pause()
+            
+            logger.info("⏸️ 用户暂停翻译")
+        else:
+            # 恢复翻译
+            self.is_paused = False
+            self.pause_btn.config(text="⏸️ 暂停")
+            self._update_status_indicator("running")
+            
+            # 如果使用了EnhancedTranslator，调用其resume方法
+            if self.translation_facade and hasattr(self.translation_facade, 'resume'):
+                self.translation_facade.resume()
+            
+            logger.info("▶️ 用户恢复翻译")
+
+    def _toggle_performance_monitor(self):
+        """切换性能监控开关"""
+        enabled = self.perf_monitor_var.get()
+        logger.info(f"{'✅ 已启用' if enabled else '❌ 已禁用'} 性能监控")
+
+        # 显示/隐藏性能监控面板
+        if enabled:
+            self.performance_frame.pack(fill=tk.X, pady=(5, 5))
+            # 启动性能监控任务
+            self._start_performance_monitoring()
+        else:
+            self.performance_frame.pack_forget()
+            # 停止性能监控任务
+            self._stop_performance_monitoring()
+
+        # 更新配置（如果已加载）
+        if hasattr(self, 'config') and self.config:
+            self.config.enable_performance_monitor = enabled
+
+    async def _start_performance_monitoring(self):
+        """启动性能监控任务"""
+        try:
+            from infrastructure.utils import get_performance_monitor
+            
+            monitor = get_performance_monitor()
+            
+            # 启动监控
+            await monitor.start()
+            
+            # 启动更新循环
+            async def update_loop():
+                while self.perf_monitor_var.get():
+                    try:
+                        # 获取最新指标
+                        if monitor.history:
+                            latest = monitor.history[-1]
+                            metrics = {
+                                'cpu_percent': latest.cpu_percent,
+                                'memory_mb': latest.memory_mb,
+                            }
+                            self._update_performance_display(metrics)
+                        
+                        await asyncio.sleep(1.0)
+                    except asyncio.CancelledError:
+                        break
+                    except Exception as e:
+                        logger.debug(f"性能监控更新失败: {e}")
+                        await asyncio.sleep(1.0)
+            
+            self.perf_monitor_task = asyncio.create_task(update_loop())
+            logger.info("✅ 性能监控任务已启动")
+            
+        except Exception as e:
+            logger.error(f"启动性能监控失败: {e}")
+
+    def _stop_performance_monitoring(self):
+        """停止性能监控任务"""
+        try:
+            # 取消更新任务
+            if self.perf_monitor_task:
+                self.perf_monitor_task.cancel()
+                self.perf_monitor_task = None
+            
+            # 停止监控
+            from infrastructure.utils import get_performance_monitor
+            monitor = get_performance_monitor()
+            asyncio.get_event_loop().run_until_complete(monitor.stop())
+            
+            logger.info("✅ 性能监控任务已停止")
+        except Exception as e:
+            logger.debug(f"停止性能监控失败: {e}")
     
-    def _update_progress(self, current: int, total: int):
-        """更新进度"""
+    def _update_progress(self, current: int, total: int, speed: float = 0, eta_seconds: float = 0,
+                        preview_data: Optional[List[Dict[str, Any]]] = None):
+        """
+        更新进度（支持详细信息和预览）
+
+        Args:
+            current: 当前行数
+            total: 总行数
+            speed: 速度（行/秒）
+            eta_seconds: 预计剩余时间（秒）
+            preview_data: 预览数据列表（可选）
+        """
+        # 更新进度条
         progress = (current / total * 100) if total > 0 else 0
         self.progress_var.set(progress)
-        logger.info(f"📊 进度：{current}/{total} ({progress:.1f}%)")
+
+        # 更新进度详情
+        self._update_progress_details(current, total, speed, eta_seconds)
+
+        # 更新状态指示器
+        if self.is_running and not self.is_paused:
+            self._update_status_indicator("running")
+
+        # 更新预览面板（如果有预览数据）
+        if preview_data:
+            self.preview_data = preview_data[:10]  # 只保留前10行
+            self._update_preview_panel(self.preview_data)
+
+            # 显示预览面板（如果还未显示）
+            if not self.preview_frame.winfo_ismapped():
+                self.preview_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
+
+        # 记录日志（每10%记录一次）
+        if total > 0 and current % max(1, total // 10) == 0:
+            logger.info(f"📊 进度：{current}/{total} ({progress:.1f}%) - 速度: {speed:.1f} 行/秒")
+
+    def _on_translation_preview(self, preview_data: List[Dict[str, Any]]):
+        """
+        翻译预览回调
+
+        Args:
+            preview_data: 预览数据列表
+        """
+        try:
+            self.preview_data = preview_data[:10]  # 只保留前10行
+            self._update_preview_panel(self.preview_data)
+
+            # 显示预览面板（如果还未显示）
+            if not self.preview_frame.winfo_ismapped():
+                self.preview_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
+
+            logger.debug(f"🔍 已更新翻译预览（{len(preview_data)} 行）")
+        except Exception as e:
+            logger.debug(f"更新翻译预览失败: {e}")
     
     def _load_config_data(self):
         """从配置文件加载数据（暂不应用）"""

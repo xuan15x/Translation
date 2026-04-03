@@ -6,7 +6,7 @@ import pytest
 from unittest.mock import MagicMock, patch
 import sqlite3
 
-from infrastructure.di_container import (
+from infrastructure.di import (
     DependencyContainer,
     get_container,
     initialize_container,

@@ -336,16 +336,16 @@ class NetworkError(TranslationBaseError):
 
 class ErrorHandler:
     """统一错误处理器"""
-    
+
     @staticmethod
     def handle_error(error: Exception, context: Optional[Dict[str, Any]] = None) -> TranslationBaseError:
         """
         处理异常，转换为统一的异常类型
-        
+
         Args:
             error: 原始异常
             context: 上下文信息
-            
+
         Returns:
             标准化后的异常对象
         """
@@ -354,7 +354,7 @@ class ErrorHandler:
             if context:
                 error.details.update(context)
             return error
-        
+
         # 映射常见异常到标准异常
         error_mapping = {
             FileNotFoundError: lambda e: FileNotFoundError(str(e)),
@@ -363,31 +363,51 @@ class ErrorHandler:
             KeyError: lambda e: DataError(f"键错误：{e}"),
             TypeError: lambda e: DataError(f"类型错误：{e}"),
             TimeoutError: lambda e: APITimeoutError(str(e)),
+            # API 相关
+            'RateLimitError': RateLimitError,
+            'APITimeoutError': APITimeoutError,
+            'AuthenticationError': AuthenticationError,
+            # 数据相关
+            'JSONDecodeError': ParsingError,
         }
-        
+
         error_type = type(error)
-        handler = error_mapping.get(error_type)
+        error_type_name = error_type.__name__
         
+        # 先尝试按类型实例映射
+        handler = error_mapping.get(error_type)
         if handler:
-            standardized = handler(error)
+            if callable(handler) and not isinstance(handler, type):
+                standardized = handler(error)
+            else:
+                standardized = handler(str(error))
             standardized.original_exception = error
             if context:
                 standardized.details.update(context)
             return standardized
         
+        # 再尝试按名称映射
+        error_class = error_mapping.get(error_type_name)
+        if error_class:
+            standardized = error_class(str(error))
+            standardized.original_exception = error
+            if context:
+                standardized.details.update(context)
+            return standardized
+
         # 未知异常包装为 SystemError
         system_error = SystemError(
             message=f"未知错误：{str(error)}",
             original_exception=error,
-            details={'exception_type': error_type.__name__, **(context or {})}
+            details={'exception_type': error_type_name, **(context or {})}
         )
         return system_error
-    
+
     @staticmethod
     def log_error(error: TranslationBaseError, logger: Any) -> None:
         """
         记录错误日志
-        
+
         Args:
             error: 异常对象
             logger: 日志记录器
@@ -397,13 +417,13 @@ class ErrorHandler:
             f"分类：{error.category.value} | "
             f"消息：{error.message}"
         )
-        
+
         if error.details:
             log_message += f" | 详情：{error.details}"
-        
+
         if error.original_exception:
             log_message += f" | 原始异常：{type(error.original_exception).__name__}: {error.original_exception}"
-        
+
         # 根据错误级别选择日志级别
         if error.category in [ErrorCategory.SYSTEM_ERROR, ErrorCategory.UNKNOWN_ERROR]:
             logger.error(log_message, exc_info=True)
@@ -411,15 +431,15 @@ class ErrorHandler:
             logger.warning(log_message)
         else:
             logger.error(log_message)
-    
+
     @staticmethod
     def get_user_friendly_message(error: TranslationBaseError) -> str:
         """
         获取用户友好的错误消息
-        
+
         Args:
             error: 异常对象
-            
+
         Returns:
             用户友好的消息文本
         """
@@ -442,14 +462,47 @@ class ErrorHandler:
             ErrorCategory.NETWORK_ERROR: "网络错误，请检查连接",
             ErrorCategory.UNKNOWN_ERROR: "未知错误，请稍后重试",
         }
-        
+
         base_message = user_messages.get(error.category, "发生错误")
-        
+
         # 添加具体错误信息
         if error.message:
             return f"{base_message}：{error.message}"
-        
+
         return base_message
+
+    @staticmethod
+    def format_for_user(error: Exception) -> str:
+        """
+        格式化错误消息为用户友好格式
+
+        Args:
+            error: 异常对象
+
+        Returns:
+            用户友好的错误消息
+        """
+        if isinstance(error, TranslationBaseError):
+            return error.to_user_friendly_string()
+        return f"❌ 发生错误：{str(error)}"
+
+    @staticmethod
+    def format_for_api(error: Exception) -> Dict[str, Any]:
+        """
+        格式化错误消息为 API 响应格式
+
+        Args:
+            error: 异常对象
+
+        Returns:
+            API 响应格式的错误字典
+        """
+        if isinstance(error, TranslationBaseError):
+            return error.to_dict()
+        return {
+            'error': type(error).__name__,
+            'message': str(error)
+        }
 
 
 # ========== 便捷函数 ==========
@@ -491,93 +544,6 @@ def raise_error(
     
     error_class = error_class_map.get(category, TranslationBaseError)
     raise error_class(message, category=category, error_code=error_code, **kwargs)
-
-
-class ErrorHandler:
-    """
-    错误处理器
-    提供统一的错误处理、日志记录和用户友好消息生成
-    """
-    
-    @staticmethod
-    def handle_error(
-        error: Exception,
-        context: Optional[Dict[str, Any]] = None
-    ) -> TranslationBaseError:
-        """
-        处理错误，转换为友好的异常类型
-
-        Args:
-            error: 原始异常
-            context: 错误上下文信息
-
-        Returns:
-            翻译系统异常对象
-        """
-        # 如果已经是翻译系统异常，直接返回
-        if isinstance(error, TranslationBaseError):
-            if context:
-                error.details.update(context)
-            return error
-        
-        # 根据异常类型转换
-        error_mapping = {
-            # API 相关
-            'RateLimitError': RateLimitError,
-            'APITimeoutError': APITimeoutError,
-            'AuthenticationError': AuthenticationError,
-            
-            # 文件相关
-            'FileNotFoundError': FileNotFoundError,
-            'IOError': IOError,
-            
-            # 数据相关
-            'JSONDecodeError': ParsingError,
-            'ValueError': ValidationError,
-        }
-        
-        error_type = type(error).__name__
-        error_class = error_mapping.get(error_type, TranslationError)
-        
-        # 创建友好的错误消息
-        return error_class(
-            message=str(error),
-            original_exception=error,
-            details=context or {}
-        )
-    
-    @staticmethod
-    def format_for_user(error: Exception) -> str:
-        """
-        格式化错误消息为用户友好格式
-
-        Args:
-            error: 异常对象
-
-        Returns:
-            用户友好的错误消息
-        """
-        if isinstance(error, TranslationBaseError):
-            return error.to_user_friendly_string()
-        return f"❌ 发生错误：{str(error)}"
-    
-    @staticmethod
-    def format_for_api(error: Exception) -> Dict[str, Any]:
-        """
-        格式化错误消息为 API 响应格式
-
-        Args:
-            error: 异常对象
-
-        Returns:
-            API 响应格式的错误字典
-        """
-        if isinstance(error, TranslationBaseError):
-            return error.to_dict()
-        return {
-            'error': type(error).__name__,
-            'message': str(error)
-        }
 
 
 def safe_execute(func, *args, default=None, **kwargs):

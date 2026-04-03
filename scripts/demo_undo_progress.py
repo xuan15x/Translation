@@ -3,14 +3,14 @@
 """
 import asyncio
 import time
-from infrastructure.undo_manager import (
+from infrastructure.utils import (
     get_undo_manager, 
     OperationType, 
     record_operation,
     undo_last_operation,
     redo_last_operation
 )
-from infrastructure.progress_estimator import (
+from infrastructure.utils import (
     get_progress_estimator,
     start_progress_tracking,
     update_progress,

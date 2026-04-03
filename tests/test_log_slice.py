@@ -5,7 +5,7 @@ log_slice.py 单元测试
 import pytest
 import logging
 from io import StringIO
-from infrastructure.log_slice import (
+from infrastructure.logging import (
     LoggerSlice, LogCategory, LogLevel, LogContext, 
     log_slice, ModuleLoggerMixin, create_logger_slice,
     get_category_by_module
@@ -394,7 +394,7 @@ class TestLoggerSliceIntegration:
     
     def test_full_logging_workflow(self, caplog):
         """测试完整的日志工作流"""
-        from infrastructure.log_slice import LoggerSlice, LogCategory
+        from infrastructure.logging import LoggerSlice, LogCategory
         
         slice = LoggerSlice(LogCategory.TERMINOLOGY)
         

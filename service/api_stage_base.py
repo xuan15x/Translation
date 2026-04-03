@@ -12,7 +12,7 @@ import logging
 from openai import AsyncOpenAI, APIError, RateLimitError, APITimeoutError
 
 from infrastructure.models import Config, StageResult, TaskContext
-from infrastructure.concurrency_controller import AdaptiveConcurrencyController
+from infrastructure.utils import AdaptiveConcurrencyController
 
 logger = logging.getLogger(__name__)
 

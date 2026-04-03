@@ -181,7 +181,7 @@ def medium_test_data(test_data_generator):
 @pytest.fixture
 def performance_monitor_fixture():
     """性能监控器 fixture"""
-    from infrastructure.performance_monitor import PerformanceMonitor
+    from infrastructure.utils import PerformanceMonitor
     
     monitor = PerformanceMonitor(sample_interval=0.5)
     asyncio.run(monitor.start())

@@ -16,7 +16,7 @@ async def example_1_basic_usage():
     print("示例 1: 使用依赖注入容器")
     print("="*60)
     
-    from infrastructure.di_container import initialize_container
+    from infrastructure.di import initialize_container
     
     # 初始化容器（不包含翻译服务）
     container = initialize_container()
@@ -41,7 +41,7 @@ async def example_2_with_cache():
     print("示例 2: 使用缓存装饰器提升性能")
     print("="*60)
     
-    from infrastructure.di_container import initialize_container
+    from infrastructure.di import initialize_container
     
     container = initialize_container()
     
@@ -72,7 +72,7 @@ async def example_3_facade_pattern():
     print("""
 # 完整的外观模式使用示例：
 
-from infrastructure.di_container import initialize_container
+from infrastructure.di import initialize_container
 from openai import AsyncOpenAI
 
 # 1. 创建 API 客户端
@@ -111,7 +111,7 @@ async def example_4_custom_workflow():
     print("示例 4: 自定义工作流组装")
     print("="*60)
     
-    from infrastructure.di_container import initialize_container
+    from infrastructure.di import initialize_container
     from application.batch_processor import SequentialTaskProcessor
     from application.result_builder import TaskFactory, ResultBuilder
     
@@ -159,7 +159,7 @@ Data Access Layer # 数据访问 (数据库操作)
 Infrastructure    # 技术支撑 (日志、配置等)
 
 # 2. 依赖注入容器
-from infrastructure.di_container import initialize_container
+from infrastructure.di import initialize_container
 
 container = initialize_container(
     api_client=client,
