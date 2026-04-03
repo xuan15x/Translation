@@ -14,7 +14,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from pathlib import Path
 import logging
 
-from infrastructure.config.model_providers import (
+from config.model_providers import (
     ModelProvidersConfig,
     ModelConfig,
     AuthType,

@@ -151,7 +151,7 @@ class APIProviderManager:
     def _update_env_for_provider(self, provider: APIProvider) -> None:
         """更新环境变量以匹配当前提供商"""
         import os
-        from infrastructure.models import Config
+        from infrastructure.models.models import Config
         
         config = self._providers.get(provider)
         if config:

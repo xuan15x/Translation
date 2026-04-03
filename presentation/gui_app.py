@@ -20,7 +20,7 @@ from config import DEFAULT_DRAFT_PROMPT, DEFAULT_REVIEW_PROMPT, TARGET_LANGUAGES
 from infrastructure.prompt_injector import inject_prompts
 from infrastructure.logging import setup_logger, LogTag, log_with_tag, LogLevel
 from infrastructure.logging import LoggerSlice, LogCategory
-from infrastructure.models import Config
+from infrastructure.models.models import Config
 from infrastructure.di import initialize_container
 from data_access.config_persistence import ConfigPersistence
 from service.api_provider import get_provider_manager
@@ -1443,7 +1443,7 @@ class TranslationApp:
     
     def _create_config(self) -> Config:
         """从配置文件或 GUI 状态创建 Config 对象"""
-        from infrastructure.config.loader import get_config_loader
+        from config.loader import get_config_loader
         
         loader = get_config_loader()
         

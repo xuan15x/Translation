@@ -15,7 +15,7 @@ if root_path not in sys.path:
 
 def create_sample_config(output_path: str = "config.yaml", format: str = "yaml"):
     """创建示例配置文件"""
-    from infrastructure.config.config import create_sample_config_file
+    from config.config import create_sample_config_file
     
     print(f"📝 创建示例配置文件：{output_path}")
     create_sample_config_file(output_path, format)
@@ -26,7 +26,7 @@ def create_sample_config(output_path: str = "config.yaml", format: str = "yaml")
 def validate_config(config_path: str):
     """验证配置文件"""
     from data_access.config_persistence import ConfigPersistence
-    from infrastructure.models import Config
+    from infrastructure.models.models import Config
     
     print(f"🔍 验证配置文件：{config_path}")
     
@@ -163,7 +163,7 @@ def merge_configs(base_config: str, override_config: str, output: str):
 
 def list_all_config_options():
     """列出所有可用的配置选项"""
-    from infrastructure.config.config import get_default_config, DEFAULT_PROHIBITION_CONFIG
+    from config.config import get_default_config, DEFAULT_PROHIBITION_CONFIG
     
     default_config = get_default_config()
     
@@ -209,7 +209,7 @@ def list_all_config_options():
 
 def show_prohibition_details():
     """显示禁止事项配置详情"""
-    from infrastructure.config.config import DEFAULT_PROHIBITION_CONFIG, DEFAULT_PROHIBITION_TYPE_MAP
+    from config.config import DEFAULT_PROHIBITION_CONFIG, DEFAULT_PROHIBITION_TYPE_MAP
     
     print("\n" + "=" * 70)
     print("Prohibition Configuration Details")

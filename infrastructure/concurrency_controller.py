@@ -6,8 +6,8 @@ import asyncio
 import time
 from typing import Optional
 import logging
-from infrastructure.models import Config
-from infrastructure.config.constants import ConcurrencyConfig
+from infrastructure.models.models import Config
+from config.constants import ConcurrencyConfig
 
 logger = logging.getLogger(__name__)
 

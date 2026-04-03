@@ -6,7 +6,7 @@ import asyncio
 import pytest
 from unittest.mock import MagicMock, AsyncMock, patch
 
-from infrastructure.models import Config, FinalResult, TaskContext
+from infrastructure.models.models import Config, FinalResult, TaskContext
 # 旧的测试已废弃
 # from business_logic.terminology_manager import TerminologyManager
 # from business_logic.workflow_orchestrator import WorkflowOrchestrator

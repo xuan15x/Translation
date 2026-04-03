@@ -9,7 +9,7 @@ import tempfile
 from datetime import datetime
 import pandas as pd
 
-from infrastructure.models import Config, TaskContext
+from infrastructure.models.models import Config, TaskContext
 # 旧的测试已废弃，使用新架构的测试
 # from business_logic.terminology_manager import TerminologyManager
 # from business_logic.workflow_orchestrator import WorkflowOrchestrator

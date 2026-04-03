@@ -3,7 +3,7 @@
 负责构建发送给 AI 的用户消息
 """
 import logging
-from infrastructure.models import TaskContext
+from infrastructure.models.models import TaskContext
 from infrastructure.logging import ModuleLoggerMixin, LogCategory
 
 

@@ -51,7 +51,7 @@ def test_imports():
     
     # 测试模型模块
     try:
-        from infrastructure.models import Config, TaskContext
+        from infrastructure.models.models import Config, TaskContext
         print("✓ infrastructure.models 导入成功")
     except Exception as e:
         errors.append(f"✗ infrastructure.models 导入失败: {e}")

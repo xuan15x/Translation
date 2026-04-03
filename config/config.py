@@ -167,7 +167,7 @@ def get_prohibition_config():
     
     # 尝试从配置文件加载
     try:
-        from infrastructure.config.loader import get_config_loader
+        from config.loader import get_config_loader
         loader = get_config_loader()
         
         prohibition_config = loader.get('prohibition_config')
@@ -197,7 +197,7 @@ def get_prohibition_type_map():
     
     # 尝试从配置文件加载
     try:
-        from infrastructure.config.loader import get_config_loader
+        from config.loader import get_config_loader
         loader = get_config_loader()
         
         type_map = loader.get('prohibition_type_map')

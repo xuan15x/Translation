@@ -26,7 +26,7 @@ Constraints:
 3. Focus on flow and tone."""
 
 # 导入常量配置
-from infrastructure.config.constants import (
+from config.constants import (
     APIConfig, ConcurrencyConfig, CacheConfig, TerminologyConfig,
     WorkflowConfig, LogConfig, GUIConfig, PerformanceMonitorConfig,
     BackupConfig, LanguageConfig, VersionConfig

@@ -12,7 +12,7 @@ AI 智能翻译系统 - 六层分层架构 v3.0
 """
 
 # 配置常量
-from infrastructure.config import (
+from config import (
     DEFAULT_DRAFT_PROMPT,
     DEFAULT_REVIEW_PROMPT,
     TARGET_LANGUAGES,
@@ -20,9 +20,14 @@ from infrastructure.config import (
 )
 
 # 核心类
-from infrastructure import (
-    Config,
-    setup_logger, AdaptiveConcurrencyController
+from infrastructure.models.models import (
+    Config
+)
+from infrastructure.logging import (
+    setup_logger
+)
+from infrastructure.concurrency_controller import (
+    AdaptiveConcurrencyController
 )
 
 # 日志配置

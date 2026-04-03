@@ -5,7 +5,7 @@ concurrency_controller.py 单元测试
 import pytest
 import asyncio
 from infrastructure.utils import AdaptiveConcurrencyController
-from infrastructure.models import Config
+from infrastructure.models.models import Config
 
 
 class TestAdaptiveConcurrencyController:

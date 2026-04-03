@@ -6,7 +6,7 @@ import os
 import pytest
 from dataclasses import asdict
 
-from infrastructure.models import Config, TaskContext, StageResult, FinalResult
+from infrastructure.models.models import Config, TaskContext, StageResult, FinalResult
 
 
 class TestConfig:

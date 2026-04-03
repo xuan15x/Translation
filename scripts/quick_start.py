@@ -199,7 +199,7 @@ def validate_config(config_path: str):
     
     try:
         from data_access.config_persistence import ConfigPersistence
-        from infrastructure.models import Config
+        from infrastructure.models.models import Config
         
         persistence = ConfigPersistence(config_path)
         config_dict = persistence.load()

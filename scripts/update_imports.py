@@ -28,12 +28,12 @@ IMPORT_MAPPINGS = {
     'from infrastructure.utils import': 'from infrastructure.utils import',
     
     # config 模块的导入（移动到 infrastructure.config）
-    'from infrastructure.config.config import': 'from infrastructure.config.config import',
-    'from infrastructure.config.loader import': 'from infrastructure.config.loader import',
-    'from infrastructure.config.checker import': 'from infrastructure.config.checker import',
-    'from infrastructure.config.constants import': 'from infrastructure.config.constants import',
-    'from infrastructure.config.model_manager import': 'from infrastructure.config.model_manager import',
-    'from infrastructure.config.model_providers import': 'from infrastructure.config.model_providers import',
+    'from config.config import': 'from config.config import',
+    'from config.loader import': 'from config.loader import',
+    'from config.checker import': 'from config.checker import',
+    'from config.constants import': 'from config.constants import',
+    'from config.model_manager import': 'from config.model_manager import',
+    'from config.model_providers import': 'from config.model_providers import',
 }
 
 def update_imports_in_file(filepath):

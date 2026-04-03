@@ -135,12 +135,12 @@ class TestModuleImports:
     
     def test_import_config(self):
         """测试导入配置"""
-        from infrastructure.models import Config
+        from infrastructure.models.models import Config
         assert Config is not None
     
     def test_import_models(self):
         """测试导入数据模型"""
-        from infrastructure.models import Config, TaskContext, StageResult, FinalResult
+        from infrastructure.models.models import Config, TaskContext, StageResult, FinalResult
         assert Config is not None
         assert TaskContext is not None
         assert StageResult is not None

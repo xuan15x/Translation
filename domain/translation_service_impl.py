@@ -12,7 +12,7 @@ from domain.models import (
     TranslationStatus,
     TermMatch
 )
-from infrastructure.models import Config, TaskContext, FinalResult
+from infrastructure.models.models import Config, TaskContext, FinalResult
 from service.api_stages import APIDraftStage, APIReviewStage
 from infrastructure.utils import AdaptiveConcurrencyController
 import asyncio

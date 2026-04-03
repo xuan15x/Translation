@@ -96,7 +96,7 @@ def initialize_container(config_file: Optional[str] = None,
     container.clear()
     
     # ========== 从配置文件加载配置 ==========
-    from infrastructure.config.loader import get_config_loader
+    from config.loader import get_config_loader
     
     loader = get_config_loader()
     
@@ -108,7 +108,7 @@ def initialize_container(config_file: Optional[str] = None,
         loader.update(file_config)
     
     # 从配置加载器获取配置值
-    from infrastructure.models import Config
+    from infrastructure.models.models import Config
     config = loader.to_dataclass(Config)
     container.register('config', config, singleton=True)
     

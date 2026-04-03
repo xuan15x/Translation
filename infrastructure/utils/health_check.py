@@ -11,7 +11,7 @@ from typing import Any, Dict, Optional, List
 from dataclasses import dataclass, field, asdict
 from enum import Enum
 
-from infrastructure.models import Config
+from infrastructure.models.models import Config
 from infrastructure.exceptions import ErrorHandler
 
 

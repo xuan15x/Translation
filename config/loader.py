@@ -66,7 +66,7 @@ class ConfigLoader:
 
     def _load_default_config(self) -> None:
         """加载默认配置"""
-        from infrastructure.config.config import get_default_config
+        from config.config import get_default_config
         self._config_cache = get_default_config()
     
     def get(self, key: str, default: Any = None) -> Any:
@@ -115,7 +115,7 @@ class ConfigLoader:
     def _auto_check_config(self) -> None:
         """自动检查配置有效性"""
         try:
-            from infrastructure.config.checker import check_config
+            from config.checker import check_config
             passed, results = check_config(self._config_cache, verbose=False)
             
             if not passed:

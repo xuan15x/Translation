@@ -4,7 +4,7 @@ prompt_builder.py 单元测试
 """
 import pytest
 from infrastructure.prompt_builder import PromptBuilder
-from infrastructure.models import TaskContext
+from infrastructure.models.models import TaskContext
 
 
 class TestPromptBuilder:

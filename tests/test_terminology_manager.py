@@ -10,7 +10,7 @@ from pathlib import Path
 
 # 旧的测试已废弃，使用新架构的 domain/terminology_service_impl.py
 # from business_logic.terminology_manager import TerminologyManager
-from infrastructure.models import Config
+from infrastructure.models.models import Config
 
 
 class TestTerminologyManager:

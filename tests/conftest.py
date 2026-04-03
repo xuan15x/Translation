@@ -13,7 +13,7 @@ from datetime import datetime
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # 导入所有待测试的模块
-from infrastructure.models import Config, TaskContext, StageResult, FinalResult
+from infrastructure.models.models import Config, TaskContext, StageResult, FinalResult
 from config import DEFAULT_DRAFT_PROMPT, DEFAULT_REVIEW_PROMPT, TARGET_LANGUAGES
 
 # 导入测试数据管理器

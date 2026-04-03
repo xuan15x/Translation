@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from typing import Dict, Any
 
 from service.api_stage_base import APIStageBase, APIDraftStage, APIReviewStage
-from infrastructure.models import Config, StageResult, TaskContext
+from infrastructure.models.models import Config, StageResult, TaskContext
 from infrastructure.utils import AdaptiveConcurrencyController
 
 

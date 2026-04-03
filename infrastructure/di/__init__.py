@@ -1,9 +1,16 @@
 """
 DI容器模块 - 提供依赖注入功能
 """
-from .di_container import DependencyContainer, initialize_container
+from .di_container import (
+    DependencyContainer,
+    get_container,
+    initialize_container,
+    reset_container
+)
 
 __all__ = [
     'DependencyContainer',
-    'initialize_container'
+    'get_container',
+    'initialize_container',
+    'reset_container'
 ]

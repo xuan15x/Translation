@@ -7,7 +7,7 @@ root_path = str(Path(__file__).parent.parent)
 if root_path not in sys.path:
     sys.path.insert(0, root_path)
 
-from infrastructure.config.loader import get_config_loader
+from config.loader import get_config_loader
 
 loader = get_config_loader()
 config = loader.get('prohibition_config')

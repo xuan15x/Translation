@@ -4,7 +4,7 @@
 """
 import logging
 from typing import Dict, List, Optional
-from infrastructure.config.config import PROMPT_INJECTION_CONFIG, PROHIBITION_TYPE_MAP
+from config.config import PROMPT_INJECTION_CONFIG, PROHIBITION_TYPE_MAP
 
 logger = logging.getLogger(__name__)
 
