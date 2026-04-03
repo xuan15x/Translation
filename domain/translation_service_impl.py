@@ -55,15 +55,15 @@ class TranslationDomainServiceImpl(ITranslationDomainService):
             controller=self.controller,
             semaphore=self.semaphore,
             config=config,
-            prompt=draft_prompt
+            system_prompt=draft_prompt
         )
-        
+
         self.review_stage = APIReviewStage(
             client=client,
             controller=self.controller,
             semaphore=self.semaphore,
             config=config,
-            prompt=review_prompt
+            system_prompt=review_prompt
         )
     
     async def translate(self, task: TranslationTask) -> TranslationResult:
