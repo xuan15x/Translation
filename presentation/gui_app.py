@@ -1903,12 +1903,21 @@ Constraints:
                         messagebox.showerror("错误", "文件内容为空，请选择有效的提示词文件")
                         return
 
-                # 更新预览文本框（需要先启用编辑）
+                # 更新预览文本框（需要处理隐藏/显示状态）
+                # 确保所有预览控件都可见以便更新
+                current_mode = self.translation_mode_var.get()
+
+                # 临时显示所有标签页以更新内容
+                for child in self.preview_notebook.winfo_children():
+                    self.preview_notebook.add(child)
+
+                # 更新初译预览
                 self.draft_preview_text.config(state='normal')
                 self.draft_preview_text.delete('1.0', tk.END)
                 self.draft_preview_text.insert('1.0', content)
                 self.draft_preview_text.config(state='disabled')
 
+                # 更新校对预览
                 self.review_preview_text.config(state='normal')
                 self.review_preview_text.delete('1.0', tk.END)
                 self.review_preview_text.insert('1.0', content)
@@ -1917,6 +1926,9 @@ Constraints:
                 # 保持向后兼容引用
                 self.draft_text = self.draft_preview_text
                 self.review_text = self.review_preview_text
+
+                # 恢复原来的模式显示
+                self._set_widget_visibility(current_mode)
 
                 logger.info(f"📂 已从 {file_path} 加载自定义提示词")
                 messagebox.showinfo("成功", f"已加载自定义提示词:\n{file_path}\n\n提示：预览已更新")
