@@ -104,27 +104,41 @@ class TaskFactory:
     def from_excel_row(idx: int, row: Dict[str, Any], target_lang: str, source_lang: Optional[str] = None) -> TranslationTask:
         """
         从 Excel 行创建任务
-        
+
         Args:
             idx: 行索引
             row: 行数据（字典）
             target_lang: 目标语言
-            source_lang: 源语言列名（可选，None 表示使用默认的'中文原文'）
-            
+            source_lang: 源语言列名（可选，None 表示自动检测）
+
         Returns:
             翻译任务
         """
+        # 常见的源语言列名列表（按优先级排序）
+        common_source_cols = ['中文原文', '中文', '原文', 'Source', 'source_text', '文本', '内容']
+        
         # 确定使用哪一列作为原文
         if source_lang and source_lang in row:
             # 使用用户指定的源语言列
             source_text = row.get(source_lang, '')
         else:
-            # 使用默认的'中文原文'列
-            source_text = row.get('中文原文', '')
-        
+            # 自动检测：尝试常见的列名
+            source_text = ''
+            for col in common_source_cols:
+                if col in row and row[col]:
+                    source_text = row[col]
+                    break
+            
+            # 如果都没找到，使用第一列非空文本
+            if not source_text:
+                for key, value in row.items():
+                    if value and isinstance(value, str) and key.lower() not in ['key', 'id', '序号']:
+                        source_text = value
+                        break
+
         return TranslationTask(
             idx=idx,
-            key=row.get('Key', f'row_{idx}'),
+            key=row.get('Key', row.get('key', row.get('ID', row.get('id', f'row_{idx}')))),
             source_text=source_text,
             original_trans=row.get(target_lang, None),
             target_lang=target_lang,
@@ -135,29 +149,29 @@ class TaskFactory:
     def from_excel_file(excel_path: str, target_langs: List[str], source_lang: Optional[str] = None) -> List[TranslationTask]:
         """
         从 Excel 文件批量创建任务
-        
+
         Args:
             excel_path: Excel 文件路径
             target_langs: 目标语言列表
-            source_lang: 源语言列名（可选，None 表示使用默认的'中文原文'）
-            
+            source_lang: 源语言列名（可选，None 表示自动检测）
+
         Returns:
             任务列表
         """
         import pandas as pd
-        
+
         df = pd.read_excel(excel_path, engine='openpyxl')
         tasks = []
-        
+
         for idx, row in df.iterrows():
             row_dict = row.to_dict()
-            
+
             for lang in target_langs:
-                if lang in row_dict:
-                    task = TaskFactory.from_excel_row(idx, row_dict, lang, source_lang)
-                    if task.source_text:  # 只添加有原文的任务
-                        tasks.append(task)
-        
+                # 即使目标语言列不存在，也创建任务（用于新文档翻译）
+                task = TaskFactory.from_excel_row(idx, row_dict, lang, source_lang)
+                if task.source_text:  # 只添加有原文的任务
+                    tasks.append(task)
+
         return tasks
     
     @staticmethod
