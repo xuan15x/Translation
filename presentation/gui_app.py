@@ -763,9 +763,7 @@ class TranslationApp:
             # 显示预览面板（如果还未显示）
             if self.preview_frame.winfo_ismapped():
                 return  # 已经显示，无需重复
-            self.preview_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 10), before=self.root.nametowidget(
-                self.preview_frame.master.winfo_children()[-2].winfo_name()
-            ) if len(self.preview_frame.master.winfo_children()) > 2 else None)
+            self.preview_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
         else:
             # 隐藏预览面板
             if self.preview_frame.winfo_ismapped():
@@ -2119,8 +2117,7 @@ Constraints:
             
             # 显示预览面板（如果开始翻译时还未显示）
             if not self.preview_frame.winfo_ismapped():
-                self.preview_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 10),
-                                       before=self.preview_frame.master.winfo_children()[-1])
+                self.preview_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
 
             logger.info("🚀 开始翻译任务...")
             
