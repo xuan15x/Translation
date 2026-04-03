@@ -1,4 +1,4 @@
-# 配置填入手册 v3.1
+# 配置填入手册 v3.2
 
 > 📖 **本手册专为新手设计**，从零开始指导您完成所有配置，无需任何前置知识。
 
@@ -6,9 +6,12 @@
 
 1. [第一次使用？从这里开始](#-第一次使用从这里开始)
 2. [⚡ v3.1.0 一键配置（⭐ 推荐）](#-v310-一键配置-推荐)
-3. [📝 配置文件详解](#-配置文件详解)
-4. [🔧 常用场景配置](#-常用场景配置)
-5. [🔍 问题排查](#-问题排查)
+3. [🆕 v3.2.0 新增配置功能](#-v320-新增配置功能)
+   - [翻译模式配置](#翻译模式配置)
+   - [提示词模板配置](#提示词模板配置)
+4. [📝 配置文件详解](#-配置文件详解)
+5. [🔧 常用场景配置](#-常用场景配置)
+6. [🔍 问题排查](#-问题排查)
 
 ---
 
@@ -145,6 +148,113 @@ cp config/config.example.json config/config.json
 # 或者使用命令行
 python presentation/translation.py
 ```
+
+---
+
+## 🆕 v3.2.0 新增配置功能
+
+### 翻译模式配置
+
+v3.2.0 新增了灵活的翻译模式选择功能，可以根据需求选择不同的翻译流程：
+
+**三种翻译模式：**
+
+| 模式 | 配置值 | 说明 | 适用场景 |
+|------|--------|------|----------|
+| **完整双阶段** | `full` | 初译 + 校对，确保质量 | 重要文档、出版级翻译 |
+| **仅初译** | `draft_only` | 只进行初译，跳过校对 | 快速翻译、草稿生成 |
+| **仅校对** | `review_only` | 只进行校对，优化翻译 | 翻译优化、质量提升 |
+
+**配置方法：**
+```json
+{
+  "translation_mode": "full"  // full/draft_only/review_only
+}
+```
+
+**GUI 中使用：**
+- 在翻译控制面板找到"翻译模式"下拉框
+- 选择需要的模式
+- 界面会自动显示/隐藏相关配置项
+
+**使用建议：**
+- ✅ 日常翻译：使用 `full` 模式，质量最佳
+- ✅ 大批量翻译：使用 `draft_only` 模式，速度最快
+- ✅ 已有翻译优化：使用 `review_only` 模式，提升质量
+
+### 提示词模板配置
+
+v3.2.0 新增了提示词高级设置功能，可以自定义 AI 的角色、任务和约束条件：
+
+**提示词结构说明：**
+- 🎭 **Role（角色）**: 定义 AI 的身份和专长
+- 📋 **Task（任务）**: 描述具体的翻译任务
+- ⚠️ **Constraints（约束）**: 设置翻译规则和限制
+
+**配置方法：**
+```json
+{
+  "prompt_templates": {
+    "draft": {
+      "role": "Professional Translator",
+      "task": "Translate 'Src' to {target_lang}",
+      "constraints": [
+        "Output JSON ONLY: {\"Trans\": \"string\"}",
+        "Strictly follow provided TM",
+        "Accurate and direct"
+      ]
+    },
+    "review": {
+      "role": "Senior Language Editor",
+      "task": "Polish 'Draft' into native {target_lang}",
+      "constraints": [
+        "Output JSON ONLY: {\"Trans\": \"string\", \"Reason\": \"string\"}",
+        "'Reason': Max 10 chars. If no change, Reason=\"\"",
+        "Focus on flow and tone"
+      ]
+    }
+  }
+}
+```
+
+**GUI 中自定义：**
+1. 点击"高级设置"按钮
+2. 选择"初译设置"或"校对设置"页签
+3. 编辑 Role、Task、Constraints 字段
+4. 点击"保存设置"应用更改
+5. 点击"恢复默认"可恢复系统默认值
+
+**示例：游戏翻译模板**
+```json
+{
+  "prompt_templates": {
+    "draft": {
+      "role": "Professional Game Translator",
+      "task": "Translate game content 'Src' to {target_lang}",
+      "constraints": [
+        "Output JSON ONLY",
+        "Use game industry standard terminology",
+        "Maintain consistent tone and style"
+      ]
+    },
+    "review": {
+      "role": "Senior Game Localization Editor",
+      "task": "Polish 'Draft' into native {target_lang} for gaming",
+      "constraints": [
+        "Output JSON ONLY: {\"Trans\": \"string\", \"Reason\": \"string\"}",
+        "Ensure gaming terminology consistency",
+        "Reason: Max 10 chars"
+      ]
+    }
+  }
+}
+```
+
+**提示词优化技巧：**
+- ✅ 明确指定输出格式（如 JSON）
+- ✅ 强调遵循术语库
+- ✅ 设置语气和风格要求
+- ✅ 限制输出长度和结构
 
 ---
 

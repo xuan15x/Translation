@@ -1,8 +1,8 @@
-# AI 智能翻译系统 v3.1
+# AI 智能翻译系统 v3.2
 
 一款基于 AI 大语言模型的专业翻译工具，采用**六层分层架构**设计，支持**多语言批量翻译**、**术语库管理**、**双阶段翻译流程**等功能。
 
-![Version](https://img.shields.io/badge/version-3.1.0-blue)
+![Version](https://img.shields.io/badge/version-3.2.0-blue)
 ![Python](https://img.shields.io/badge/python-3.8+-green)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
@@ -22,11 +22,13 @@
 
 ### 🎯 翻译功能
 - **双阶段翻译流程**: 初译 + 校对，确保翻译质量
+- **翻译模式选择**: 支持完整双阶段/仅初译/仅校对三种模式
 - **术语库支持**: 自动匹配术语，保证翻译一致性
 - **多语言批量翻译**: 支持 33 种语言，一次选择多个语言同时翻译
 - **动态输出格式**: 根据选择的语言数量自动生成对应列
 - **多模型支持**: 支持 DeepSeek、OpenAI、通义千问、智谱 AI、Moonshot、Claude、Gemini 等 7 种 API 服务
 - **批量处理**: 支持 Excel 文件批量翻译
+- **提示词高级设置**: 用户可自定义 Role/Task/Constraints，灵活控制翻译风格
 
 ### 📊 术语库管理
 - **自动术语匹配**: 基于模糊匹配算法的术语自动识别
@@ -172,7 +174,7 @@ pytest --cov=translation tests/
 ## ❓ 常见问题
 
 ### Q1: API Key 在哪里配置？
-**A:** v3.1.0 版本提供了一键配置系统，运行 `python scripts/quick_setup.py` 即可快速配置。也可手动编辑 `config/config.json` 文件。详见 [配置填入手册](docs/guides/CONFIG_SETUP_HANDBOOK.md)。
+**A:** v3.2.0 版本提供了一键配置系统，运行 `python scripts/quick_setup.py` 即可快速配置。也可手动编辑 `config/config.json` 文件。详见 [配置填入手册](docs/guides/CONFIG_SETUP_HANDBOOK.md)。
 
 ### Q2: 翻译速度慢怎么办？
 **A:** 适当增加并发数（调整 `initial_concurrency`），或查看 [故障排查手册](docs/guides/TROUBLESHOOTING.md) 和 [完整使用手册](COMPLETE_MANUAL.md) 的配置指南章节。
@@ -209,6 +211,13 @@ pytest tests/ -v
 - 提交前确保所有测试通过
 
 ## 📝 更新日志
+
+### v3.2.0 (2026-04-03)
+- ✨ **翻译模式选择** - 支持三种模式：完整双阶段(full)/仅初译(draft_only)/仅校对(review_only)
+- ✨ **提示词高级设置** - GUI新增自定义Role/Task/Constraints功能
+- ✨ **提示词模板配置** - config.json新增prompt_templates配置项
+- ✨ **动态UI调整** - 根据翻译模式自动显示/隐藏相关配置项
+- 🔧 优化配置管理 - 统一翻译模式配置接口
 
 ### v3.1.0 (2026-04-03)
 - ✨ 一键配置系统 - 重新设计快速配置脚本，支持 7 种模型提供商

@@ -1,8 +1,8 @@
-# AI 智能翻译系统 - 完整使用手册 v3.1
+# AI 智能翻译系统 - 完整使用手册 v3.2
 
 一款基于 AI 大语言模型的专业翻译工具，采用**六层分层架构**设计，支持**多语言批量翻译**、**术语库管理**、**双阶段翻译流程**等功能。
 
-![Version](https://img.shields.io/badge/version-3.1.0-blue)
+![Version](https://img.shields.io/badge/version-3.2.0-blue)
 ![Python](https://img.shields.io/badge/python-3.8+-green)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
@@ -22,6 +22,10 @@
   - [📊 术语库管理](#-术语库管理)
   - [🛠️ 技术特性](#-️-技术特性)
 - [⚙️ 配置指南](#-️-配置指南)
+  - [v3.2.0 新增功能](#v320-新增功能)
+    - [翻译模式选择](#翻译模式选择)
+    - [提示词高级设置](#提示词高级设置)
+    - [提示词模板配置](#提示词模板配置)
   - [核心参数说明](#核心参数说明)
     - [API 配置（必须设置）](#api-配置必须设置)
     - [性能优化配置](#性能优化配置)
@@ -41,6 +45,8 @@
     - [查看翻译历史](#查看翻译历史)
     - [管理术语库](#管理术语库)
     - [调整日志显示](#调整日志显示)
+    - [使用翻译模式](#使用翻译模式)
+    - [自定义提示词](#自定义提示词)
 - [🐛 故障排查](#-故障排查)
   - [常见问题速查表](#常见问题速查表)
   - [详细故障排查](#详细故障排查)
@@ -62,11 +68,14 @@
   - [Q6: 术语库如何备份？](#q6-术语库如何备份)
   - [Q7: 翻译速度慢怎么办？](#q7-翻译速度慢怎么办)
   - [Q8: 内存占用过高如何解决？](#q8-内存占用过高如何解决)
+  - [Q9: 如何使用不同的翻译模式？](#q9-如何使用不同的翻译模式)
+  - [Q10: 如何自定义提示词？](#q10-如何自定义提示词)
 - [📊 性能指标](#-性能指标)
 - [🤝 贡献](#-贡献)
   - [开发环境设置](#开发环境设置)
   - [代码规范](#代码规范)
 - [📝 更新日志](#-更新日志)
+  - [v3.2.0 (2026-04-03)](#v320-2026-04-03)
   - [v3.0.0 (2026-04-01)](#v300-2026-04-01)
   - [v2.5.0 (2026-03-28)](#v250-2026-03-28)
   - [v2.0.0 (2026-03-20)](#v200-2026-03-20)
@@ -146,11 +155,13 @@ python presentation/translation.py
 
 ### 🎯 翻译功能
 - **双阶段翻译流程**: 初译 + 校对，确保翻译质量
+- **翻译模式选择**: 支持完整双阶段/仅初译/仅校对三种模式
 - **术语库支持**: 自动匹配术语，保证翻译一致性
 - **多语言批量翻译**: 支持 33 种语言，一次选择多个语言同时翻译
 - **动态输出格式**: 根据选择的语言数量自动生成对应列
 - **多模型支持**: 支持 DeepSeek、OpenAI、通义千问、智谱 AI、Moonshot、Claude、Gemini 等 7 种 API 服务
 - **批量处理**: 支持 Excel 文件批量翻译
+- **提示词高级设置**: 用户可自定义 Role/Task/Constraints，灵活控制翻译风格
 
 ### 📊 术语库管理
 - **自动术语匹配**: 基于模糊匹配算法的术语自动识别
@@ -173,7 +184,131 @@ python presentation/translation.py
 
 ## ⚙️ 配置指南
 
-### v3.1.0 一键配置（⭐ 推荐）
+### v3.2.0 新增功能
+
+#### 翻译模式选择
+
+v3.2.0 新增了灵活的翻译模式选择功能，用户可以根据实际需求选择不同的翻译流程：
+
+**三种翻译模式：**
+
+| 模式 | 说明 | 适用场景 | 速度 | 质量 |
+|------|------|----------|------|------|
+| **完整双阶段 (full)** | 初译 + 校对，确保翻译质量 | 重要文档、出版级翻译 | 中等 | ⭐⭐⭐⭐⭐ |
+| **仅初译 (draft_only)** | 只进行初译阶段，跳过校对 | 快速翻译、草稿生成 | 快速 | ⭐⭐⭐ |
+| **仅校对 (review_only)** | 只进行校对阶段，优化已有翻译 | 翻译优化、质量提升 | 中等 | ⭐⭐⭐⭐ |
+
+**GUI 中使用：**
+1. 在翻译控制面板找到"翻译模式"下拉框
+2. 选择需要的翻译模式
+3. 界面会根据模式自动显示/隐藏相关配置项
+4. 点击"开始翻译"即可
+
+**配置文件设置：**
+```json
+{
+  "translation_mode": "full"  // full/draft_only/review_only
+}
+```
+
+**使用建议：**
+- ✅ 日常翻译：使用"完整双阶段"模式，质量最佳
+- ✅ 大批量翻译：使用"仅初译"模式，速度最快
+- ✅ 已有翻译优化：使用"仅校对"模式，提升质量
+
+#### 提示词高级设置
+
+v3.2.0 新增了提示词高级设置功能，用户可以自定义 AI 的角色、任务和约束条件：
+
+**提示词结构：**
+- 🎭 **Role（角色）**: 定义 AI 的身份和专长
+  - 示例：`"Professional Translator"`, `"Senior Language Editor"`
+- 📋 **Task（任务）**: 描述具体的翻译任务
+  - 示例：`"Translate 'Src' to {target_lang}"`, `"Polish 'Draft' into native {target_lang}"`
+- ⚠️ **Constraints（约束）**: 设置翻译规则和限制
+  - 示例：`"Output JSON ONLY"`, `"Strictly follow provided TM"`
+
+**GUI 中自定义提示词：**
+1. 点击"高级设置"按钮
+2. 在弹出的面板中选择"初译设置"或"校对设置"
+3. 编辑 Role、Task、Constraints 字段
+4. 点击"保存设置"应用更改
+5. 点击"恢复默认"可恢复系统默认值
+
+**配置文件设置：**
+```json
+{
+  "prompt_templates": {
+    "draft": {
+      "role": "Professional Translator",
+      "task": "Translate 'Src' to {target_lang}",
+      "constraints": [
+        "Output JSON ONLY: {\"Trans\": \"string\"}",
+        "Strictly follow provided TM",
+        "Accurate and direct"
+      ]
+    },
+    "review": {
+      "role": "Senior Language Editor",
+      "task": "Polish 'Draft' into native {target_lang}",
+      "constraints": [
+        "Output JSON ONLY: {\"Trans\": \"string\", \"Reason\": \"string\"}",
+        "'Reason': Max 10 chars. If no change, Reason=\"\"",
+        "Focus on flow and tone"
+      ]
+    }
+  }
+}
+```
+
+**提示词优化技巧：**
+- ✅ 明确指定输出格式（如 JSON）
+- ✅ 强调遵循术语库
+- ✅ 设置语气和风格要求
+- ✅ 限制输出长度和结构
+
+#### 提示词模板配置
+
+提示词模板可以在配置文件中预设，适合批量部署和团队协作：
+
+**模板变量说明：**
+- `{target_lang}`: 目标语言（自动替换）
+- `Src`: 原文内容
+- `Draft`: 初译结果
+
+**示例：游戏翻译模板**
+```json
+{
+  "prompt_templates": {
+    "draft": {
+      "role": "Professional Game Translator",
+      "task": "Translate game content 'Src' to {target_lang}",
+      "constraints": [
+        "Output JSON ONLY",
+        "Use game industry standard terminology",
+        "Maintain consistent tone and style",
+        "Keep UI text concise (max 20 chars)"
+      ]
+    },
+    "review": {
+      "role": "Senior Game Localization Editor",
+      "task": "Polish 'Draft' into native {target_lang} for gaming",
+      "constraints": [
+        "Output JSON ONLY: {\"Trans\": \"string\", \"Reason\": \"string\"}",
+        "Ensure gaming terminology consistency",
+        "Maintain original tone and emotion",
+        "Reason: Max 10 chars"
+      ]
+    }
+  }
+}
+```
+
+### 核心参数说明
+
+#### API 配置（必须设置）
+
+**v3.1.0 一键配置（⭐ 推荐）**
 
 **步骤 1：运行配置向导**
 ```bash
@@ -473,6 +608,51 @@ Result_20260401_143025.xlsx
 - 只显示进度：PROGRESS + IMPORTANT
 - 隐藏调试：隐藏 DEBUG 和 TRACE（推荐）
 
+#### 使用翻译模式
+
+**切换翻译模式：**
+1. 在翻译控制面板找到"翻译模式"下拉框
+2. 选择需要的模式：
+   - **完整双阶段 (full)**: 初译 + 校对，质量最佳
+   - **仅初译 (draft_only)**: 快速翻译，适合草稿
+   - **仅校对 (review_only)**: 优化已有翻译
+3. 界面会自动显示/隐藏相关配置项
+4. 开始翻译即可生效
+
+**模式选择建议：**
+- 📝 日常翻译 → 完整双阶段
+- ⚡ 大批量翻译 → 仅初译
+- ✏️ 翻译质量优化 → 仅校对
+
+#### 自定义提示词
+
+**通过 GUI 自定义：**
+1. 点击"高级设置"按钮
+2. 选择"初译设置"或"校对设置"页签
+3. 编辑以下字段：
+   - **Role**: AI 的角色（如 "Professional Translator"）
+   - **Task**: 翻译任务（如 "Translate 'Src' to {target_lang}"）
+   - **Constraints**: 约束条件列表（每行一个）
+4. 点击"保存设置"应用更改
+5. 点击"恢复默认"可恢复系统默认值
+
+**通过配置文件自定义：**
+编辑 `config/config.json` 中的 `prompt_templates` 部分：
+```json
+{
+  "prompt_templates": {
+    "draft": {
+      "role": "Professional Translator",
+      "task": "Translate 'Src' to {target_lang}",
+      "constraints": [
+        "Output JSON ONLY",
+        "Strictly follow provided TM"
+      ]
+    }
+  }
+}
+```
+
 ---
 
 ## 🐛 故障排查
@@ -698,11 +878,59 @@ await tm.restore_from_backup(backups[0]['path'])
 
 ### Q8: 内存占用过高如何解决？
 
-**A**: 
+**A**:
 1. 减小批次大小（`batch_size`）
 2. 定期执行垃圾回收（`gc.collect()`）
 3. 清理缓存（`cache.clear_all()`）
 4. 监控系统内存使用
+
+### Q9: 如何使用不同的翻译模式？
+
+**A**:
+1. **GUI 界面方式**：
+   - 在翻译控制面板找到"翻译模式"下拉框
+   - 选择需要的模式（full/draft_only/review_only）
+   - 界面会自动调整显示相关配置项
+
+2. **配置文件方式**：
+   ```json
+   {
+     "translation_mode": "full"  // full/draft_only/review_only
+   }
+   ```
+
+3. **模式说明**：
+   - `full`: 完整双阶段翻译（初译+校对），质量最佳
+   - `draft_only`: 仅初译，跳过校对，速度最快
+   - `review_only`: 仅校对，适合优化已有翻译
+
+### Q10: 如何自定义提示词？
+
+**A**:
+1. **GUI 高级设置**：
+   - 点击"高级设置"按钮
+   - 编辑 Role、Task、Constraints 字段
+   - 点击"保存设置"应用更改
+
+2. **配置文件方式**：
+   编辑 `config/config.json` 中的 `prompt_templates` 部分
+   ```json
+   {
+     "prompt_templates": {
+       "draft": {
+         "role": "Professional Translator",
+         "task": "Translate 'Src' to {target_lang}",
+         "constraints": ["Output JSON ONLY"]
+       }
+     }
+   }
+   ```
+
+3. **提示词优化技巧**：
+   - 明确指定输出格式
+   - 强调遵循术语库
+   - 设置语气和风格要求
+   - 限制输出长度和结构
 
 ---
 
@@ -754,6 +982,13 @@ pytest tests/ -v
 ---
 
 ## 📝 更新日志
+
+### v3.2.0 (2026-04-03)
+- ✨ **翻译模式选择** - 支持三种模式：完整双阶段/仅初译/仅校对
+- ✨ **提示词高级设置** - GUI新增自定义Role/Task/Constraints功能
+- ✨ **提示词模板配置** - config.json新增prompt_templates配置项
+- ✨ **动态UI调整** - 根据翻译模式自动显示/隐藏相关配置项
+- 🔧 优化配置管理 - 统一翻译模式配置接口
 
 ### v3.1.0 (2026-04-03)
 - ✨ 一键配置系统 - 重新设计快速配置脚本，支持 7 种模型提供商
@@ -811,7 +1046,7 @@ Translation Team
 
 ---
 
-**文档版本**: 3.1.0
+**文档版本**: 3.2.0
 **最后更新**: 2026-04-03
 **维护者**: Development Team
 **许可证**: MIT

@@ -4,6 +4,190 @@
 
 ---
 
+## [3.2.0] - 2026-04-03
+
+### ✨ 新增功能
+
+#### 1. 翻译模式选择 ⭐ NEW
+- **支持三种翻译模式**
+  - 🔄 **完整双阶段 (full)**: 初译 + 校对，确保翻译质量（默认）
+  - 📝 **仅初译 (draft_only)**: 只进行初译阶段，跳过校对，适合快速翻译
+  - ✏️ **仅校对 (review_only)**: 只进行校对阶段，适合已有初译结果的优化
+
+- **GUI 模式下拉选择**
+  - 翻译控制面板新增模式下拉框
+  - 自动根据模式显示/隐藏相关配置项
+  - 动态调整翻译流程，优化资源使用
+
+- **配置项**
+  ```json
+  {
+    "translation_mode": "full"  // full/draft_only/review_only
+  }
+  ```
+
+#### 2. 提示词高级设置 ⭐ NEW
+- **自定义 Role/Task/Constraints**
+  - 🎭 **Role（角色）**: 定义 AI 的角色（如"Professional Translator"）
+  - 📋 **Task（任务）**: 描述翻译任务（如"Translate 'Src' to {target_lang}"）
+  - ⚠️ **Constraints（约束）**: 设置翻译约束条件列表
+
+- **分阶段配置**
+  - 初译阶段独立的 Role/Task/Constraints
+  - 校对阶段独立的 Role/Task/Constraints
+  - 支持针对不同阶段优化提示词结构
+
+- **GUI 高级设置对话框**
+  - 点击"高级设置"按钮打开配置面板
+  - 文本编辑器支持多行输入
+  - 实时预览和保存功能
+
+#### 3. 提示词模板配置 ⭐ NEW
+- **config.json 新增 prompt_templates 配置**
+  ```json
+  {
+    "prompt_templates": {
+      "draft": {
+        "role": "Professional Translator",
+        "task": "Translate 'Src' to {target_lang}",
+        "constraints": [
+          "Output JSON ONLY: {\"Trans\": \"string\"}",
+          "Strictly follow provided TM",
+          "Accurate and direct"
+        ]
+      },
+      "review": {
+        "role": "Senior Language Editor",
+        "task": "Polish 'Draft' into native {target_lang}",
+        "constraints": [
+          "Output JSON ONLY: {\"Trans\": \"string\", \"Reason\": \"string\"}",
+          "'Reason': Max 10 chars. If no change, Reason=\"\"",
+          "Focus on flow and tone"
+        ]
+      }
+    }
+  }
+  ```
+
+- **默认模板**
+  - 系统内置默认提示词模板
+  - 用户可通过 GUI 或配置文件自定义
+  - 支持一键恢复默认设置
+
+#### 4. 动态 UI 调整 ⭐ NEW
+- **智能显示/隐藏**
+  - 选择"仅初译"模式时自动隐藏校对相关配置
+  - 选择"仅校对"模式时自动隐藏初译相关配置
+  - 选择"完整双阶段"模式时显示所有配置项
+
+- **用户体验优化**
+  - 减少界面混乱，提升可用性
+  - 避免无效配置项干扰用户
+  - 根据实际需求动态调整界面布局
+
+---
+
+### 🔧 技术优化
+
+#### 1. 配置管理增强
+- **翻译模式统一接口**
+  - 统一使用 `translation_mode` 配置项
+  - 支持字符串模式名称（full/draft_only/review_only）
+  - 自动验证模式有效性
+
+- **提示词模板加载**
+  - 启动时自动加载 prompt_templates 配置
+  - 支持运行时动态更新
+  - 配置变更后自动应用到翻译服务
+
+#### 2. GUI 组件优化
+- **模式下拉框**
+  - 新增翻译模式选择下拉框
+  - 模式变更时自动更新界面
+  - 保存用户选择的模式
+
+- **高级设置面板**
+  - 新增提示词编辑器组件
+  - 支持多行文本输入
+  - 实时保存和恢复默认值
+
+---
+
+### 📝 文档更新
+
+#### 更新文档
+- `README.md` - 添加翻译模式和提示词配置说明
+- `CHANGELOG.md` - 添加 v3.2.0 完整更新记录
+- `COMPLETE_MANUAL.md` - 更新使用手册，添加新功能说明
+- `docs/guides/CONFIG_SETUP_HANDBOOK.md` - 更新配置说明
+- `docs/guides/MODEL_CONFIG_GUIDE.md` - 更新模型配置指南
+- `docs/INDEX.md` - 更新文档导航
+
+---
+
+### 🎯 使用示例
+
+#### 翻译模式配置
+
+**完整双阶段（默认）**：
+```json
+{
+  "translation_mode": "full",
+  "enable_two_pass": true
+}
+```
+
+**仅初译（快速翻译）**：
+```json
+{
+  "translation_mode": "draft_only",
+  "enable_two_pass": false
+}
+```
+
+**仅校对（优化已有翻译）**：
+```json
+{
+  "translation_mode": "review_only",
+  "enable_two_pass": true
+}
+```
+
+#### 提示词模板配置
+
+**自定义初译提示词**：
+```json
+{
+  "prompt_templates": {
+    "draft": {
+      "role": "Professional Game Translator",
+      "task": "Translate game content 'Src' to {target_lang}",
+      "constraints": [
+        "Output JSON ONLY",
+        "Use game industry standard terminology",
+        "Maintain consistent tone and style"
+      ]
+    }
+  }
+}
+```
+
+**GUI 中修改提示词**：
+1. 点击"高级设置"按钮
+2. 在"初译设置"或"校对设置"页签中编辑
+3. 修改 Role、Task、Constraints
+4. 点击"保存设置"应用更改
+
+---
+
+### 🔗 相关链接
+
+- [配置填入手册](docs/guides/CONFIG_SETUP_HANDBOOK.md) - 详细配置教程
+- [完整使用手册](COMPLETE_MANUAL.md) - 一站式解决方案
+- [模型配置指南](docs/guides/MODEL_CONFIG_GUIDE.md) - 模型配置详解
+
+---
+
 ## [3.1.0] - 2026-04-03
 
 ### ✨ 新增功能

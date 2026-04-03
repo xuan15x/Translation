@@ -4,6 +4,57 @@
 
 模型配置拆分功能允许为**翻译（Draft）**和**校对（Review）**两个阶段分别配置不同的模型和参数，实现更灵活、更优化的工作流程。
 
+## 🆕 v3.2.0 新增功能
+
+### 翻译模式配置
+
+v3.2.0 新增了翻译模式选择功能，支持三种翻译流程：
+
+| 模式 | 配置值 | 说明 | 适用场景 |
+|------|--------|------|----------|
+| **完整双阶段** | `full` | 初译 + 校对，确保质量 | 重要文档、出版级翻译 |
+| **仅初译** | `draft_only` | 只进行初译，跳过校对 | 快速翻译、草稿生成 |
+| **仅校对** | `review_only` | 只进行校对，优化翻译 | 翻译优化、质量提升 |
+
+**配置示例：**
+```json
+{
+  "translation_mode": "full"  // full/draft_only/review_only
+}
+```
+
+### 提示词模板配置
+
+v3.2.0 新增了提示词高级设置功能，可以自定义每个阶段的角色、任务和约束：
+
+```json
+{
+  "prompt_templates": {
+    "draft": {
+      "role": "Professional Translator",
+      "task": "Translate 'Src' to {target_lang}",
+      "constraints": [
+        "Output JSON ONLY: {\"Trans\": \"string\"}",
+        "Strictly follow provided TM"
+      ]
+    },
+    "review": {
+      "role": "Senior Language Editor",
+      "task": "Polish 'Draft' into native {target_lang}",
+      "constraints": [
+        "Output JSON ONLY: {\"Trans\": \"string\", \"Reason\": \"string\"}",
+        "Focus on flow and tone"
+      ]
+    }
+  }
+}
+```
+
+**GUI 中使用：**
+1. 点击"高级设置"按钮
+2. 编辑 Role、Task、Constraints
+3. 保存设置即可
+
 ## 🎯 核心优势
 
 ### 1. 独立模型选择
