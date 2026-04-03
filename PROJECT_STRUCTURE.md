@@ -1,6 +1,6 @@
 # 项目结构说明
 
-## 📁 完整项目结构（六层架构 v3.0）
+## 📁 完整项目结构（六层架构 v3.1）
 
 ```
 translation/
@@ -80,6 +80,7 @@ translation/
 │       └── .gitkeep
 │
 ├── 📂 scripts/                           # 工具脚本
+│   ├── quick_setup.py                    # v3.1.0 一键配置脚本 ⭐ NEW
 │   ├── check_config.py                   # 配置检查工具
 │   ├── manage_config.py                  # 配置管理工具
 │   ├── demo_*.py                         # 功能演示脚本
@@ -144,7 +145,7 @@ translation/
 ### 第四层：服务层（Service Layer）
 **位置**: `service/`  
 **职责**: API 集成和外部服务
-- **APIProviderManager**: 8 种 API 提供商管理 ⭐
+- **APIProviderManager**: 7 种 API 提供商管理 ⭐
 - **APIDraftStage/APIReviewStage**: 双阶段调用
 - **TranslationHistory**: SQLite 历史管理
 - **TerminologyVersion**: 版本控制和备份
@@ -398,6 +399,6 @@ data_access/
 
 ---
 
-**更新日期**: 2026-03-31  
-**版本**: v2.1.0  
-**状态**: ✅ 项目结构已优化完成
+**更新日期**: 2026-04-03
+**版本**: v3.1.0
+**状态**: ✅ 项目结构已优化完成，新增一键配置系统

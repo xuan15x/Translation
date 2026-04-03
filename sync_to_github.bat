@@ -1,55 +1,55 @@
 @echo off
 chcp 65001 >nul
 echo ========================================
-echo   Git 自动同步脚本
+echo   Git Auto Sync Script
 echo   GitHub: xuan15x/Translation
 echo ========================================
 echo.
 
 cd /d "%~dp0"
 
-echo [1/4] 检查本地状态...
+echo [1/4] Checking local status...
 git status --short
 if %errorlevel% neq 0 (
-    echo ❌ Git 状态检查失败
+    echo ERROR: Git status check failed
     pause
     exit /b 1
 )
-echo ✅ 本地状态正常
+echo OK: Local status checked
 echo.
 
-echo [2/4] Fetch 远程更新...
+echo [2/4] Fetching remote updates...
 git fetch origin
 if %errorlevel% neq 0 (
-    echo ❌ Fetch 失败
+    echo ERROR: Fetch failed
     pause
     exit /b 1
 )
-echo ✅ Fetch 完成
+echo OK: Fetch completed
 echo.
 
-echo [3/4] Pull 远程变更...
+echo [3/4] Pulling remote changes...
 git pull origin main --rebase
 if %errorlevel% neq 0 (
-    echo ⚠️  Pull 有冲突，请手动解决
+    echo WARNING: Pull has conflicts, please resolve manually
     pause
     exit /b 1
 )
-echo ✅ Pull 完成
+echo OK: Pull completed
 echo.
 
-echo [4/4] Push 本地提交...
+echo [4/4] Pushing local commits...
 git push origin main
 if %errorlevel% neq 0 (
-    echo ❌ Push 失败
+    echo ERROR: Push failed
     pause
     exit /b 1
 )
-echo ✅ Push 完成
+echo OK: Push completed
 echo.
 
 echo ========================================
-echo   ✅ 同步完成！
-echo   仓库：https://github.com/xuan15x/Translation
+echo   SUCCESS: Sync completed!
+echo   Repository: https://github.com/xuan15x/Translation
 echo ========================================
 pause

@@ -4,6 +4,131 @@
 
 ---
 
+## [3.1.0] - 2026-04-03
+
+### ✨ 新增功能
+
+#### 1. 一键配置系统 ⭐ NEW
+- **重新设计快速配置脚本**
+  - 🎯 支持 7 种模型提供商：DeepSeek、OpenAI、通义千问、智谱 AI、Moonshot、Claude、Gemini
+  - ⚡ 一键配置流程 - 用户只需选择提供商并输入 API Key
+  - 🚀 自动配置所有参数，无需手动编辑配置文件
+  - 💡 智能引导提示，适合所有用户群体
+
+- **简化的配置流程**
+  ```bash
+  # 运行快速配置脚本
+  python scripts/quick_setup.py
+  
+  # 选择模型提供商（1-7）
+  # 输入 API Key
+  # 完成！
+  ```
+
+- **支持的模型提供商**
+  | 提供商 | 模型示例 | API Key 格式 |
+  |--------|----------|--------------|
+  | DeepSeek | deepseek-chat | sk-xxxxxxxxx |
+  | OpenAI | gpt-3.5-turbo, gpt-4 | sk-xxxxxxxxx |
+  | 通义千问 | qwen-turbo, qwen-plus | sk-xxxxxxxxx |
+  | 智谱 AI | chatglm_turbo | xxxxxxxxx |
+  | Moonshot | moonshot-v1-8k | sk-xxxxxxxxx |
+  | Claude | claude-3-sonnet | sk-ant-xxxxxxx |
+  | Gemini | gemini-pro | xxxxxxxxx |
+
+#### 2. 多模型支持扩展 ⭐ NEW
+- **新增 5 种 API 提供商**
+  - 通义千问（阿里）- 适合中文场景
+  - 智谱 AI - 国产模型，支持 ChatGLM
+  - Moonshot - 高效翻译模型
+  - Claude（Anthropic）- 高质量英文翻译
+  - Gemini（Google）- 多语言支持优秀
+
+- **统一的配置接口**
+  - 所有提供商使用统一的 API Key 配置格式
+  - 自动识别提供商并配置 base_url
+  - 支持动态切换模型，无需重启
+
+---
+
+### 🔧 技术优化
+
+#### 1. 配置流程简化
+- **旧流程**（v3.0）：
+  1. 复制配置示例文件
+  2. 手动编辑 JSON 文件
+  3. 填写 10+ 个配置项
+  4. 验证配置正确性
+
+- **新流程**（v3.1）：
+  1. 运行 `python scripts/quick_setup.py`
+  2. 选择模型提供商
+  3. 输入 API Key
+  4. 完成！
+
+#### 2. 配置验证增强
+- 自动验证 API Key 格式
+- 自动填充默认参数
+- 提供配置预览确认
+- 错误提示更友好
+
+---
+
+### 📝 文档更新
+
+#### 更新文档
+- `README.md` - 更新版本号和快速配置说明
+- `CHANGELOG.md` - 添加 v3.1.0 完整更新记录
+- `COMPLETE_MANUAL.md` - 更新配置指南部分
+- `docs/guides/CONFIG_SETUP_HANDBOOK.md` - 重写配置设置流程
+- `docs/INDEX.md` - 更新文档导航
+
+---
+
+### 🎯 使用示例
+
+#### 一键配置示例
+```bash
+$ python scripts/quick_setup.py
+
+==================================================
+🚀 AI 智能翻译系统 - 快速配置向导 v3.1.0
+==================================================
+
+请选择模型提供商:
+1. DeepSeek (推荐，性价比高)
+2. OpenAI (高质量翻译)
+3. 通义千问 (中文场景优化)
+4. 智谱 AI (国产模型)
+5. Moonshot (高效翻译)
+6. Claude (英文质量优秀)
+7. Gemini (多语言支持)
+
+请输入选项 (1-7，默认 1): 1
+
+请输入您的 DeepSeek API Key: sk-xxxxxxxxxxxxxxxx
+
+✅ 配置完成！
+📋 配置摘要:
+   提供商: DeepSeek
+   模型: deepseek-chat
+   API Key: sk***********xxxx
+
+是否保存配置并启动程序？(Y/n): Y
+✅ 配置已保存到 config/config.json
+🚀 正在启动翻译平台...
+```
+
+---
+
+### 🔗 相关链接
+
+- [配置填入手册](docs/guides/CONFIG_SETUP_HANDBOOK.md) - 详细配置教程
+- [快速开始](docs/guides/QUICKSTART.md) - 5 分钟上手
+- [最佳实践](docs/guides/BEST_PRACTICES.md) - 使用技巧
+
+---
+
 ## [3.0.1] - 2026-04-03
 
 ### 🐛 Bug 修复
@@ -407,6 +532,6 @@
 
 ---
 
-**更新日期**: 2026-04-01  
-**维护者**: Translation Team  
+**更新日期**: 2026-04-03
+**维护者**: Translation Team
 **许可证**: MIT

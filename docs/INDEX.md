@@ -3,6 +3,8 @@
 欢迎使用 AI 智能翻译系统！本文档中心提供完整的文档导航和索引。
 
 > **💡 提示**：新用户请优先阅读 **[完整使用手册](../COMPLETE_MANUAL.md)** ⭐⭐⭐，一站式解决方案包含所有核心内容。
+> 
+> **⚡ 新特性**：v3.1.0 新增一键配置系统，3 分钟完成配置！查看 [配置填入手册](guides/CONFIG_SETUP_HANDBOOK.md)
 
 ## 🎯 快速导航（按角色）
 
@@ -30,9 +32,10 @@
 
 | 文档 | 说明 | 位置 | 重要度 |
 |------|------|------|--------|
+| [v3.1.0 一键配置指南](guides/CONFIG_SETUP_HANDBOOK.md) | ⚡ **3 分钟快速配置，支持 7 种模型** | guides/ | ⭐⭐⭐ |
+| [配置填入手册](guides/CONFIG_SETUP_HANDBOOK.md) | 最详细配置教程 | guides/ | ⭐⭐⭐ |
 | [最佳实践](guides/BEST_PRACTICES.md) | 详细的使用说明和优化建议 | guides/ | ⭐⭐⭐ |
 | [故障排查](guides/TROUBLESHOOTING.md) | 常见问题解决方案 | guides/ | ⭐⭐⭐ |
-| [配置填入手册](guides/CONFIG_SETUP_HANDBOOK.md) | 最详细配置教程 | guides/ | ⭐⭐⭐ |
 | [模型配置指南](guides/MODEL_CONFIG_GUIDE.md) | 模型配置拆分详解 | guides/ | ⭐⭐ |
 | [禁止事项配置指南](guides/PROHIBITION_CONFIG_GUIDE.md) | 禁止规则配置详解 | guides/ | ⭐⭐ |
 | [支持的语言](guides/SUPPORTED_LANGUAGES.md) | 33 种目标语言介绍 | guides/ | ⭐ |
@@ -74,8 +77,9 @@
 
 推荐阅读顺序:
 1. **[完整使用手册](../COMPLETE_MANUAL.md)** ⭐⭐⭐ - 一站式解决方案（30 分钟）
-2. [README](../README.md) - 了解项目（5 分钟）
-3. [最佳实践](guides/BEST_PRACTICES.md) - 掌握技巧（20 分钟）
+2. **[v3.1.0 一键配置指南](guides/CONFIG_SETUP_HANDBOOK.md)** ⚡ - 3 分钟快速配置（优先）
+3. [README](../README.md) - 了解项目（5 分钟）
+4. [最佳实践](guides/BEST_PRACTICES.md) - 掌握技巧（20 分钟）
 
 ### 场景 2: 我遇到了问题
 
@@ -125,13 +129,12 @@
 ### 文档更新记录
 
 - **2026-04-03 (v3.1.0)**:
-  - ✨ Infrastructure 层拆分为 6 个子模块 (cache/config/database/di/logging/utils)
-  - ✨ 更新架构文档 (ARCHITECTURE.md) 反映最新结构
-  - ✨ 创建架构变更记录 (ARCHITECTURE_CHANGES.md)
-  - ✨ 创建模块使用指南 (MODULE_GUIDE.md)
-  - ✨ 创建迁移指南 (MIGRATION_GUIDE.md)
-  - 🐛 修复 Domain 层依赖 Service 层问题 (P0)
-  - 🐛 移动仓储接口到 Domain 层 (P0)
+  - ✨ 新增一键配置系统文档 (CONFIG_SETUP_HANDBOOK.md)
+  - ✨ 支持 7 种模型提供商：DeepSeek、OpenAI、通义千问、智谱 AI、Moonshot、Claude、Gemini
+  - ✨ 更新配置管理脚本说明 (CONFIG_MANAGEMENT_SCRIPTS.md)
+  - ✨ 更新所有核心文档版本号至 v3.1.0
+  - 🐛 修复依赖容器初始化问题文档说明
+  - 🐛 修复异常处理模块重复定义问题文档说明
 - **2026-04-01 (v3.0.0)**:
   - ✨ 创建完整使用手册，整合所有核心文档
   - ✨ 双阶段翻译参数 GUI 控制文档
@@ -177,6 +180,6 @@
 
 ---
 
-**文档中心版本**: 3.1
+**文档中心版本**: 3.1.0
 **最后更新**: 2026-04-03
 **维护者**: Documentation Team

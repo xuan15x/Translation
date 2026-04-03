@@ -331,7 +331,7 @@ cached_service = cached_terminology_service(terminology_service, max_size=2000)
 #### 4.1 `api_provider.py` - API 服务 ⭐
 
 **职责**:
-- **APIProviderManager**: 8 种 API 提供商管理
+- **APIProviderManager**: 7 种 API 提供商管理
 - DeepSeekClient / OpenAIClient
 - API 调用封装 / 错误处理
 

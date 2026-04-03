@@ -2,11 +2,28 @@
 
 ## 📋 概述
 
-`scripts/manage_config.py` 是一个强大的配置管理工具，用于生成、验证和管理 AI 翻译平台的配置文件。
+AI 翻译平台提供两个配置管理工具：
+
+1. **`scripts/quick_setup.py`** (v3.1.0 新增) - 一键配置向导，适合所有用户
+2. **`scripts/manage_config.py`** - 高级配置管理工具，适合开发者和高级用户
 
 ## 🚀 快速开始
 
-### 查看所有可用命令
+### 方式一：一键配置（⭐ v3.1.0 推荐）
+
+适合所有用户，特别是新手：
+
+```bash
+# 运行快速配置向导
+python scripts/quick_setup.py
+
+# 按提示选择模型提供商，输入 API Key 即可
+# 支持 7 种模型：DeepSeek、OpenAI、通义千问、智谱 AI、Moonshot、Claude、Gemini
+```
+
+### 方式二：高级配置管理
+
+查看所有可用命令：
 
 ```bash
 python scripts/manage_config.py --help
@@ -191,7 +208,17 @@ python scripts/manage_config.py merge base.yaml custom.yaml -o merged.yaml
 
 ## 🎯 常用工作流
 
-### 新手入门流程
+### 新手入门流程（v3.1.0）
+
+```bash
+# 1. 运行一键配置（推荐）
+python scripts/quick_setup.py
+
+# 2. 启动翻译平台
+启动翻译平台.bat
+```
+
+### 高级配置流程
 
 ```bash
 # 1. 创建示例配置
@@ -317,7 +344,14 @@ python scripts/manage_config.py validate config.yaml
 
 ## 📈 更新日志
 
-### v3.0.1 (本次更新)
+### v3.1.0 (本次更新)
+
+- ✨ 新增 `quick_setup.py` 一键配置脚本
+- ✨ 支持 7 种模型提供商一键配置
+- ✨ 简化配置流程，只需输入 API Key
+- 📝 更新配置管理脚本文档
+
+### v3.0.1
 
 - ✨ 新增 `prohibitions` 命令查看禁止事项配置
 - ✨ `list` 命令增加禁止事项配置详情

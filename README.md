@@ -1,8 +1,8 @@
-# AI 智能翻译系统 v3.0
+# AI 智能翻译系统 v3.1
 
 一款基于 AI 大语言模型的专业翻译工具，采用**六层分层架构**设计，支持**多语言批量翻译**、**术语库管理**、**双阶段翻译流程**等功能。
 
-![Version](https://img.shields.io/badge/version-3.0.0-blue)
+![Version](https://img.shields.io/badge/version-3.1.0-blue)
 ![Python](https://img.shields.io/badge/python-3.8+-green)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
@@ -25,7 +25,7 @@
 - **术语库支持**: 自动匹配术语，保证翻译一致性
 - **多语言批量翻译**: 支持 33 种语言，一次选择多个语言同时翻译
 - **动态输出格式**: 根据选择的语言数量自动生成对应列
-- **API 提供商切换**: 支持 DeepSeek、OpenAI 等 8 种 API 服务
+- **多模型支持**: 支持 DeepSeek、OpenAI、通义千问、智谱 AI、Moonshot、Claude、Gemini 等 7 种 API 服务
 - **批量处理**: 支持 Excel 文件批量翻译
 
 ### 📊 术语库管理
@@ -105,9 +105,13 @@ python -m venv .venv
 # 3. 安装依赖
 pip install -r requirements.txt
 
-# 4. 配置 API Key
-cp config/config.example.json config/config.json
-# 编辑 config/config.json，填入你的 API Key
+# 4. 配置 API Key（v3.1.0 一键配置系统）
+# 方式 1：运行快速配置脚本（推荐）
+python scripts/quick_setup.py
+# 按提示选择模型提供商，输入 API Key 即可
+
+# 方式 2：使用启动脚本自动配置
+启动翻译平台.bat  # 首次运行会自动引导配置
 
 # 5. 启动程序
 启动翻译平台.bat  # Windows
@@ -119,14 +123,14 @@ cp config/config.example.json config/config.json
 **完整的使用教程请查看：**
 - 📘 [完整使用手册](COMPLETE_MANUAL.md) ⭐⭐⭐ **一站式解决方案，包含所有核心内容**
 - 🔧 [配置填入手册](docs/guides/CONFIG_SETUP_HANDBOOK.md) - 手把手教你配置
-- 🚀 [快速开始指南](docs/archive/old_quickstarts/QUICKSTART.md) - 5 分钟上手（已归档）
+- ⚡ [v3.1.0 一键配置指南](docs/guides/CONFIG_SETUP_HANDBOOK.md) - 3 分钟快速配置
 
 ## 📖 文档导航
 
 ### 📘 核心文档
 - [**完整使用手册**](COMPLETE_MANUAL.md) ⭐⭐⭐ **一站式解决方案，包含所有核心内容**
 - [配置填入手册](docs/guides/CONFIG_SETUP_HANDBOOK.md) ⭐⭐⭐ 最详细配置教程
-- [快速开始指南](docs/archive/old_quickstarts/QUICKSTART.md) - 5 分钟上手（已归档）
+- [v3.1.0 一键配置指南](docs/guides/CONFIG_SETUP_HANDBOOK.md) ⚡ 3 分钟快速配置
 - [最佳实践](docs/guides/BEST_PRACTICES.md) ⭐ 全面详细的使用教程
 - [故障排查手册](docs/guides/TROUBLESHOOTING.md) ⭐ 常见问题快速解决
 
@@ -168,7 +172,7 @@ pytest --cov=translation tests/
 ## ❓ 常见问题
 
 ### Q1: API Key 在哪里配置？
-**A:** 编辑 `config/config.json` 文件，填入你的 API Key。详见 [配置填入手册](docs/guides/CONFIG_SETUP_HANDBOOK.md)。
+**A:** v3.1.0 版本提供了一键配置系统，运行 `python scripts/quick_setup.py` 即可快速配置。也可手动编辑 `config/config.json` 文件。详见 [配置填入手册](docs/guides/CONFIG_SETUP_HANDBOOK.md)。
 
 ### Q2: 翻译速度慢怎么办？
 **A:** 适当增加并发数（调整 `initial_concurrency`），或查看 [故障排查手册](docs/guides/TROUBLESHOOTING.md) 和 [完整使用手册](COMPLETE_MANUAL.md) 的配置指南章节。
@@ -206,6 +210,14 @@ pytest tests/ -v
 
 ## 📝 更新日志
 
+### v3.1.0 (2026-04-03)
+- ✨ 一键配置系统 - 重新设计快速配置脚本，支持 7 种模型提供商
+- ✨ 多模型支持 - DeepSeek、OpenAI、通义千问、智谱 AI、Moonshot、Claude、Gemini
+- ✨ 简化配置流程 - 只需输入 API Key 即可完成配置
+- 🐛 修复依赖容器初始化问题
+- 🐛 修复异常处理模块重复定义问题
+- 🔧 代码质量优化 - 重构配置验证、错误处理、嵌套字典访问
+
 ### v3.0.0 (2026-04-01)
 - ✨ 六层分层架构重构
 - ✨ 依赖注入容器实现
@@ -237,7 +249,7 @@ Translation Team
 
 **遇到问题？**
 - ⭐⭐⭐ **[完整使用手册](COMPLETE_MANUAL.md)** - 一站式解决方案
+- ⚡ **[v3.1.0 一键配置指南](docs/guides/CONFIG_SETUP_HANDBOOK.md)** - 3 分钟快速配置
 - [故障排查指南](docs/guides/TROUBLESHOOTING.md) - 详细排查步骤
-- [配置填入手册](docs/guides/CONFIG_SETUP_HANDBOOK.md) - 详细配置教程
 - 提交 Issue
 - 联系开发团队

@@ -1,8 +1,8 @@
-# AI 智能翻译系统 - 完整使用手册 v3.0
+# AI 智能翻译系统 - 完整使用手册 v3.1
 
 一款基于 AI 大语言模型的专业翻译工具，采用**六层分层架构**设计，支持**多语言批量翻译**、**术语库管理**、**双阶段翻译流程**等功能。
 
-![Version](https://img.shields.io/badge/version-3.0.0-blue)
+![Version](https://img.shields.io/badge/version-3.1.0-blue)
 ![Python](https://img.shields.io/badge/python-3.8+-green)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
@@ -103,7 +103,16 @@ pip install -r requirements.txt
 
 ### 3. 配置 API（⚠️ 重要）
 
-**方式 1：配置文件（推荐）**
+**方式 1：一键配置向导（⭐ v3.1.0 推荐）**
+```bash
+# 运行快速配置脚本
+python scripts/quick_setup.py
+
+# 按提示选择模型提供商，输入 API Key 即可
+# 支持 7 种模型：DeepSeek、OpenAI、通义千问、智谱 AI、Moonshot、Claude、Gemini
+```
+
+**方式 2：配置文件（手动）**
 ```bash
 # 复制配置示例
 cp config/config.example.json config/config.json
@@ -112,7 +121,7 @@ cp config/config.example.json config/config.json
 "api_key": "sk-your-actual-api-key-here"
 ```
 
-**方式 2：GUI 界面配置**
+**方式 3：GUI 界面配置**
 启动程序后在界面上直接配置，可动态切换不同提供商。
 
 ### 4. 启动程序
@@ -140,7 +149,7 @@ python presentation/translation.py
 - **术语库支持**: 自动匹配术语，保证翻译一致性
 - **多语言批量翻译**: 支持 33 种语言，一次选择多个语言同时翻译
 - **动态输出格式**: 根据选择的语言数量自动生成对应列
-- **API 提供商切换**: 支持 DeepSeek、OpenAI 等 8 种 API 服务
+- **多模型支持**: 支持 DeepSeek、OpenAI、通义千问、智谱 AI、Moonshot、Claude、Gemini 等 7 种 API 服务
 - **批量处理**: 支持 Excel 文件批量翻译
 
 ### 📊 术语库管理
@@ -164,6 +173,41 @@ python presentation/translation.py
 
 ## ⚙️ 配置指南
 
+### v3.1.0 一键配置（⭐ 推荐）
+
+**步骤 1：运行配置向导**
+```bash
+python scripts/quick_setup.py
+```
+
+**步骤 2：选择模型提供商**
+```
+请选择模型提供商:
+1. DeepSeek (推荐，性价比高)
+2. OpenAI (高质量翻译)
+3. 通义千问 (中文场景优化)
+4. 智谱 AI (国产模型)
+5. Moonshot (高效翻译)
+6. Claude (英文质量优秀)
+7. Gemini (多语言支持)
+```
+
+**步骤 3：输入 API Key**
+```
+请输入您的 API Key: sk-xxxxxxxxxxxxxxxx
+```
+
+**步骤 4：确认配置**
+```
+✅ 配置完成！
+📋 配置摘要:
+   提供商: DeepSeek
+   模型: deepseek-chat
+   API Key: sk***********xxxx
+   
+是否保存配置并启动程序？(Y/n): Y
+```
+
 ### 核心参数说明
 
 #### API 配置（必须设置）
@@ -173,6 +217,78 @@ python presentation/translation.py
   "api_provider": "deepseek",          // API 提供商
   "base_url": "https://api.deepseek.com",
   "model_name": "deepseek-chat"
+}
+```
+
+#### 多模型提供商配置示例
+
+**DeepSeek（默认）**：
+```json
+{
+  "api_provider": "deepseek",
+  "api_key": "sk-your-deepseek-key",
+  "base_url": "https://api.deepseek.com",
+  "model_name": "deepseek-chat"
+}
+```
+
+**OpenAI**：
+```json
+{
+  "api_provider": "openai",
+  "api_key": "sk-your-openai-key",
+  "base_url": "https://api.openai.com/v1",
+  "model_name": "gpt-3.5-turbo"
+}
+```
+
+**通义千问**：
+```json
+{
+  "api_provider": "qwen",
+  "api_key": "sk-your-qwen-key",
+  "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+  "model_name": "qwen-turbo"
+}
+```
+
+**智谱 AI**：
+```json
+{
+  "api_provider": "zhipuai",
+  "api_key": "your-zhipuai-key",
+  "base_url": "https://open.bigmodel.cn/api/paas/v4",
+  "model_name": "chatglm_turbo"
+}
+```
+
+**Moonshot**：
+```json
+{
+  "api_provider": "moonshot",
+  "api_key": "sk-your-moonshot-key",
+  "base_url": "https://api.moonshot.cn/v1",
+  "model_name": "moonshot-v1-8k"
+}
+```
+
+**Claude**：
+```json
+{
+  "api_provider": "claude",
+  "api_key": "sk-ant-your-claude-key",
+  "base_url": "https://api.anthropic.com/v1",
+  "model_name": "claude-3-sonnet-20240229"
+}
+```
+
+**Gemini**：
+```json
+{
+  "api_provider": "gemini",
+  "api_key": "your-gemini-key",
+  "base_url": "https://generativelanguage.googleapis.com/v1beta/openai",
+  "model_name": "gemini-pro"
 }
 ```
 
@@ -232,6 +348,8 @@ config = Config(
 ```
 
 ### 常见 API 提供商配置
+
+> **提示**：v3.1.0 版本推荐使用一键配置脚本 `python scripts/quick_setup.py`，无需手动编辑配置文件。
 
 **DeepSeek（默认）**：
 ```json
@@ -637,6 +755,14 @@ pytest tests/ -v
 
 ## 📝 更新日志
 
+### v3.1.0 (2026-04-03)
+- ✨ 一键配置系统 - 重新设计快速配置脚本，支持 7 种模型提供商
+- ✨ 多模型支持 - DeepSeek、OpenAI、通义千问、智谱 AI、Moonshot、Claude、Gemini
+- ✨ 简化配置流程 - 只需输入 API Key 即可完成配置
+- 🐛 修复依赖容器初始化问题
+- 🐛 修复异常处理模块重复定义问题
+- 🔧 代码质量优化 - 重构配置验证、错误处理、嵌套字典访问
+
 ### v3.0.0 (2026-04-01)
 - ✨ 双阶段翻译参数 GUI 控制
 - ✨ 语言扩展至 33 种目标语言 + 10 种源语言
@@ -685,7 +811,7 @@ Translation Team
 
 ---
 
-**文档版本**: 3.0.0  
-**最后更新**: 2026-04-01  
-**维护者**: Development Team  
+**文档版本**: 3.1.0
+**最后更新**: 2026-04-03
+**维护者**: Development Team
 **许可证**: MIT

@@ -1,11 +1,11 @@
-# 配置填入手册 v3.0
+# 配置填入手册 v3.1
 
 > 📖 **本手册专为新手设计**，从零开始指导您完成所有配置，无需任何前置知识。
 
 ## 📋 目录
 
 1. [第一次使用？从这里开始](#-第一次使用从这里开始)
-2. [⚡ 3 分钟快速配置](#-3-分钟快速配置)
+2. [⚡ v3.1.0 一键配置（⭐ 推荐）](#-v310-一键配置-推荐)
 3. [📝 配置文件详解](#-配置文件详解)
 4. [🔧 常用场景配置](#-常用场景配置)
 5. [🔍 问题排查](#-问题排查)
@@ -31,36 +31,57 @@
 
 **💡 提示：** 新用户通常有免费额度，足够测试使用。
 
+### v3.1.0 支持的模型提供商
+
+| 提供商 | 特点 | 推荐场景 | API Key 格式 |
+|--------|------|----------|--------------|
+| **DeepSeek** | 性价比高，中文优秀 | 日常翻译、技术文档 | sk-xxxxxxxxx |
+| **OpenAI** | 质量最高，生态完善 | 高质量翻译、英文 | sk-xxxxxxxxx |
+| **通义千问** | 阿里出品，中文优化 | 中文场景、商务 | sk-xxxxxxxxx |
+| **智谱 AI** | 国产模型，自主可控 | 国内合规场景 | xxxxxxxxx |
+| **Moonshot** | 高效快速，成本低 | 大批量翻译 | sk-xxxxxxxxx |
+| **Claude** | 英文质量优秀 | 英文文档、文学 | sk-ant-xxxxxxx |
+| **Gemini** | 多语言支持优秀 | 多语种翻译 | xxxxxxxxx |
+
 ---
 
-## ⚡ 3 分钟快速配置
+## ⚡ v3.1.0 一键配置（⭐ 推荐）
 
-### 方式一：自动配置向导（⭐ 最简单）
+### 方式一：快速配置向导（最简单）
 
 **适合人群：** 所有用户，特别是新手
 
 **步骤：**
 
 ```bash
-# 1. 运行快速启动脚本
-python scripts/quick_start.py
+# 1. 运行快速配置脚本
+python scripts/quick_setup.py
 ```
 
 **接下来跟随向导操作：**
 
-#### 步骤 1/3：选择模式
+#### 步骤 1/3：选择模型提供商
 ```
-请选择模式 (1-4，默认 1):
-1. 🐣 新手模式     - 最简单配置，只需设置 API Key
-2. ⚖️  平衡模式     - 性能与质量的平衡（推荐）
-3. 🏆 高质量模式   - 翻译质量优先，适合重要文档
-4. ⚡ 快速模式     - 翻译速度优先，适合大批量
+==================================================
+🚀 AI 智能翻译系统 - 快速配置向导 v3.1.0
+==================================================
+
+请选择模型提供商:
+1. DeepSeek (推荐，性价比高)
+2. OpenAI (高质量翻译)
+3. 通义千问 (中文场景优化)
+4. 智谱 AI (国产模型)
+5. Moonshot (高效翻译)
+6. Claude (英文质量优秀)
+7. Gemini (多语言支持)
+
+请输入选项 (1-7，默认 1):
 ```
-**👉 输入 `1` 然后按回车（新手模式）**
+**👉 输入 `1` 然后按回车（选择 DeepSeek）**
 
 #### 步骤 2/3：输入 API Key
 ```
-请输入您的 DeepSeek API Key: 
+请输入您的 DeepSeek API Key:
 ```
 **👉 粘贴你的 API Key 然后按回车**
 ```
@@ -70,16 +91,15 @@ python scripts/quick_start.py
 #### 步骤 3/3：确认配置
 ```
 📋 配置摘要:
-   使用模式：新手模式
-   模型名称：deepseek-chat
-   并发范围：5-8
-   超时时间：60 秒
+   提供商: DeepSeek
+   模型: deepseek-chat
+   API Key: sk***********abcd
 
-是否保存配置？(Y/n):
+是否保存配置并启动程序？(Y/n):
 ```
 **👉 输入 `Y` 然后按回车**
 
-**完成！** 🎉 程序会自动启动翻译界面。
+**完成！** 🎉 程序会自动保存配置并启动翻译界面。
 
 ---
 
@@ -104,14 +124,13 @@ cp config/config.example.json config/config.json
 
 用文本编辑器（如记事本、VS Code）打开 `config/config.json`
 
-**找到这一行：**
+**需要修改的关键配置：**
 ```json
-"api_key": "aa",
-```
-
-**修改为你的 API Key：**
-```json
-"api_key": "sk-your-actual-api-key-here",
+{
+  "api_key": "sk-your-actual-api-key-here",  // ⚠️ 改成你的 API Key
+  "api_provider": "deepseek",                 // 提供商：deepseek/openai/qwen/zhipuai/moonshot/claude/gemini
+  "model_name": "deepseek-chat"               // 模型名称
+}
 ```
 
 **就这么简单！** 其他参数都用默认值即可。
@@ -120,6 +139,10 @@ cp config/config.example.json config/config.json
 
 保存文件，然后运行：
 ```bash
+# Windows 用户
+启动翻译平台.bat
+
+# 或者使用命令行
 python presentation/translation.py
 ```
 
@@ -131,18 +154,14 @@ python presentation/translation.py
 
 ```json
 {
-  "_version": "v3.0.0",
-  
-  // ========== 【必填】API 密钥 ==========
-  "model_name": "deepseek-chat",
-  
-  "api_keys": {
-    "deepseek": {
-      "api_key": "sk-your-key-here",  // ⚠️ 改成你的 API Key
-      "base_url": "https://api.deepseek.com"
-    }
-  },
-  
+  "_version": "v3.1.0",
+
+  // ========== 【必填】API 配置 ==========
+  "api_key": "sk-your-key-here",         // ⚠️ 改成你的 API Key
+  "api_provider": "deepseek",            // 提供商名称
+  "model_name": "deepseek-chat",         // 模型名称
+  "base_url": "https://api.deepseek.com", // API 地址
+
   // ========== 【可选】新手推荐参数 ==========
   "temperature": 0.3,        // 创造性：0.3 准确，0.7 有创意
   "initial_concurrency": 5,  // 并发数：5 保守，10 正常，20 快速
@@ -159,11 +178,21 @@ python presentation/translation.py
 
 | 字段 | 说明 | 必填 | 示例 |
 |------|------|------|------|
+| `api_key` | API 密钥 | ✅ | `"sk-xxx"` |
+| `api_provider` | 提供商名称 | ✅ | `"deepseek"` |
 | `model_name` | 模型名称 | ✅ | `"deepseek-chat"` |
-| `api_keys.deepseek.api_key` | API 密钥 | ✅ | `"sk-xxx"` |
-| `api_keys.deepseek.base_url` | API 地址 | ✅ | `"https://api.deepseek.com"` |
+| `base_url` | API 地址 | ✅ | `"https://api.deepseek.com"` |
 
-**💡 提示：** 系统会自动根据 `model_name` 识别提供商，无需手动设置 `api_provider`。
+**支持的提供商名称：**
+- `deepseek` - DeepSeek（深度求索）
+- `openai` - OpenAI
+- `qwen` - 通义千问（阿里）
+- `zhipuai` - 智谱 AI
+- `moonshot` - Moonshot
+- `claude` - Claude（Anthropic）
+- `gemini` - Gemini（Google）
+
+**💡 提示：** 使用一键配置脚本 `python scripts/quick_setup.py` 可自动填充所有参数，无需手动编辑。
 
 #### 模型参数（影响翻译质量）
 
@@ -220,13 +249,10 @@ python presentation/translation.py
 **配置：**
 ```json
 {
+  "api_key": "sk-your-key",
+  "api_provider": "deepseek",
   "model_name": "deepseek-chat",
-  "api_keys": {
-    "deepseek": {
-      "api_key": "sk-your-key",
-      "base_url": "https://api.deepseek.com"
-    }
-  },
+  "base_url": "https://api.deepseek.com",
   "temperature": 0.3,
   "initial_concurrency": 8,
   "max_concurrency": 12,
@@ -250,13 +276,10 @@ python presentation/translation.py
 **配置：**
 ```json
 {
+  "api_key": "sk-your-key",
+  "api_provider": "deepseek",
   "model_name": "deepseek-chat",
-  "api_keys": {
-    "deepseek": {
-      "api_key": "sk-your-key",
-      "base_url": "https://api.deepseek.com"
-    }
-  },
+  "base_url": "https://api.deepseek.com",
   "temperature": 0.2,
   "top_p": 0.7,
   "initial_concurrency": 6,
@@ -280,13 +303,10 @@ python presentation/translation.py
 **配置：**
 ```json
 {
+  "api_key": "sk-your-key",
+  "api_provider": "deepseek",
   "model_name": "deepseek-chat",
-  "api_keys": {
-    "deepseek": {
-      "api_key": "sk-your-key",
-      "base_url": "https://api.deepseek.com"
-    }
-  },
+  "base_url": "https://api.deepseek.com",
   "initial_concurrency": 15,
   "max_concurrency": 20,
   "timeout": 45,
@@ -309,19 +329,12 @@ python presentation/translation.py
 **配置：**
 ```json
 {
-  "draft_model_name": "deepseek-chat",
-  "review_model_name": "gpt-4-turbo",
-  "api_keys": {
-    "deepseek": {
-      "api_key": "sk-deepseek-key",
-      "base_url": "https://api.deepseek.com"
-    },
-    "openai": {
-      "api_key": "sk-openai-key",
-      "base_url": "https://api.openai.com/v1"
-    }
-  },
+  "api_key": "sk-deepseek-key",
+  "api_provider": "deepseek",
+  "model_name": "deepseek-chat",
+  "base_url": "https://api.deepseek.com",
   "draft_temperature": 0.3,
+  "review_model_name": "gpt-4-turbo",
   "review_temperature": 0.5,
   "timeout": 120
 }
@@ -417,10 +430,11 @@ AuthenticationError: API 密钥不能为空
 ```
 
 **解决：**
-1. 打开 `config/config.json`
-2. 找到 `"api_key": ""`
-3. 填入你的 API Key：`"api_key": "sk-xxxxx"`
-4. 保存文件
+1. 运行一键配置脚本：`python scripts/quick_setup.py`
+2. 或手动打开 `config/config.json`
+3. 找到 `"api_key": ""`
+4. 填入你的 API Key：`"api_key": "sk-xxxxx"`
+5. 保存文件
 
 ---
 
@@ -505,10 +519,10 @@ python scripts/manage_config.py validate
 
 ## 🎉 总结
 
-**配置其实很简单：**
+**v3.1.0 配置其实很简单：**
 
 1. **获取 API Key** （1 分钟）
-2. **运行配置向导** `python scripts/quick_start.py`（1 分钟）
+2. **运行一键配置脚本** `python scripts/quick_setup.py`（30 秒）
 3. **开始翻译** （0 分钟）
 
 **记住这 3 步，就能搞定 99% 的配置！**
@@ -522,5 +536,6 @@ python scripts/manage_config.py validate
 - ✅ 引导你完成配置
 - ✅ 验证配置的有效性
 - ✅ 修复常见配置问题
+- ✅ 支持 7 种模型提供商一键切换
 
 **就这么简单！** 🎊
