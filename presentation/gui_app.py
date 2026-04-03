@@ -557,6 +557,14 @@ class TranslationApp:
             command=self._show_history_window
         )
         self.history_btn.pack(side=tk.LEFT, padx=5)
+
+        # 退出程序按钮
+        self.exit_btn = ttk.Button(
+            btn_frame,
+            text="🚪 退出程序",
+            command=self._on_closing
+        )
+        self.exit_btn.pack(side=tk.LEFT, padx=5)
         
         # 进度条
         self.progress_var = tk.DoubleVar()

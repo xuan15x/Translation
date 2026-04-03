@@ -43,8 +43,9 @@ class Config(ModuleLoggerMixin):
     base_url: str = "https://api.deepseek.com"
     api_provider: str = "deepseek"
 
-    # 多 API 提供商配置（支持配置文件管理）
-    api_providers: Dict[str, Dict[str, Any]] = field(default_factory=dict)
+    # 多 API 提供商配置（新的嵌套结构）
+    api_keys: Dict[str, Dict[str, Any]] = field(default_factory=dict)  # 新的多提供商配置结构
+    api_providers: Dict[str, Dict[str, Any]] = field(default_factory=dict)  # 旧的提供商配置
 
     # ========== 全局模型配置 ==========
     model_name: str = "deepseek-chat"
