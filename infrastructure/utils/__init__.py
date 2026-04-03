@@ -16,6 +16,7 @@ from .progress_estimator import ProgressEstimator
 from .conflict_resolver import ConflictResolver
 from .undo_manager import UndoManager
 from .smart_config import SmartConfigurator
+from .utils import get_nested_value, set_nested_value
 from .config_metrics import ConfigMetrics, record_config_usage
 
 __all__ = [
@@ -37,5 +38,7 @@ __all__ = [
     'UndoManager',
     'SmartConfigurator',
     'ConfigMetrics',
-    'record_config_usage'
+    'record_config_usage',
+    'get_nested_value',
+    'set_nested_value',
 ]
