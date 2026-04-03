@@ -237,26 +237,42 @@ class TranslationServiceFacade:
         import pandas as pd
         from collections import defaultdict
         
+        # 语言代码到完整名称的映射
+        lang_name_map = {
+            'en': '英语', 'ja': '日语', 'ko': '韩语', 'fr': '法语', 'de': '德语',
+            'es': '西班牙语', 'pt': '葡萄牙语', 'ru': '俄语', 'it': '意大利语',
+            'th': '泰语', 'vi': '越南语', 'id': '印尼语', 'ms': '马来语',
+            'pl': '波兰语', 'tr': '土耳其语', 'ar': '阿拉伯语', 'hi': '印地语',
+            'ur': '乌尔都语', 'bn': '孟加拉语', 'fil': '菲律宾语', 'my': '缅甸语',
+            'km': '柬埔寨语', 'lo': '老挝语', 'fa': '波斯语', 'he': '希伯来语',
+            'sw': '斯瓦希里语', 'ha': '豪萨语', 'kk': '哈萨克语', 'uz': '乌兹别克语',
+            'sv': '瑞典语', 'no': '挪威语', 'da': '丹麦语', 'fi': '芬兰语'
+        }
+        
         # 按行索引组织数据
         rows = defaultdict(dict)
         
         for result in results:
             idx = result.task.idx
+            # 获取语言的完整名称（如果映射中没有则使用原代码）
+            lang_full = lang_name_map.get(result.task.target_lang, result.task.target_lang)
+            
             rows[idx]['行号'] = idx + 1
             rows[idx]['Key'] = result.task.key
             rows[idx]['原文'] = result.task.source_text
-            rows[idx][f'译文_{result.task.target_lang}'] = result.final_trans if result.success else '(Failed)'
-            rows[idx][f'状态_{result.task.target_lang}'] = result.status.value
+            rows[idx][f'译文_{lang_full}'] = result.final_trans if result.success else '(Failed)'
+            rows[idx][f'状态_{lang_full}'] = result.status.value
         
         # 转换为 DataFrame
         df = pd.DataFrame.from_dict(rows, orient='index')
         
-        # 确保列顺序
+        # 确保列顺序（使用完整语言名称）
         base_cols = ['行号', 'Key', '原文']
         lang_cols = []
         for lang in target_langs:
-            lang_cols.append(f'译文_{lang}')
-            lang_cols.append(f'状态_{lang}')
+            lang_full = lang_name_map.get(lang, lang)
+            lang_cols.append(f'译文_{lang_full}')
+            lang_cols.append(f'状态_{lang_full}')
         
         all_cols = base_cols + lang_cols
         # 只保留存在的列
