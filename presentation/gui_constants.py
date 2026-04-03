@@ -1,0 +1,47 @@
+"""
+GUI 常量配置
+集中管理所有GUI相关的常量配置
+"""
+
+# 预览面板配置
+PREVIEW_MAX_ROWS = 10
+PREVIEW_UPDATE_DELAY_MS = 500
+
+# 性能监控配置
+PERFORMANCE_UPDATE_INTERVAL_MS = 1000
+
+# 进度显示配置
+PROGRESS_LOG_THRESHOLD_PERCENT = 10
+PROGRESS_UPDATE_INTERVAL_LINES = 10  # 每N行更新一次进度
+
+# 窗口配置
+WINDOW_MIN_WIDTH = 1200
+WINDOW_MIN_HEIGHT = 800
+
+# 日志配置
+DEFAULT_LOG_LEVEL = "INFO"
+DEFAULT_LOG_GRANULARITY = "normal"
+
+# 并发配置
+DEFAULT_CONCURRENCY_LIMIT = 10
+
+# 语言分页配置
+LANGUAGES_PER_ROW = 5  # 每行显示的语言数量
+
+# 历史记录配置
+HISTORY_LIST_LIMIT = 100  # 历史记录列表最大显示条数
+
+# 会话配置
+SESSION_CONFIG_FILE = "session_config.json"
+
+# 提示词配置
+PROMPT_PREVIEW_HEIGHT = 6  # 提示词预览文本框高度
+PREVIEW_FONT_SIZE = 9
+PREVIEW_BG_COLOR = "#f5f5f5"
+
+# 样式配置
+ACCENT_COLOR = "#0066cc"
+SUCCESS_COLOR = "#00aa00"
+WARNING_COLOR = "#cc6600"
+ERROR_COLOR = "#cc0000"
+DISABLED_COLOR = "#666666"
