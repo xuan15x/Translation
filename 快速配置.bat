@@ -31,10 +31,17 @@ echo.
 :: Change to script directory
 cd /d "%~dp0"
 
-:: Check config file
+:: ============================================================
+:: Check and create config.json automatically
+:: ============================================================
+if not exist "config" (
+    mkdir config
+    echo [OK] Created config directory
+)
+
 if not exist "config\config.json" (
-    echo [INFO] Config file not found, creating valid config...
-    python -c "import json; config={'_version':'v3.2.0','model_name':'deepseek-chat','api_keys':{'deepseek':{'api_key':'','base_url':'https://api.deepseek.com'},'openai':{'api_key':'','base_url':'https://api.openai.com/v1'},'custom':{'api_key':'','base_url':''}},'temperature':0.7,'top_p':0.9,'timeout':60,'max_retries':3,'initial_concurrency':8,'max_concurrency':10,'batch_size':1000,'enable_two_pass':True,'translation_mode':'full','prompt_templates':{'draft':{'role':'Professional Translator','task':'Translate Src to {target_lang}','constraints':['Output JSON ONLY: {\"Trans\": \"string\"}','Strictly follow provided TM','Accurate and direct']},'review':{'role':'Senior Language Editor','task':'Polish Draft into native {target_lang}','constraints':['Output JSON ONLY: {\"Trans\": \"string\", \"Reason\": \"string\"}','Reason: Max 10 chars. If no change, Reason=','Focus on flow and tone']}},'target_languages':['英语','德语','法语','日语','韩语','意大利语','西班牙语','葡萄牙语','泰语','越南语','印尼语','马来语','俄语','波兰语','土耳其语','阿拉伯语'],'favorite_languages':['英语','日语','韩语'],'default_source_lang':'中文','enabled_translation_types':['match3_item','match3_skill','match3_level','match3_dialogue','match3_ui','dialogue','ui','scene','tutorial','achievement','custom']}; f=open('config/config.json','w',encoding='utf-8'); json.dump(config,f,indent=2,ensure_ascii=False); f.close(); print('[OK] Valid config.json created')"
+    echo [INFO] Config not found, creating default config...
+    python -c "import json; config={'_version':'v3.2.0','_description':'AI Translation Workbench Config','model_name':'deepseek-chat','api_provider':'deepseek','api_keys':{'deepseek':{'api_key':'','base_url':'https://api.deepseek.com'},'openai':{'api_key':'','base_url':'https://api.openai.com/v1'},'custom':{'api_key':'','base_url':''}},'temperature':0.7,'top_p':0.9,'timeout':60,'max_retries':3,'initial_concurrency':8,'max_concurrency':10,'batch_size':1000,'enable_two_pass':True,'translation_mode':'full','prompt_templates':{'draft':{'role':'Professional Translator','task':'Translate Src to {target_lang}','constraints':['Output JSON ONLY: {\"Trans\": \"string\"}','Strictly follow provided TM','Accurate and direct']},'review':{'role':'Senior Language Editor','task':'Polish Draft into native {target_lang}','constraints':['Output JSON ONLY: {\"Trans\": \"string\", \"Reason\": \"string\"}','Reason: Max 10 chars','Focus on flow and tone']}},'target_languages':['英语','德语','法语','日语','韩语','意大利语','西班牙语','葡萄牙语','泰语','越南语','印尼语','马来语','俄语','波兰语','土耳其语','阿拉伯语'],'favorite_languages':['英语','日语','韩语'],'default_source_lang':'中文','supported_source_langs':['中文','英语','日语','韩语','法语','德语','西班牙语','意大利语','葡萄牙语','俄语'],'enabled_translation_types':['match3_item','match3_skill','match3_level','match3_dialogue','match3_ui','dialogue','ui','scene','tutorial','achievement','custom'],'gui_window_title':'AI Translation Workbench v3.2','gui_window_width':950,'gui_window_height':800,'log_level':'INFO','log_max_lines':1000,'pool_size':5,'cache_capacity':2000,'cache_ttl_seconds':3600,'similarity_low':60,'exact_match_score':100,'gc_interval':2}; f=open('config/config.json','w',encoding='utf-8'); json.dump(config,f,indent=2,ensure_ascii=False); f.close(); print('[OK] Default config created: config/config.json')"
     if errorlevel 1 (
         echo [ERROR] Failed to create config
         pause
@@ -42,7 +49,7 @@ if not exist "config\config.json" (
     )
     echo.
 ) else (
-    echo [OK] Config file found: config\config.json
+    echo [OK] Found existing config: config/config.json
     echo.
 )
 
