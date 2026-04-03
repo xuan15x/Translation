@@ -855,21 +855,36 @@ class TranslationApp:
             try:
                 # 获取当前选择的API提供商
                 api_provider_name = self.current_provider_var.get()
-                logger.debug(f"当前API提供商: {api_provider_name}")
-                
+                logger.info(f"📌 当前界面选择的API提供商: {api_provider_name}")
+
                 # 获取提供商管理器
                 provider_manager = get_provider_manager()
-                
+                logger.debug(f"提供商管理器: {provider_manager}")
+                logger.debug(f"预定义提供商: {list(provider_manager._providers.keys())}")
+
                 # 获取提供商配置
+                base_url = None
                 try:
                     provider_enum = APIProvider(api_provider_name.lower())
+                    logger.debug(f"转换后的APIProvider枚举: {provider_enum}")
+                    
                     provider_config = provider_manager.get_provider(provider_enum)
-                    base_url = provider_config.base_url
-                    logger.debug(f"使用base_url: {base_url}")
-                except (ValueError, KeyError):
+                    logger.debug(f"获取到的提供商配置: {provider_config}")
+                    
+                    if provider_config:
+                        base_url = provider_config.base_url
+                        logger.info(f"✅ 从提供商配置获取base_url: {base_url}")
+                    else:
+                        logger.warning(f"⚠️ get_provider返回None")
+                        base_url = "https://api.deepseek.com"
+                        
+                except (ValueError, KeyError, AttributeError) as e:
                     # 如果无法解析提供商，使用默认
-                    logger.warning(f"无法识别的提供商: {api_provider_name}，使用默认配置")
+                    logger.warning(f"⚠️ 解析提供商失败 (异常: {type(e).__name__}: {e})，使用默认DeepSeek配置")
                     base_url = "https://api.deepseek.com"
+                
+                logger.info(f"🌐 最终使用的base_url: {base_url}")
+                logger.info(f"🔑 API密钥前缀: {api_key[:10]}...")
                 
                 # 创建异步API客户端，传入api_key和base_url
                 api_client = AsyncOpenAI(
@@ -878,7 +893,7 @@ class TranslationApp:
                 )
                 logger.info(f"✅ API客户端创建成功 (提供商: {api_provider_name}, base_url: {base_url})")
             except Exception as e:
-                logger.error(f"❌ API客户端创建失败: {e}")
+                logger.error(f"❌ API客户端创建失败: {e}", exc_info=True)
                 raise
             
             # 初始化容器，传递必要参数
