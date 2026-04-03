@@ -2025,7 +2025,7 @@ Constraints:
             # 获取配置（从配置文件加载）
             config = self._create_config()
 
-            # 获取 API 客户端
+            # 获取 API 提供商配置（仅用于验证和日志，实际客户端由容器根据 config 创建）
             provider_name = self.current_provider_var.get()
             if self.provider_manager is None:
                 raise ValueError("API 提供商管理器未初始化。请检查配置文件格式。")
@@ -2033,14 +2033,14 @@ Constraints:
             provider = self.provider_manager.get_provider(provider_name)
             if provider is None:
                 available = self.provider_manager.list_providers()
-                raise ValueError(f"找不到 API 提供商 '{provider_name}'。可用提供商: {available}。请检查 config.json 中的 'api_keys' 配置。")
+                raise ValueError(f"找不到 API 提供商 '{provider_name}'。可用提供商: {[p.value for p in available]}。请检查 config.json 中的 'api_provider' 字段。")
             
-            api_client = provider.get_client()
+            logger.info(f"🔌 使用 API 提供商: {provider_name} ({provider.name})")
 
-            # 初始化容器（根据模式传入需要的提示词）
+            # 初始化容器（传入 config 对象，容器会自动根据 config.api_key 和 config.base_url 创建客户端）
             self.container = initialize_container(
                 config_file=self.config_file,
-                api_client=api_client,
+                api_client=config,  # 直接传递 config 对象，包含 api_key 和 base_url
                 draft_prompt=draft_prompt,
                 review_prompt=review_prompt
             )
@@ -2458,12 +2458,11 @@ Constraints:
             logger.error(f"❌ 应用配置到 GUI 失败：{e}")
     
     def _get_available_providers_from_config(self) -> list:
-        """获取可用的 API 提供商列表
-        
-        Returns:
-            APIProvider 名称列表
-        """
-        return self.provider_manager.list_providers() if self.provider_manager else []
+        """获取可用的 API 提供商名称列表（返回纯字符串）"""
+        if self.provider_manager:
+            # 提取枚举的 value 属性（如 'deepseek', 'openai'）
+            return [p.value for p in self.provider_manager.list_providers()]
+        return ["deepseek"]
     
     def _setup_logger(self):
         """设置日志系统"""
