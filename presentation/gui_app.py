@@ -187,11 +187,32 @@ class TranslationApp:
         ttk.Button(file_frame, text="选择...", command=self._select_source_file).grid(
             row=1, column=2, pady=5)
         
-        # 模式
+        # 模式选择
         mode_frame = ttk.Frame(file_frame)
         mode_frame.grid(row=2, column=0, columnspan=3, sticky=tk.W, pady=5)
         ttk.Radiobutton(mode_frame, text="🆕 新文档 (双阶段)", variable=self.mode_var, value=1).pack(side=tk.LEFT, padx=10)
         ttk.Radiobutton(mode_frame, text="📝 旧文档校对", variable=self.mode_var, value=2).pack(side=tk.LEFT, padx=10)
+
+        # 翻译模式选择（完整双阶段/仅初译/仅校对）
+        trans_mode_frame = ttk.Frame(file_frame)
+        trans_mode_frame.grid(row=3, column=0, columnspan=3, sticky=tk.W, pady=5)
+        ttk.Label(trans_mode_frame, text="🔄 翻译模式:", font=("", 9, "bold")).pack(side=tk.LEFT, padx=5)
+        self.translation_mode_var = tk.StringVar(value="full")  # full/draft_only/review_only
+        self.mode_combo = ttk.Combobox(
+            trans_mode_frame,
+            textvariable=self.translation_mode_var,
+            values=["full", "draft_only", "review_only"],
+            state='readonly',
+            width=25
+        )
+        self.mode_combo.pack(side=tk.LEFT, padx=5)
+        self.mode_combo.bind('<<ComboboxSelected>>', self._on_translation_mode_changed)
+        
+        ttk.Label(
+            trans_mode_frame,
+            text="💡 选择后自动调整界面",
+            foreground="gray"
+        ).pack(side=tk.LEFT, padx=10)
         
         # --- 2. API 提供商选择区 ---
         provider_frame = ttk.LabelFrame(main_frame, text="🔌 API 提供商", padding="10")
@@ -327,29 +348,6 @@ class TranslationApp:
             foreground="gray"
         )
         self.type_desc_label.pack(side=tk.LEFT, padx=10)
-
-        # 翻译模式选择（新增）
-        mode_select_frame = ttk.Frame(main_frame)
-        mode_select_frame.pack(fill=tk.X, pady=(0, 10))
-
-        ttk.Label(mode_select_frame, text="🔄 翻译模式:", font=("", 9, "bold")).pack(side=tk.LEFT, padx=5)
-
-        self.translation_mode_var = tk.StringVar(value="full")  # full/draft_only/review_only
-        self.mode_combo = ttk.Combobox(
-            mode_select_frame,
-            textvariable=self.translation_mode_var,
-            values=["full", "draft_only", "review_only"],  # 简单字符串列表
-            state='readonly',
-            width=30
-        )
-        self.mode_combo.pack(side=tk.LEFT, padx=5)
-        self.mode_combo.bind('<<ComboboxSelected>>', self._on_translation_mode_changed)
-
-        ttk.Label(
-            mode_select_frame,
-            text="💡 选择模式后自动调整界面",
-            foreground="gray"
-        ).pack(side=tk.LEFT, padx=10)
         
         # --- 4. 源语言选择区 ---
         source_lang_frame = ttk.LabelFrame(main_frame, text="📝 源语言选择", padding="10")
