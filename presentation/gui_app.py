@@ -1293,68 +1293,84 @@ class TranslationApp:
         messagebox.showinfo("成功", "提示词格式校验通过！")
     
     def _save_custom_prompts(self):
-        """保存自定义提示词到文件"""
+        """保存自定义提示词到 txt 文件"""
         try:
             from tkinter import filedialog
-            import json
-            
+
             draft = self.draft_text.get("1.0", tk.END).strip()
             review = self.review_text.get("1.0", tk.END).strip()
-            
-            # 获取保存路径
-            file_path = filedialog.asksaveasfilename(
-                title="保存自定义提示词",
-                defaultextension=".json",
-                filetypes=[("JSON files", "*.json"), ("All files", "*.*")],
-                initialfile="custom_prompts.json"
+
+            # 获取保存路径（初译提示词）
+            draft_path = filedialog.asksaveasfilename(
+                title="保存初译提示词",
+                defaultextension=".txt",
+                filetypes=[("Text files", "*.txt"), ("All files", "*.*")],
+                initialfile="draft_prompt.txt"
             )
-            
-            if file_path:
-                # 保存到文件
-                custom_prompts = {
-                    'draft_prompt': draft,
-                    'review_prompt': review,
-                    'translation_type': self.translation_type_var.get()
-                }
-                
-                with open(file_path, 'w', encoding='utf-8') as f:
-                    json.dump(custom_prompts, f, indent=2, ensure_ascii=False)
-                
-                logger.info(f"💾 已保存自定义提示词到：{file_path}")
-                messagebox.showinfo("成功", f"自定义提示词已保存到:\n{file_path}")
-        
+
+            if not draft_path:
+                return
+
+            # 获取保存路径（校对提示词）
+            review_path = filedialog.asksaveasfilename(
+                title="保存校对提示词",
+                defaultextension=".txt",
+                filetypes=[("Text files", "*.txt"), ("All files", "*.*")],
+                initialfile="review_prompt.txt"
+            )
+
+            if not review_path:
+                return
+
+            # 保存为 txt 格式
+            with open(draft_path, 'w', encoding='utf-8') as f:
+                f.write(draft)
+
+            with open(review_path, 'w', encoding='utf-8') as f:
+                f.write(review)
+
+            logger.info(f"💾 已保存自定义提示词到：{draft_path}, {review_path}")
+            messagebox.showinfo("成功", f"自定义提示词已保存到:\n- {draft_path}\n- {review_path}")
+
         except Exception as e:
             logger.error(f"❌ 保存提示词失败：{e}")
             messagebox.showerror("错误", f"保存提示词失败:\n{str(e)}")
     
     def _load_custom_prompts(self):
-        """从文件加载自定义提示词"""
+        """从文件加载自定义提示词（支持 .txt 格式）"""
         try:
             from tkinter import filedialog
-            import json
-            
+
             # 选择文件
             file_path = filedialog.askopenfilename(
                 title="加载自定义提示词",
-                defaultextension=".json",
-                filetypes=[("JSON files", "*.json"), ("All files", "*.*")]
+                defaultextension=".txt",
+                filetypes=[("Text files", "*.txt"), ("All files", "*.*")]
             )
-            
+
             if file_path:
-                # 从文件加载
+                # 检查文件大小
+                if os.path.getsize(file_path) == 0:
+                    messagebox.showerror("错误", "文件为空，请选择有效的提示词文件")
+                    return
+
+                # 从文件加载纯文本
                 with open(file_path, 'r', encoding='utf-8') as f:
-                    custom_prompts = json.load(f)
-                
-                # 应用到 GUI
+                    content = f.read()
+                    if not content.strip():
+                        messagebox.showerror("错误", "文件内容为空，请选择有效的提示词文件")
+                        return
+
+                # 将内容同时应用到初译和校对提示词
                 self.draft_text.delete('1.0', tk.END)
-                self.draft_text.insert('1.0', custom_prompts['draft_prompt'])
-                
+                self.draft_text.insert('1.0', content)
+
                 self.review_text.delete('1.0', tk.END)
-                self.review_text.insert('1.0', custom_prompts['review_prompt'])
-                
+                self.review_text.insert('1.0', content)
+
                 logger.info(f"📂 已从 {file_path} 加载自定义提示词")
                 messagebox.showinfo("成功", f"已加载自定义提示词:\n{file_path}")
-        
+
         except Exception as e:
             logger.error(f"❌ 加载提示词失败：{e}")
             messagebox.showerror("错误", f"加载提示词失败:\n{str(e)}")
@@ -2045,7 +2061,7 @@ class TranslationApp:
     def _save_favorite_languages(self, selected_langs: List[str]):
         """
         保存常用语言列表到配置文件
-        
+
         Args:
             selected_langs: 当前选择的语言列表
         """
@@ -2054,20 +2070,34 @@ class TranslationApp:
             config_data = {}
             if self.config_file and os.path.exists(self.config_file):
                 import json
-                with open(self.config_file, 'r', encoding='utf-8') as f:
-                    config_data = json.load(f)
-            
+                
+                # 检查文件是否为空
+                if os.path.getsize(self.config_file) == 0:
+                    logger.warning("配置文件为空，将创建新的配置")
+                    config_data = {}
+                else:
+                    with open(self.config_file, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                        if not content.strip():
+                            logger.warning("配置文件内容为空，将创建新的配置")
+                            config_data = {}
+                        else:
+                            config_data = json.loads(content)
+
             # 更新常用语言配置
             config_data['favorite_languages'] = selected_langs
-            
+
             # 保存回配置文件
             if self.config_file:
                 import json
                 with open(self.config_file, 'w', encoding='utf-8') as f:
                     json.dump(config_data, f, indent=2, ensure_ascii=False)
-                
+
                 logger.debug(f"💾 已保存 {len(selected_langs)} 个常用语言到配置")
-                
+
+        except json.JSONDecodeError as e:
+            logger.error(f"❌ JSON 格式错误：{e}，将使用空配置")
+            config_data = {'favorite_languages': selected_langs}
         except Exception as e:
             logger.error(f"❌ 保存常用语言失败：{e}")
     
