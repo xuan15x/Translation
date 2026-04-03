@@ -278,10 +278,26 @@ def _cleanup_on_exit():
     global _container
     if _container:
         try:
-            # 程序退出时可能日志系统已不可用，静默处理异常
+            # 关闭 AsyncOpenAI 客户端
+            translation_service = _container._singletons.get('translation_service')
+            if translation_service and hasattr(translation_service, 'client'):
+                client = translation_service.client
+                if client and hasattr(client, 'close'):
+                    import asyncio
+                    try:
+                        loop = asyncio.new_event_loop()
+                        loop.run_until_complete(client.close())
+                        loop.close()
+                    except Exception as e:
+                        pass
+            
+            # 关闭数据库连接
+            db_conn = _container._singletons.get('db_connection')
+            if db_conn:
+                db_conn.close()
+                
             _container.shutdown()
         except Exception:
-            # 忽略退出时的所有异常，避免干扰用户
             pass
 
 

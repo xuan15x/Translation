@@ -45,6 +45,9 @@ class TranslationEventHandler:
 
     def _run_translation_async(self):
         """在线程中运行翻译任务"""
+        import threading
+        logger.debug(f"翻译线程启动 (线程ID: {threading.current_thread().ident})")
+        
         try:
             # 在新线程中创建事件循环
             loop = asyncio.new_event_loop()
@@ -52,11 +55,14 @@ class TranslationEventHandler:
             try:
                 loop.run_until_complete(self._execute_translation())
             finally:
+                logger.debug("翻译任务事件循环关闭")
                 loop.close()
         except Exception as e:
             # 错误会通过回调报告
             logger.error(f"翻译线程异常: {e}", exc_info=True)
             self.app.root.after(0, self._handle_translation_error, e)
+        finally:
+            logger.debug("翻译线程退出")
 
     async def _execute_translation(self):
         """执行翻译任务"""
@@ -167,6 +173,7 @@ class TranslationEventHandler:
             logger.debug("步骤9: 清理翻译资源...")
             self.app.root.after(0, self._cleanup_after_translation)
             logger.info("✅ 资源清理完成")
+            logger.debug("翻译任务执行结束")
 
     def _update_ui_for_running_translation(self):
         """更新UI为运行中状态"""
@@ -206,11 +213,18 @@ class TranslationEventHandler:
     def _handle_translation_complete(self, success_rate: float):
         """处理翻译完成"""
         self.app.translation_vm.complete_translation(success_rate)
-        messagebox.showinfo("完成", f"翻译完成！\n成功率：{success_rate:.1f}%")
         
         # 保存常用语言
         if self.app.selected_langs:
             self.app._save_favorite_languages(self.app.selected_langs)
+        
+        # 在主线程中显示完成对话框
+        self.app.root.after(100, self._show_completion_dialog, success_rate)
+    
+    def _show_completion_dialog(self, success_rate: float):
+        """显示完成对话框（延迟执行，避免阻塞）"""
+        from tkinter import messagebox
+        messagebox.showinfo("完成", f"翻译完成！\n成功率：{success_rate:.1f}%")
 
     def _handle_translation_error(self, error: Exception):
         """处理翻译错误"""
@@ -227,21 +241,7 @@ class TranslationEventHandler:
             self.app.pause_btn.config(text="⏸️ 暂停")
             self.app.progress_var.set(0)
             
-            # 关闭API客户端连接，防止连接泄漏导致无响应
-            if hasattr(self.app, 'container') and self.app.container:
-                try:
-                    # 异步关闭客户端（如果有close方法）
-                    client = self.app.container._singletons.get('translation_service')
-                    if client and hasattr(client, 'client') and hasattr(client.client, 'close'):
-                        import asyncio
-                        try:
-                            loop = asyncio.new_event_loop()
-                            loop.run_until_complete(client.client.close())
-                            loop.close()
-                        except:
-                            pass
-                except:
-                    pass
+            logger.debug("翻译状态已重置")
         except Exception as e:
             logger.error(f"清理翻译状态失败: {e}")
 
