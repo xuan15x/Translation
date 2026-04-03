@@ -338,11 +338,7 @@ class TranslationApp:
         self.mode_combo = ttk.Combobox(
             mode_select_frame,
             textvariable=self.translation_mode_var,
-            values=[
-                ("full", "完整双阶段（初译+校对）"),
-                ("draft_only", "仅初译（快速）"),
-                ("review_only", "仅校对")
-            ],
+            values=["full", "draft_only", "review_only"],  # 简单字符串列表
             state='readonly',
             width=30
         )
@@ -1909,15 +1905,23 @@ Constraints:
                         messagebox.showerror("错误", "文件内容为空，请选择有效的提示词文件")
                         return
 
-                # 将内容同时应用到初译和校对提示词
-                self.draft_text.delete('1.0', tk.END)
-                self.draft_text.insert('1.0', content)
+                # 更新预览文本框（需要先启用编辑）
+                self.draft_preview_text.config(state='normal')
+                self.draft_preview_text.delete('1.0', tk.END)
+                self.draft_preview_text.insert('1.0', content)
+                self.draft_preview_text.config(state='disabled')
 
-                self.review_text.delete('1.0', tk.END)
-                self.review_text.insert('1.0', content)
+                self.review_preview_text.config(state='normal')
+                self.review_preview_text.delete('1.0', tk.END)
+                self.review_preview_text.insert('1.0', content)
+                self.review_preview_text.config(state='disabled')
+
+                # 保持向后兼容引用
+                self.draft_text = self.draft_preview_text
+                self.review_text = self.review_preview_text
 
                 logger.info(f"📂 已从 {file_path} 加载自定义提示词")
-                messagebox.showinfo("成功", f"已加载自定义提示词:\n{file_path}")
+                messagebox.showinfo("成功", f"已加载自定义提示词:\n{file_path}\n\n提示：预览已更新")
 
         except Exception as e:
             logger.error(f"❌ 加载提示词失败：{e}")
