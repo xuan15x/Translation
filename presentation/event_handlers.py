@@ -111,19 +111,26 @@ class TranslationEventHandler:
             logger.debug(f"  - 参数: output_excel_path={output_path}")
             logger.debug(f"  - 参数: concurrency_limit={DEFAULT_CONCURRENCY_LIMIT}")
             logger.debug(f"  - 参数: source_lang={source_lang}")
-            
+            logger.debug(f"  - 参数: use_multilingual=True (多语言模式)")
+
             # 记录翻译前的状态
             logger.info(f"📊 翻译任务统计:")
             logger.info(f"  - 目标语言数量: {len(self.app.selected_langs)}")
             logger.info(f"  - 目标语言列表: {self.app.selected_langs}")
             logger.info(f"  - 源语言: {source_lang or '自动检测'}")
             
+            # 启用多语言翻译模式
+            if len(self.app.selected_langs) > 1:
+                logger.info("🌐 启用多语言翻译模式（一次请求翻译多种语言）")
+                self.app.translation_facade.enable_multilingual_mode(True)
+
             result = await self.app.translation_facade.translate_file(
                 source_excel_path=self.app.source_path.get(),
                 target_langs=self.app.selected_langs,
                 output_excel_path=output_path,
                 concurrency_limit=DEFAULT_CONCURRENCY_LIMIT,
-                source_lang=source_lang
+                source_lang=source_lang,
+                use_multilingual=True  # 默认启用多语言模式
             )
             
             logger.info(f"✅ 翻译执行完成")

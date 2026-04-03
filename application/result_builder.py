@@ -203,6 +203,57 @@ class TaskFactory:
                     tasks.append(task)
 
         return tasks
+
+    @staticmethod
+    def from_excel_file_multilingual(excel_path: str, target_langs: List[str], source_lang: Optional[str] = None) -> List['MultiLanguageTask']:
+        """
+        从 Excel 文件批量创建多语言任务（一次请求翻译多种语言）
+
+        Args:
+            excel_path: Excel 文件路径
+            target_langs: 目标语言列表
+            source_lang: 源语言列名（可选，None 表示自动检测）
+
+        Returns:
+            多语言任务列表
+        """
+        import pandas as pd
+        from domain.models import MultiLanguageTask
+
+        df = pd.read_excel(excel_path, engine='openpyxl')
+        tasks = []
+
+        for idx, row in df.iterrows():
+            row_dict = row.to_dict()
+            
+            # 获取原文
+            source_text = ''
+            common_source_cols = ['中文原文', '中文', '原文', 'Source', 'source_text', '文本', '内容']
+            if source_lang and source_lang in row_dict:
+                source_text = row_dict.get(source_lang, '')
+            else:
+                for col in common_source_cols:
+                    if col in row_dict and row_dict[col]:
+                        source_text = row_dict[col]
+                        break
+            
+            if not source_text:
+                continue
+            
+            # 获取 key
+            key = row_dict.get('Key', row_dict.get('key', row_dict.get('ID', row_dict.get('id', f'row_{idx}'))))
+            
+            # 创建多语言任务
+            task = MultiLanguageTask(
+                idx=idx,
+                key=key,
+                source_text=source_text,
+                target_langs=target_langs.copy(),
+                source_lang=source_lang
+            )
+            tasks.append(task)
+
+        return tasks
     
     @staticmethod
     def from_list(texts: List[str], target_lang: str, source_lang: Optional[str] = None) -> List[TranslationTask]:

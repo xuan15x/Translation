@@ -128,12 +128,12 @@ class BatchResult:
     failed_count: int                # 失败数
     local_hit_count: int             # 本地命中数
     results: List[TranslationResult] = field(default_factory=list)
-    
+
     @property
     def success_rate(self) -> float:
         """成功率"""
         return (self.success_count / self.total * 100) if self.total > 0 else 0.0
-    
+
     def add_result(self, result: TranslationResult):
         """添加结果"""
         self.results.append(result)
@@ -143,3 +143,79 @@ class BatchResult:
                 self.local_hit_count += 1
         else:
             self.failed_count += 1
+
+
+@dataclass
+class MultiLanguageTask:
+    """多语言翻译任务 - 一次请求翻译多种语言"""
+    idx: int                         # 行索引
+    key: str                         # 唯一标识
+    source_text: str                 # 源文本
+    target_langs: List[str]          # 目标语言列表
+    source_lang: Optional[str] = None  # 源语言
+    tm_matches: Dict[str, Optional['TermMatch']] = field(default_factory=dict)  # 各语言术语匹配
+
+    def to_prompt_context(self) -> Dict[str, Any]:
+        """转换为提示词上下文"""
+        return {
+            'idx': self.idx,
+            'key': self.key,
+            'source_text': self.source_text,
+            'target_langs': self.target_langs,
+            'source_lang': self.source_lang,
+            'tm_matches': self.tm_matches
+        }
+
+
+@dataclass
+class MultiLanguageResult:
+    """多语言翻译结果 - 一次请求的多种语言结果"""
+    task: MultiLanguageTask          # 关联的任务
+    translations: Dict[str, str]     # 各语言翻译结果 {lang: translation}
+    success_langs: List[str]         # 成功的语言列表
+    failed_langs: List[str]          # 失败的语言列表
+    diagnosis: str                   # 诊断信息
+    status: TranslationStatus        # 整体状态
+
+    @property
+    def success(self) -> bool:
+        """是否全部成功"""
+        return len(self.failed_langs) == 0 and len(self.success_langs) > 0
+
+    @property
+    def partial_success(self) -> bool:
+        """是否部分成功"""
+        return len(self.success_langs) > 0 and len(self.failed_langs) > 0
+
+    def to_single_results(self) -> List[TranslationResult]:
+        """转换为单语言结果列表"""
+        results = []
+        for lang in self.task.target_langs:
+            task = TranslationTask(
+                idx=self.task.idx,
+                key=self.task.key,
+                source_text=self.task.source_text,
+                original_trans=None,
+                target_lang=lang,
+                source_lang=self.task.source_lang
+            )
+            
+            if lang in self.success_langs:
+                status = TranslationStatus.SUCCESS
+                final_trans = self.translations.get(lang, '')
+                reason = ''
+            else:
+                status = TranslationStatus.FAILED
+                final_trans = '(Failed)'
+                reason = f"语言 {lang} 翻译失败"
+            
+            result = TranslationResult(
+                task=task,
+                final_trans=final_trans,
+                initial_trans=final_trans,
+                reason=reason,
+                diagnosis=self.diagnosis,
+                status=status
+            )
+            results.append(result)
+        return results
