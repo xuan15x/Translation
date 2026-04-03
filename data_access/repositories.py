@@ -63,8 +63,9 @@ class TerminologyRepository(ITermRepository):
             _validate_column_name(target_lang)
 
             # 使用参数化查询（WHERE 子句的值使用参数，列名通过白名单验证）
+            # 注意：使用英文逗号分隔列名
             cursor.execute(f'''
-                SELECT 中文原文，"{target_lang}"
+                SELECT "中文原文", "{target_lang}"
                 FROM terminology
                 WHERE "{target_lang}" IS NOT NULL AND "{target_lang}" != ''
             ''')
@@ -101,7 +102,11 @@ class TerminologyRepository(ITermRepository):
         except ValueError:
             raise
         except Exception as e:
-            raise RuntimeError(f"术语查询失败：{e}")
+            # 术语查询失败时返回None而不是抛出异常，让翻译继续
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"术语查询失败（返回None继续翻译）: {e}")
+            return None
 
     async def save(self, source_text: str, target_lang: str, translation: str) -> bool:
         """保存到术语库 - 使用参数化查询"""
@@ -113,7 +118,7 @@ class TerminologyRepository(ITermRepository):
 
             # 检查是否已存在（使用参数化查询）
             cursor.execute('''
-                SELECT Key FROM terminology WHERE 中文原文 = ?
+                SELECT Key FROM terminology WHERE "中文原文" = ?
             ''', (source_text,))
 
             existing = cursor.fetchone()
@@ -123,7 +128,7 @@ class TerminologyRepository(ITermRepository):
                 cursor.execute(f'''
                     UPDATE terminology
                     SET "{target_lang}" = ?
-                    WHERE 中文原文 = ?
+                    WHERE "中文原文" = ?
                 ''', (translation, source_text))
             else:
                 # 插入新记录（列名通过白名单验证，值使用参数）
@@ -147,7 +152,9 @@ class TerminologyRepository(ITermRepository):
         except ValueError:
             raise
         except Exception as e:
-            print(f"保存术语失败：{e}")
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"保存术语失败：{e}")
             return False
 
     async def get_all_terms(self) -> List[Dict[str, Any]]:
@@ -162,5 +169,7 @@ class TerminologyRepository(ITermRepository):
             return [dict(zip(columns, row)) for row in rows]
 
         except Exception as e:
-            print(f"获取术语列表失败：{e}")
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"获取术语列表失败：{e}")
             return []
