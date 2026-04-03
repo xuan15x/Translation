@@ -23,9 +23,24 @@ class TranslationEventHandler:
 
     def start_translation(self):
         """启动翻译（使用线程避免阻塞UI）"""
+        logger.info("="*60)
+        logger.info("🚀 用户点击开始翻译按钮")
+        logger.info("="*60)
+        
+        # 记录当前状态
+        logger.debug(f"当前状态:")
+        logger.debug(f"  - 源文件: {self.app.source_path.get() or '未选择'}")
+        logger.debug(f"  - 术语库: {self.app.term_path.get() or '未选择'}")
+        logger.debug(f"  - 目标语言: {self.app.selected_langs}")
+        logger.debug(f"  - 翻译模式: {self.app.translation_mode_var.get()}")
+        logger.debug(f"  - API提供商: {self.app.current_provider_var.get()}")
+        logger.debug(f"  - 源语言: {self.app.source_lang_var.get()}")
+        
         # 使用线程执行异步操作，避免阻塞Tkinter主循环
+        logger.debug("创建翻译线程...")
         thread = threading.Thread(target=self._run_translation_async, daemon=True)
         thread.start()
+        logger.info("✅ 翻译线程已启动")
 
     def _run_translation_async(self):
         """在线程中运行翻译任务"""
@@ -44,34 +59,58 @@ class TranslationEventHandler:
 
     async def _execute_translation(self):
         """执行翻译任务"""
+        logger.info("🚀 开始执行翻译任务...")
         try:
+            logger.debug("步骤1: 初始化服务...")
             self.app._initialize_services()
+            logger.info("✅ 服务初始化完成")
 
-            if not self.app.source_path.get():
+            # 验证输入
+            logger.debug("步骤2: 验证输入参数...")
+            source_file = self.app.source_path.get()
+            logger.debug(f"  - 源文件: {source_file}")
+            logger.debug(f"  - 目标语言数量: {len(self.app.selected_langs)}")
+            logger.debug(f"  - 目标语言列表: {self.app.selected_langs}")
+            
+            if not source_file:
+                logger.warning("⚠️ 未选择源文件")
                 self.app.root.after(0, lambda: messagebox.showwarning("警告", "请选择待翻译文件"))
                 return
 
             if not self.app.selected_langs:
+                logger.warning("⚠️ 未选择目标语言")
                 self.app.root.after(0, lambda: messagebox.showwarning("警告", "请至少选择一个目标语言"))
                 return
 
             # 更新UI状态
+            logger.debug("步骤3: 更新UI状态为运行中...")
             self.app.translation_vm.start_translation()
             self.app.root.after(0, self._update_ui_for_running_translation)
+            logger.info("✅ UI状态已更新")
 
             # 获取源语言
             selected_source_lang = self.app.source_lang_var.get()
             source_lang = None if selected_source_lang == "自动检测" else selected_source_lang
+            logger.debug(f"步骤4: 源语言设置: {source_lang} (原始选择: {selected_source_lang})")
 
             # 生成批次ID
             batch_id = f"batch_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            logger.debug(f"步骤5: 生成批次ID: {batch_id}")
 
             # 确定输出路径
             output_path = self.app.output_path.get().strip() if self.app.output_path.get() else None
             if not output_path:
                 output_path = None
+            logger.debug(f"步骤6: 输出路径: {output_path or '自动生成'}")
 
             # 执行翻译
+            logger.info(f"📤 开始调用translation_facade.translate_file...")
+            logger.debug(f"  - 参数: source_excel_path={self.app.source_path.get()}")
+            logger.debug(f"  - 参数: target_langs={self.app.selected_langs}")
+            logger.debug(f"  - 参数: output_excel_path={output_path}")
+            logger.debug(f"  - 参数: concurrency_limit={DEFAULT_CONCURRENCY_LIMIT}")
+            logger.debug(f"  - 参数: source_lang={source_lang}")
+            
             result = await self.app.translation_facade.translate_file(
                 source_excel_path=self.app.source_path.get(),
                 target_langs=self.app.selected_langs,
@@ -79,20 +118,36 @@ class TranslationEventHandler:
                 concurrency_limit=DEFAULT_CONCURRENCY_LIMIT,
                 source_lang=source_lang
             )
+            
+            logger.info(f"✅ 翻译执行完成")
+            logger.debug(f"  - 结果类型: {type(result)}")
+            logger.debug(f"  - 是否有results属性: {hasattr(result, 'results')}")
+            if hasattr(result, 'results'):
+                logger.debug(f"  - 结果数量: {len(result.results)}")
+                logger.debug(f"  - 成功率: {result.success_rate:.1f}%")
 
             # 记录历史
             if self.app.translation_history_manager and hasattr(result, 'results'):
+                logger.debug("步骤7: 记录翻译历史...")
                 await self._record_translation_history(result, batch_id)
+                logger.info("✅ 历史记录已保存")
 
             # 更新完成状态
             success_rate = result.success_rate
+            logger.debug(f"步骤8: 处理完成结果，成功率: {success_rate:.1f}%")
             self.app.root.after(0, self._handle_translation_complete, success_rate)
 
         except Exception as e:
-            logger.error(f"翻译执行失败: {e}", exc_info=True)
+            logger.error(f"❌ 翻译执行失败: {e}", exc_info=True)
+            logger.error(f"  - 错误类型: {type(e).__name__}")
+            logger.error(f"  - 错误信息: {str(e)}")
+            import traceback
+            logger.error(f"  - 堆栈跟踪:\n{traceback.format_exc()}")
             self.app.root.after(0, self._handle_translation_error, e)
         finally:
+            logger.debug("步骤9: 清理翻译资源...")
             self.app.root.after(0, self._cleanup_after_translation)
+            logger.info("✅ 资源清理完成")
 
     def _update_ui_for_running_translation(self):
         """更新UI为运行中状态"""

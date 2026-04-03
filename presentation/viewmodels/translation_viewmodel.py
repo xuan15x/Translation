@@ -143,9 +143,16 @@ class TranslationViewModel:
             eta_seconds: 预计剩余时间（秒）
         """
         if not self.is_running:
+            logger.debug("⚠️ 翻译未运行，忽略进度更新")
             return
-            
+        
+        old_percentage = self.progress.percentage
         self.progress.update(current, total, speed, eta_seconds)
+        
+        # 记录进度变化（每10%记录一次）
+        if int(self.progress.percentage) % 10 == 0 and int(self.progress.percentage) != int(old_percentage):
+            logger.info(f"📊 进度: {self.progress.percentage:.1f}% ({current}/{total}), 速度: {speed:.1f}行/秒, ETA: {self.progress.format_eta()}")
+        
         self._notify_progress()
 
     def update_performance(self, metrics: Dict[str, Any]):

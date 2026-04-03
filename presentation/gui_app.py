@@ -53,22 +53,33 @@ class TranslationApp:
             root: Tkinter 根窗口
             config_file: 配置文件路径（可选）
         """
+        logger.info("="*60)
+        logger.info("🚀 TranslationApp 初始化开始")
+        logger.info("="*60)
+        logger.debug(f"参数: config_file={config_file}")
+        
         self.root = root
         self.root.title(GUI_CONFIG["window_title"])
         self.root.geometry(f"{GUI_CONFIG['window_width']}x{GUI_CONFIG['window_height']}")
+        logger.debug("✅ 窗口基本属性设置完成")
 
         # 配置持久化
         self.config_file = config_file
         self.config_persistence = ConfigPersistence(config_file) if config_file else None
         self._pending_config_data = None
+        logger.debug(f"✅ 配置持久化初始化完成, config_file={config_file}")
 
         # 视图模型
+        logger.debug("初始化TranslationViewModel...")
         self.translation_vm = TranslationViewModel()
         self.translation_vm.set_progress_callback(self._on_progress_update)
+        logger.debug("✅ TranslationViewModel初始化完成")
 
         # 事件处理器
+        logger.debug("初始化事件处理器...")
         self.translation_handler = TranslationEventHandler(self)
         self.session_handler = SessionEventHandler(self)
+        logger.debug("✅ 事件处理器初始化完成")
 
         # Tkinter变量
         self.term_path = tk.StringVar()
@@ -190,16 +201,29 @@ class TranslationApp:
 
         # 绑定窗口关闭
         self.root.protocol("WM_DELETE_WINDOW", self._on_closing)
+        logger.debug("✅ 窗口关闭事件绑定完成")
 
         # 构建UI
+        logger.info("开始构建UI...")
         self._setup_ui()
+        logger.info("✅ UI构建完成")
+        
         self._setup_logger()
+        logger.debug("✅ 日志系统设置完成")
+        
         self._initialize_history_managers()
+        logger.debug("✅ 历史管理器初始化完成")
 
         # 应用配置
         if self._pending_config_data:
+            logger.debug("应用暂存的配置数据...")
             self._apply_config_to_gui(self._pending_config_data)
             self._pending_config_data = None
+            logger.debug("✅ 配置数据应用完成")
+        
+        logger.info("="*60)
+        logger.info("✅ TranslationApp 初始化完成")
+        logger.info("="*60)
 
     def _setup_ui(self):
         """设置用户界面"""
@@ -733,12 +757,28 @@ class TranslationApp:
 
     def _initialize_services(self):
         """初始化服务"""
+        logger.info("🔧 开始初始化服务容器...")
+        
         if self.container is None:
+            logger.debug("创建新的依赖容器...")
+            from infrastructure.di.di_container import initialize_container
             self.container = initialize_container()
+            logger.info("✅ 依赖容器创建完成")
         
         if self.translation_facade is None:
-            self.translation_facade = self.container.resolve('TranslationFacade')
-            logger.info("✅ 翻译外观服务已初始化")
+            logger.debug("尝试从容器获取TranslationFacade...")
+            try:
+                # 使用get方法而不是resolve
+                self.translation_facade = self.container.get('translation_facade')
+                logger.info("✅ 翻译外观服务已初始化")
+            except KeyError as e:
+                logger.error(f"❌ 无法从容器获取translation_facade: {e}")
+                logger.error("💡 这可能是因为容器初始化时没有提供api_client")
+                logger.error("💡 请检查配置文件中的API密钥是否正确配置")
+                raise
+            except Exception as e:
+                logger.error(f"❌ 获取TranslationFacade失败: {e}", exc_info=True)
+                raise
 
     def _initialize_history_managers(self):
         """初始化历史记录管理器"""
