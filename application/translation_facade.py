@@ -114,15 +114,27 @@ class TranslationServiceFacade:
         Args:
             enable: 是否启用
         """
+        import logging
+        logger = logging.getLogger(__name__)
+        
         if enable and not self._multilingual_service:
             from domain.translation_service_multilingual import create_multilingual_service
             from infrastructure.di.di_container import get_container
             
             container = get_container()
             config = container.get('config')
-            client = container.get('translation_service').client
+            
+            # 获取翻译服务和术语仓储
+            translation_service = container.get('translation_service')
+            client = translation_service.client
             term_repo = container.get('term_repository')
-            draft_prompt = container.get('translation_service').draft_prompt
+            draft_prompt = translation_service.draft_prompt
+            
+            logger.info(f"🔧 创建多语言翻译服务...")
+            logger.info(f"   - 配置: model={config.model_name}")
+            logger.info(f"   - 客户端: {type(client).__name__}")
+            logger.info(f"   - 术语仓储: {type(term_repo).__name__}")
+            logger.info(f"   - 提示词长度: {len(draft_prompt)}")
             
             self._multilingual_service = create_multilingual_service(
                 config=config,

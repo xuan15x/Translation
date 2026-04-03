@@ -788,18 +788,20 @@ class TranslationApp:
         """设置GUI日志重定向"""
         try:
             from infrastructure.logging import GUILogHandler
-            
+
             root_logger = logging.getLogger()
-            
+            root_logger.setLevel(logging.DEBUG)  # 设置为DEBUG级别
+
             gui_handler = GUILogHandler(self.log_text)
-            gui_handler.setLevel(logging.INFO)
-            
+            gui_handler.setLevel(logging.DEBUG)  # 显示DEBUG级别日志
+
             formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
             gui_handler.setFormatter(formatter)
-            
+
             root_logger.addHandler(gui_handler)
-            
+
             logger.info("✅ GUI日志处理器已添加")
+            logger.debug("  - 日志级别: DEBUG")
         except Exception as e:
             logger.error(f"设置GUI日志处理器失败: {e}")
 
