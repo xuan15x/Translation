@@ -70,11 +70,36 @@
   // ============================================================
   // 【翻译流程】- 控制翻译行为
   // ============================================================
+  "translation_mode": "full",         // 翻译模式：draft_only（仅初译）/ review_only（仅校对）/ full（完整双阶段）
   "enable_two_pass": true,           // 启用两阶段翻译（初译 + 校对）
   "skip_review_if_local_hit": true,  // 术语库本地命中时跳过校对
   "batch_size": 1000,                // 批量翻译大小
   "gc_interval": 2,                  // 垃圾回收间隔
-  
+
+  // ============================================================
+  // 【提示词模板配置】- 自定义提示词结构（高级）
+  // ============================================================
+  "prompt_templates": {
+    "draft": {
+      "role": "Professional Translator",
+      "task": "Translate 'Src' to {target_lang}",
+      "constraints": [
+        "Output JSON ONLY: {\"Trans\": \"string\"}",
+        "Strictly follow provided TM",
+        "Accurate and direct"
+      ]
+    },
+    "review": {
+      "role": "Senior Language Editor",
+      "task": "Polish 'Draft' into native {target_lang}",
+      "constraints": [
+        "Output JSON ONLY: {\"Trans\": \"string\", \"Reason\": \"string\"}",
+        "'Reason': Max 10 chars. If no change, Reason=\"\"",
+        "Focus on flow and tone"
+      ]
+    }
+  },
+
   // ============================================================
   // 【术语库】- 模糊匹配配置
   // ============================================================

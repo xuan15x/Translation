@@ -319,7 +319,7 @@ class TranslationApp:
         self.type_combo.pack(side=tk.LEFT, padx=5)
         self.type_combo.set("🎮 三消 - 道具元素")  # 默认值
         self.type_combo.bind('<<ComboboxSelected>>', self._on_translation_type_changed)
-        
+
         # 说明标签 - 强调不会改变用户提示词
         self.type_desc_label = ttk.Label(
             type_selector_frame,
@@ -327,6 +327,33 @@ class TranslationApp:
             foreground="gray"
         )
         self.type_desc_label.pack(side=tk.LEFT, padx=10)
+
+        # 翻译模式选择（新增）
+        mode_select_frame = ttk.Frame(main_frame)
+        mode_select_frame.pack(fill=tk.X, pady=(0, 10))
+
+        ttk.Label(mode_select_frame, text="🔄 翻译模式:", font=("", 9, "bold")).pack(side=tk.LEFT, padx=5)
+
+        self.translation_mode_var = tk.StringVar(value="full")  # full/draft_only/review_only
+        self.mode_combo = ttk.Combobox(
+            mode_select_frame,
+            textvariable=self.translation_mode_var,
+            values=[
+                ("full", "完整双阶段（初译+校对）"),
+                ("draft_only", "仅初译（快速）"),
+                ("review_only", "仅校对")
+            ],
+            state='readonly',
+            width=30
+        )
+        self.mode_combo.pack(side=tk.LEFT, padx=5)
+        self.mode_combo.bind('<<ComboboxSelected>>', self._on_translation_mode_changed)
+
+        ttk.Label(
+            mode_select_frame,
+            text="💡 选择模式后自动调整界面",
+            foreground="gray"
+        ).pack(side=tk.LEFT, padx=10)
         
         # --- 4. 源语言选择区 ---
         source_lang_frame = ttk.LabelFrame(main_frame, text="📝 源语言选择", padding="10")
@@ -458,6 +485,7 @@ class TranslationApp:
         prompt_btn_frame.pack(fill=tk.X, pady=(5, 0))
 
         ttk.Button(prompt_btn_frame, text="🔄 更新预览", command=self._update_prompt_preview).pack(side=tk.LEFT, padx=5)
+        ttk.Button(prompt_btn_frame, text="⚙️ 高级设置", command=self._show_prompt_advanced_settings).pack(side=tk.LEFT, padx=5)
         ttk.Button(prompt_btn_frame, text="💾 导出完整提示词", command=self._export_full_prompts).pack(side=tk.LEFT, padx=5)
         ttk.Button(prompt_btn_frame, text="📂 导入自定义提示词", command=self._load_custom_prompts).pack(side=tk.LEFT, padx=5)
         ttk.Button(prompt_btn_frame, text="🔍 查看完整结构", command=self._show_full_prompt_structure).pack(side=tk.LEFT, padx=5)
@@ -1369,6 +1397,234 @@ class TranslationApp:
             logger.error(f"❌ 保存提示词失败：{e}")
             messagebox.showerror("错误", f"保存提示词失败:\n{str(e)}")
 
+    def _on_translation_mode_changed(self, event=None):
+        """翻译模式变化时的回调"""
+        self._update_ui_for_translation_mode()
+
+    def _update_ui_for_translation_mode(self):
+        """根据当前翻译模式更新UI"""
+        mode = self.translation_mode_var.get()
+
+        if mode == "draft_only":
+            # 仅初译模式：隐藏校对相关配置
+            self._set_widget_visibility(False)  # 隐藏校对部分
+            logger.info("🔄 已切换到仅初译模式")
+        elif mode == "review_only":
+            # 仅校对模式：隐藏初译相关配置
+            self._set_widget_visibility(True)  # 隐藏初译部分
+            logger.info("🔄 已切换到仅校对模式")
+        else:  # full
+            # 完整模式：显示所有配置
+            self._set_widget_visibility(None)  # 显示全部
+            logger.info("🔄 已切换到完整双阶段模式")
+
+    def _set_widget_visibility(self, hide_draft=None):
+        """
+        设置控件可见性
+
+        Args:
+            hide_draft: True=隐藏初译显示校对, False=隐藏校对显示初译, None=显示全部
+        """
+        try:
+            if hide_draft is True:
+                # 仅校对模式：隐藏初译风格输入
+                self.draft_style_entry.pack_forget()
+                # 在预览中也需要隐藏初译标签
+                for child in self.preview_notebook.winfo_children():
+                    tab_text = self.preview_notebook.tab(child, "text")
+                    if "初译" in tab_text:
+                        self.preview_notebook.hide(child)
+            elif hide_draft is False:
+                # 仅初译模式：隐藏校对风格输入
+                # 注意：这里需要根据实际布局调整
+                pass
+            else:
+                # 完整模式：显示所有
+                pass
+
+            # 更新预览
+            self._update_prompt_preview()
+
+        except Exception as e:
+            logger.error(f"❌ 更新 UI 可见性失败：{e}")
+
+    def _show_prompt_advanced_settings(self):
+        """显示提示词高级设置对话框"""
+        # 创建高级设置窗口
+        advanced_win = tk.Toplevel(self.root)
+        advanced_win.title("⚙️ 提示词高级设置")
+        advanced_win.geometry("700x600")
+        advanced_win.transient(self.root)
+        advanced_win.grab_set()
+
+        # 主框架
+        main_frame = ttk.Frame(advanced_win, padding="15")
+        main_frame.pack(fill=tk.BOTH, expand=True)
+
+        # Notebook 分页
+        notebook = ttk.Notebook(main_frame)
+        notebook.pack(fill=tk.BOTH, expand=True)
+
+        # 初译模板页
+        draft_frame = ttk.Frame(notebook, padding="10")
+        notebook.add(draft_frame, text="📝 初译模板")
+        self._create_prompt_template_editor(draft_frame, "draft")
+
+        # 校对模板页
+        review_frame = ttk.Frame(notebook, padding="10")
+        notebook.add(review_frame, text="✨ 校对模板")
+        self._create_prompt_template_editor(review_frame, "review")
+
+        # 按钮区
+        btn_frame = ttk.Frame(main_frame)
+        btn_frame.pack(fill=tk.X, pady=(10, 0))
+
+        ttk.Button(btn_frame, text="💾 保存设置", command=lambda: self._save_prompt_templates(advanced_win)).pack(side=tk.RIGHT, padx=5)
+        ttk.Button(btn_frame, text="🔄 恢复默认", command=self._reset_prompt_templates_to_default).pack(side=tk.RIGHT, padx=5)
+        ttk.Button(btn_frame, text="❌ 取消", command=advanced_win.destroy).pack(side=tk.RIGHT, padx=5)
+
+    def _create_prompt_template_editor(self, parent, prompt_type):
+        """
+        创建提示词模板编辑器
+
+        Args:
+            parent: 父容器
+            prompt_type: 'draft' 或 'review'
+        """
+        # Role
+        role_frame = ttk.Frame(parent)
+        role_frame.pack(fill=tk.X, pady=(0, 10))
+        ttk.Label(role_frame, text="角色（Role）:", font=("", 9, "bold")).pack(anchor=tk.W)
+        role_var = tk.StringVar()
+        setattr(self, f'{prompt_type}_role_var', role_var)
+        role_entry = ttk.Entry(role_frame, textvariable=role_var, font=("Microsoft YaHei", 10))
+        role_entry.pack(fill=tk.X, pady=(5, 0))
+
+        # Task
+        task_frame = ttk.Frame(parent)
+        task_frame.pack(fill=tk.X, pady=(10, 10))
+        ttk.Label(task_frame, text="任务（Task）:", font=("", 9, "bold")).pack(anchor=tk.W)
+        task_var = tk.StringVar()
+        setattr(self, f'{prompt_type}_task_var', task_var)
+        task_entry = ttk.Entry(task_frame, textvariable=task_var, font=("Microsoft YaHei", 10))
+        task_entry.pack(fill=tk.X, pady=(5, 0))
+
+        # Constraints
+        constraints_frame = ttk.Frame(parent)
+        constraints_frame.pack(fill=tk.BOTH, expand=True, pady=(10, 0))
+        ttk.Label(constraints_frame, text="约束条件（Constraints，每行一条）:", font=("", 9, "bold")).pack(anchor=tk.W)
+        constraints_text = scrolledtext.ScrolledText(constraints_frame, height=10, font=("Consolas", 10))
+        constraints_text.pack(fill=tk.BOTH, expand=True, pady=(5, 0))
+        setattr(self, f'{prompt_type}_constraints_text', constraints_text)
+
+        # 从配置加载当前值
+        self._load_prompt_template_to_ui(prompt_type, role_var, task_var, constraints_text)
+
+    def _load_prompt_template_to_ui(self, prompt_type, role_var, task_var, constraints_text):
+        """
+        从配置加载提示词模板到UI
+
+        Args:
+            prompt_type: 'draft' 或 'review'
+            role_var: Role 变量
+            task_var: Task 变量
+            constraints_text: Constraints 文本框
+        """
+        try:
+            # 尝试从配置加载
+            config = self._load_config_data()
+            templates = config.get('prompt_templates', {})
+            template = templates.get(prompt_type, {})
+
+            role = template.get('role', '')
+            task = template.get('task', '')
+            constraints = template.get('constraints', [])
+
+            if not role and not task:
+                # 使用默认值
+                if prompt_type == 'draft':
+                    role = "Professional Translator"
+                    task = "Translate 'Src' to {target_lang}"
+                    constraints = [
+                        "Output JSON ONLY: {\"Trans\": \"string\"}",
+                        "Strictly follow provided TM",
+                        "Accurate and direct"
+                    ]
+                else:
+                    role = "Senior Language Editor"
+                    task = "Polish 'Draft' into native {target_lang}"
+                    constraints = [
+                        "Output JSON ONLY: {\"Trans\": \"string\", \"Reason\": \"string\"}",
+                        "'Reason': Max 10 chars. If no change, Reason=\"\"",
+                        "Focus on flow and tone"
+                    ]
+
+            role_var.set(role)
+            task_var.set(task)
+            constraints_text.delete('1.0', tk.END)
+            constraints_text.insert('1.0', '\n'.join(constraints))
+
+        except Exception as e:
+            logger.error(f"❌ 加载提示词模板失败：{e}")
+
+    def _save_prompt_templates(self, window):
+        """保存提示词模板到配置"""
+        try:
+            # 获取初译模板
+            draft_role = self.draft_role_var.get()
+            draft_task = self.draft_task_var.get()
+            draft_constraints = self.draft_constraints_text.get('1.0', tk.END).strip().split('\n')
+            draft_constraints = [c.strip() for c in draft_constraints if c.strip()]
+
+            # 获取校对模板
+            review_role = self.review_role_var.get()
+            review_task = self.review_task_var.get()
+            review_constraints = self.review_constraints_text.get('1.0', tk.END).strip().split('\n')
+            review_constraints = [c.strip() for c in review_constraints if c.strip()]
+
+            # 构建配置
+            templates = {
+                'draft': {
+                    'role': draft_role,
+                    'task': draft_task,
+                    'constraints': draft_constraints
+                },
+                'review': {
+                    'role': review_role,
+                    'task': review_task,
+                    'constraints': review_constraints
+                }
+            }
+
+            # 保存到配置文件
+            if self.config_file:
+                config = self._load_config_data()
+                config['prompt_templates'] = templates
+
+                with open(self.config_file, 'w', encoding='utf-8') as f:
+                    json.dump(config, f, indent=2, ensure_ascii=False)
+
+                logger.info("💾 已保存提示词模板到配置")
+                messagebox.showinfo("成功", "提示词模板已保存到配置文件")
+
+            window.destroy()
+
+            # 更新预览
+            self._update_prompt_preview()
+
+        except Exception as e:
+            logger.error(f"❌ 保存提示词模板失败：{e}")
+            messagebox.showerror("错误", f"保存失败:\n{str(e)}")
+
+    def _reset_prompt_templates_to_default(self):
+        """恢复提示词模板到默认值"""
+        confirm = messagebox.askyesno("确认", "确定要恢复默认的提示词模板吗？")
+        if confirm:
+            # 重新加载到UI
+            self._load_prompt_template_to_ui('draft', self.draft_role_var, self.draft_task_var, self.draft_constraints_text)
+            self._load_prompt_template_to_ui('review', self.review_role_var, self.review_task_var, self.review_constraints_text)
+            logger.info("🔄 已恢复默认的提示词模板")
+
     def _on_style_changed(self):
         """风格变化时的回调"""
         # 延迟更新预览，避免频繁刷新
@@ -1419,24 +1675,48 @@ class TranslationApp:
         Returns:
             完整的初译提示词
         """
-        # 基础结构
-        prompt = f"""Role: Professional Translator.
+        try:
+            # 尝试从配置加载模板
+            config = self._load_config_data()
+            templates = config.get('prompt_templates', {})
+            draft_template = templates.get('draft', {})
+
+            role = draft_template.get('role', 'Professional Translator')
+            task = draft_template.get('task', "Translate 'Src' to {target_lang}")
+            constraints = draft_template.get('constraints', [
+                "Output JSON ONLY: {\"Trans\": \"string\"}",
+                "Strictly follow provided TM",
+                "Accurate and direct"
+            ])
+
+            # 构建提示词
+            constraints_text = '\n'.join([f"{i+1}. {c}" for i, c in enumerate(constraints)])
+            prompt = f"""Role: {role}.
+Task: {task}.
+Style: {style if style else '专业、准确、直接'}.
+Constraints:
+{constraints_text}"""
+
+            # 自动注入禁止事项
+            try:
+                from infrastructure.prompt_injector import get_prompt_injector
+                injector = get_prompt_injector()
+                prompt = injector.inject_draft_prompt(prompt, translation_type)
+            except Exception as e:
+                logger.warning(f"⚠️ 禁止事项注入失败（继续使用基础提示词）：{e}")
+
+            return prompt
+
+        except Exception as e:
+            logger.error(f"❌ 构建初译提示词失败：{e}")
+            # 返回默认提示词
+            return f"""Role: Professional Translator.
 Task: Translate 'Src' to {{target_lang}}.
 Style: {style if style else '专业、准确、直接'}.
 Constraints:
 1. Output JSON ONLY: {{"Trans": "string"}}.
 2. Strictly follow provided TM.
 3. Accurate and direct."""
-
-        # 自动注入禁止事项
-        try:
-            from infrastructure.prompt_injector import get_prompt_injector
-            injector = get_prompt_injector()
-            prompt = injector.inject_draft_prompt(prompt, translation_type)
-        except Exception as e:
-            logger.warning(f"⚠️ 禁止事项注入失败（继续使用基础提示词）：{e}")
-
-        return prompt
 
     def _build_review_prompt(self, style: str, translation_type: str) -> str:
         """
@@ -1449,24 +1729,48 @@ Constraints:
         Returns:
             完整的校对提示词
         """
-        # 基础结构
-        prompt = f"""Role: Senior Language Editor.
+        try:
+            # 尝试从配置加载模板
+            config = self._load_config_data()
+            templates = config.get('prompt_templates', {})
+            review_template = templates.get('review', {})
+
+            role = review_template.get('role', 'Senior Language Editor')
+            task = review_template.get('task', "Polish 'Draft' into native {target_lang}")
+            constraints = review_template.get('constraints', [
+                "Output JSON ONLY: {\"Trans\": \"string\", \"Reason\": \"string\"}",
+                "'Reason': Max 10 chars. If no change, Reason=\"\"",
+                "Focus on flow and tone"
+            ])
+
+            # 构建提示词
+            constraints_text = '\n'.join([f"{i+1}. {c}" for i, c in enumerate(constraints)])
+            prompt = f"""Role: {role}.
+Task: {task}.
+Style: {style if style else '流畅、自然、地道'}.
+Constraints:
+{constraints_text}"""
+
+            # 自动注入禁止事项
+            try:
+                from infrastructure.prompt_injector import get_prompt_injector
+                injector = get_prompt_injector()
+                prompt = injector.inject_review_prompt(prompt, translation_type)
+            except Exception as e:
+                logger.warning(f"⚠️ 禁止事项注入失败（继续使用基础提示词）：{e}")
+
+            return prompt
+
+        except Exception as e:
+            logger.error(f"❌ 构建校对提示词失败：{e}")
+            # 返回默认提示词
+            return f"""Role: Senior Language Editor.
 Task: Polish 'Draft' into native {{target_lang}}.
 Style: {style if style else '流畅、自然、地道'}.
 Constraints:
 1. Output JSON ONLY: {{"Trans": "string", "Reason": "string"}}.
 2. 'Reason': Max 10 chars. If no change, Reason="".
 3. Focus on flow and tone."""
-
-        # 自动注入禁止事项
-        try:
-            from infrastructure.prompt_injector import get_prompt_injector
-            injector = get_prompt_injector()
-            prompt = injector.inject_review_prompt(prompt, translation_type)
-        except Exception as e:
-            logger.warning(f"⚠️ 禁止事项注入失败（继续使用基础提示词）：{e}")
-
-        return prompt
 
     def _export_full_prompts(self):
         """导出完整的提示词到文件"""
@@ -1612,11 +1916,14 @@ Constraints:
             messagebox.showerror("错误", f"恢复失败:\n{str(e)}")
     
     def _initialize_services(self):
-        """初始化服务容器 - 从风格自动生成完整提示词并注入禁止事项"""
+        """初始化服务容器 - 根据翻译模式自动生成需要的提示词并初始化"""
         if self.container:
             return
 
         try:
+            # 获取当前翻译模式
+            translation_mode = self.translation_mode_var.get()
+
             # 获取用户输入的风格
             draft_style = self.draft_style_var.get().strip()
             review_style = self.review_style_var.get().strip()
@@ -1624,13 +1931,27 @@ Constraints:
             # 获取翻译类型
             translation_type_key = self._get_translation_type_key()
 
-            # 自动生成完整的初译和校对提示词（包含禁止事项注入）
-            draft_prompt = self._build_draft_prompt(draft_style, translation_type_key)
-            review_prompt = self._build_review_prompt(review_style, translation_type_key)
+            # 根据模式生成需要的提示词
+            draft_prompt = None
+            review_prompt = None
 
-            logger.info(f"✅ 已自动生成完整提示词 - 类型：{translation_type_key}")
-            logger.info(f"   初译风格：{draft_style}")
-            logger.info(f"   校对风格：{review_style}")
+            if translation_mode == "draft_only":
+                # 仅初译模式：只生成初译提示词
+                draft_prompt = self._build_draft_prompt(draft_style, translation_type_key)
+                logger.info(f"🔄 仅初译模式 - 类型：{translation_type_key}")
+                logger.info(f"   初译风格：{draft_style}")
+            elif translation_mode == "review_only":
+                # 仅校对模式：只生成校对提示词
+                review_prompt = self._build_review_prompt(review_style, translation_type_key)
+                logger.info(f"🔄 仅校对模式 - 类型：{translation_type_key}")
+                logger.info(f"   校对风格：{review_style}")
+            else:  # full
+                # 完整模式：生成两种提示词
+                draft_prompt = self._build_draft_prompt(draft_style, translation_type_key)
+                review_prompt = self._build_review_prompt(review_style, translation_type_key)
+                logger.info(f"🔄 完整双阶段模式 - 类型：{translation_type_key}")
+                logger.info(f"   初译风格：{draft_style}")
+                logger.info(f"   校对风格：{review_style}")
 
             # 获取配置（从配置文件加载）
             config = self._create_config()
@@ -1640,7 +1961,7 @@ Constraints:
             provider = self.provider_manager.get_provider(provider_name)
             api_client = provider.get_client()
 
-            # 初始化容器（传入自动生成的提示词）
+            # 初始化容器（根据模式传入需要的提示词）
             self.container = initialize_container(
                 config_file=self.config_file,
                 api_client=api_client,
@@ -1660,7 +1981,7 @@ Constraints:
             # 启用增强型翻译器（支持暂停/恢复）
             self.translation_facade.enable_enhanced_translator(True)
 
-            logger.info("✅ 服务初始化完成（风格输入 + 自动生成 + 禁止事项注入 + 增强型翻译器）")
+            logger.info(f"✅ 服务初始化完成（模式：{translation_mode}）")
 
         except Exception as e:
             logger.error(f"❌ 服务初始化失败：{e}")
