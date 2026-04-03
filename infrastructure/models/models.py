@@ -158,6 +158,23 @@ class Config(ModuleLoggerMixin):
 
         self.log_info("Config 初始化", api_key_set=bool(self.api_key), provider=self.api_provider)
 
+        # 支持新的多提供商配置结构：从 api_keys.[provider].api_key 读取
+        if not self.api_key and hasattr(self, 'api_keys') and self.api_keys:
+            api_keys_dict = self.api_keys
+            provider = self.api_provider or 'deepseek'
+            
+            # 从新结构中获取 API Key
+            if provider in api_keys_dict:
+                provider_config = api_keys_dict[provider]
+                if isinstance(provider_config, dict):
+                    self.api_key = provider_config.get('api_key', '')
+                    # 同时更新 base_url（如果未设置）
+                    if not self.base_url or self.base_url == "https://api.deepseek.com":
+                        new_base_url = provider_config.get('base_url', '')
+                        if new_base_url:
+                            self.base_url = new_base_url
+                    self.log_info(f"从 api_keys.{provider}.api_key 读取 API Key")
+
         # 安全修复：TEST_MODE 环境变量不再绕过 API key 验证
         # 仅在显式设置 TEST_MODE=skip_all 时跳过验证（仅用于测试）
         test_mode = os.getenv('TEST_MODE', '').lower()

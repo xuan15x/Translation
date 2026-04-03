@@ -2210,8 +2210,8 @@ Constraints:
         # 显示/隐藏性能监控面板
         if enabled:
             self.performance_frame.pack(fill=tk.X, pady=(5, 5))
-            # 启动性能监控任务（使用 asyncio.create_task 而不是直接调用）
-            asyncio.create_task(self._start_performance_monitoring())
+            # 启动性能监控任务（使用 Tkinter 的 after 方法，而不是 asyncio）
+            self._update_performance_display_task()
         else:
             self.performance_frame.pack_forget()
             # 停止性能监控任务
@@ -2220,6 +2220,32 @@ Constraints:
         # 更新配置（如果已加载）
         if hasattr(self, 'config') and self.config:
             self.config.enable_performance_monitor = enabled
+
+    def _update_performance_display_task(self):
+        """更新性能显示（使用 Tkinter after 循环）"""
+        if not self.perf_monitor_var.get():
+            return
+
+        try:
+            from infrastructure.utils import get_performance_monitor
+            monitor = get_performance_monitor()
+
+            # 获取最新指标
+            if monitor.history:
+                latest = monitor.history[-1]
+                metrics = {
+                    'cpu_percent': latest.cpu_percent,
+                    'memory_mb': latest.memory_mb,
+                }
+                self._update_performance_display(metrics)
+
+            # 1 秒后再次调用
+            self._perf_monitor_timer = self.after(1000, self._update_performance_display_task)
+
+        except Exception as e:
+            logger.debug(f"性能监控更新失败: {e}")
+            # 即使失败也继续尝试
+            self._perf_monitor_timer = self.after(1000, self._update_performance_display_task)
 
     async def _start_performance_monitoring(self):
         """启动性能监控任务"""
