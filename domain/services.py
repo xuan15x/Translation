@@ -3,8 +3,51 @@
 定义核心业务逻辑和服务接口
 """
 from abc import ABC, abstractmethod
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from domain.models import TranslationTask, TranslationResult, TermMatch, BatchResult
+
+
+class ITermRepository(ABC):
+    """术语仓储接口 - 领域层定义"""
+
+    @abstractmethod
+    async def find_by_source(self, source_text: str, target_lang: str) -> Optional[TermMatch]:
+        """
+        根据源文本查找术语
+
+        Args:
+            source_text: 源文本
+            target_lang: 目标语言
+
+        Returns:
+            术语匹配结果
+        """
+        pass
+
+    @abstractmethod
+    async def save(self, source_text: str, target_lang: str, translation: str) -> bool:
+        """
+        保存术语
+
+        Args:
+            source_text: 源文本
+            target_lang: 目标语言
+            translation: 翻译结果
+
+        Returns:
+            是否成功
+        """
+        pass
+
+    @abstractmethod
+    async def get_all_terms(self) -> List[Dict[str, Any]]:
+        """
+        获取所有术语
+
+        Returns:
+            术语列表
+        """
+        pass
 
 
 class ITerminologyDomainService(ABC):

@@ -3,10 +3,11 @@
 """
 from .db_pool import ConnectionPool, DatabaseManager
 
-# 延迟导入以避免循环依赖
+# 延迟导入以避免循环导入
 def __getattr__(name):
     if name == 'ITermRepository':
-        from ..repositories import ITermRepository
+        # 从领域层导入接口（避免循环依赖）
+        from domain.services import ITermRepository
         return ITermRepository
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 

@@ -3,9 +3,8 @@
 整合仓储层和缓存层
 """
 from typing import Optional
-from domain.services import ITerminologyDomainService
+from domain.services import ITerminologyDomainService, ITermRepository
 from domain.models import TermMatch
-from infrastructure.database import ITermRepository
 
 
 class TerminologyDomainService(ITerminologyDomainService):

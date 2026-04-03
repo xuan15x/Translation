@@ -3,7 +3,7 @@
 核心业务逻辑，纯 Python 对象，无外部依赖
 """
 
-from .services import ITerminologyDomainService, ITranslationDomainService
+from .services import ITerminologyDomainService, ITranslationDomainService, ITermRepository
 from .models import TranslationTask, TranslationResult, TranslationStatus, TermMatch
 from .terminology_service_impl import TerminologyDomainService
 from .translation_service_impl import TranslationDomainServiceImpl
@@ -13,17 +13,18 @@ __all__ = [
     # 接口
     'ITerminologyDomainService',
     'ITranslationDomainService',
-    
+    'ITermRepository',
+
     # 模型
     'TranslationTask',
     'TranslationResult',
     'TranslationStatus',
     'TermMatch',
-    
+
     # 实现
     'TerminologyDomainService',
     'TranslationDomainServiceImpl',
-    
+
     # 缓存装饰器
     'CachedTerminologyService',
 ]
