@@ -4,18 +4,24 @@
 """
 import logging
 from typing import Dict, List, Optional
-from config.config import PROMPT_INJECTION_CONFIG, PROHIBITION_TYPE_MAP
+from config.config import (
+    get_prohibition_config, 
+    get_prohibition_type_map,
+    DEFAULT_PROHIBITION_CONFIG,
+    DEFAULT_PROHIBITION_TYPE_MAP
+)
 
 logger = logging.getLogger(__name__)
 
 
 class PromptInjector:
     """提示词注入器 - 负责将禁止事项自动注入到提示词中"""
-    
+
     def __init__(self):
         """初始化注入器"""
-        self.config = PROMPT_INJECTION_CONFIG
-        self.type_map = PROHIBITION_TYPE_MAP
+        # 安全获取配置，如果为 None 则使用默认值
+        self.config = get_prohibition_config() or DEFAULT_PROHIBITION_CONFIG
+        self.type_map = get_prohibition_type_map() or DEFAULT_PROHIBITION_TYPE_MAP
     
     def get_prohibitions(self, translation_type: str) -> List[str]:
         """

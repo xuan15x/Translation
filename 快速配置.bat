@@ -3,39 +3,39 @@ chcp 65001 >nul
 setlocal enabledelayedexpansion
 
 :: ============================================================
-:: AI 智能翻译工作台 - 一键快速配置脚本
-:: 版本：v3.1.0
-:: 说明：简化配置流程，支持多模型一键配置
+:: AI Translation Workbench - Quick Setup Script
+:: Version: v3.1.0
+:: Description: Simplified configuration with multi-model support
 :: ============================================================
 
-title AI 智能翻译工作台 - 一键配置
+title AI Translation Workbench - Quick Setup
 
 echo ========================================
-echo   AI 智能翻译工作台 - 一键配置
-echo   版本：v3.1.0
+echo   AI Translation Workbench - Quick Setup
+echo   Version: v3.1.0
 echo ========================================
 echo.
 
-:: 检查 Python 是否安装
+:: Check Python installation
 python --version >nul 2>&1
 if errorlevel 1 (
-    echo [错误] 未检测到 Python，请先安装 Python 3.8+
-    echo 下载地址：https://www.python.org/downloads/
+    echo [ERROR] Python not found. Please install Python 3.8+
+    echo Download: https://www.python.org/downloads/
     pause
     exit /b 1
 )
 
-echo [✓] Python 已安装
+echo [OK] Python is installed
 echo.
 
-:: 检查配置文件是否存在
+:: Check config file
 if not exist "config/config.json" (
-    echo [提示] 未找到配置文件，将从示例配置创建...
+    echo [INFO] Config file not found, creating from example...
     if exist "config/config.example.json" (
         copy "config/config.example.json" "config/config.json" >nul
-        echo [✓] 已创建配置文件
+        echo [OK] Config file created
     ) else (
-        echo [错误] 未找到配置示例文件
+        echo [ERROR] Config example file not found
         pause
         exit /b 1
     )
@@ -43,27 +43,27 @@ if not exist "config/config.json" (
 )
 
 :: ============================================================
-:: 主菜单
+:: Main Menu
 :: ============================================================
 :MENU
 echo ========================================
-echo   请选择要配置的模型提供商
+echo   Select Model Provider
 echo ========================================
-echo   1. DeepSeek（推荐，性价比高）
-echo   2. OpenAI（GPT-4o/GPT-3.5）
-echo   3. 通义千问（阿里云）
-echo   4. 智谱 AI（GLM 系列）
-echo   5. Moonshot（Kimi）
-echo   6. Claude（Anthropic）
-echo   7. Gemini（Google）
+echo   1. DeepSeek (Recommended, Cost-effective)
+echo   2. OpenAI (GPT-4o/GPT-3.5)
+echo   3. Qwen/Alibaba Cloud
+echo   4. Zhipu AI (GLM Series)
+echo   5. Moonshot (Kimi)
+echo   6. Claude (Anthropic)
+echo   7. Gemini (Google)
 echo   --------------------------------------
-echo   8. 查看当前配置
-echo   9. 测试 API 连接
-echo   0. 启动翻译平台
+echo   8. View Current Config
+echo   9. Test API Connection
+echo   0. Launch Translation Platform
 echo ========================================
 echo.
 
-set /p choice="请选择 (0-9): "
+set /p choice="Select (0-9): "
 
 if "%choice%"=="1" goto CONFIG_DEEPSEEK
 if "%choice%"=="2" goto CONFIG_OPENAI
@@ -76,318 +76,318 @@ if "%choice%"=="8" goto VIEW_CONFIG
 if "%choice%"=="9" goto TEST_API
 if "%choice%"=="0" goto START_APP
 
-echo [错误] 无效的选择
+echo [ERROR] Invalid choice
 echo.
 goto MENU
 
 :: ============================================================
-:: DeepSeek 配置
+:: DeepSeek Config
 :: ============================================================
 :CONFIG_DEEPSEEK
 echo.
 echo ========================================
-echo   配置 DeepSeek 模型
+echo   Configure DeepSeek Model
 echo ========================================
 echo.
-echo 推荐模型：deepseek-chat（通用）/ deepseek-coder（代码）
-echo API 地址：https://platform.deepseek.com/
+echo Recommended: deepseek-chat (general) / deepseek-coder (code)
+echo API: https://platform.deepseek.com/
 echo.
 
-set /p api_key="请输入 DeepSeek API Key: "
+set /p api_key="Enter DeepSeek API Key: "
 if "!api_key!"=="" (
-    echo [错误] API Key 不能为空
+    echo [ERROR] API Key cannot be empty
     pause
     goto MENU
 )
 
-set /p model_name="请输入模型名称 (默认 deepseek-chat): "
+set /p model_name="Enter model name (default: deepseek-chat): "
 if "!model_name!"=="" set model_name=deepseek-chat
 
 python -c "import json; f=open('config/config.json', 'r', encoding='utf-8'); c=json.load(f); f.close(); c['api_provider']='deepseek'; c['model_name']='!model_name!'; c['api_keys']['deepseek']={'api_key': '!api_key!', 'base_url': 'https://api.deepseek.com'}; c['temperature']=0.7; c['top_p']=0.9; f=open('config/config.json', 'w', encoding='utf-8'); json.dump(c, f, indent=2, ensure_ascii=False); f.close()"
 
 echo.
-echo [✓] DeepSeek 配置完成！
-echo   模型：!model_name!
+echo [OK] DeepSeek configuration completed!
+echo   Model: !model_name!
 echo   API: https://api.deepseek.com
 echo.
 pause
 goto MENU
 
 :: ============================================================
-:: OpenAI 配置
+:: OpenAI Config
 :: ============================================================
 :CONFIG_OPENAI
 echo.
 echo ========================================
-echo   配置 OpenAI 模型
+echo   Configure OpenAI Model
 echo ========================================
 echo.
-echo 推荐模型：gpt-4o（最新）/ gpt-3.5-turbo（经济）
-echo API 地址：https://platform.openai.com/
+echo Recommended: gpt-4o (latest) / gpt-3.5-turbo (economy)
+echo API: https://platform.openai.com/
 echo.
 
-set /p api_key="请输入 OpenAI API Key: "
+set /p api_key="Enter OpenAI API Key: "
 if "!api_key!"=="" (
-    echo [错误] API Key 不能为空
+    echo [ERROR] API Key cannot be empty
     pause
     goto MENU
 )
 
-set /p model_name="请输入模型名称 (默认 gpt-4o): "
+set /p model_name="Enter model name (default: gpt-4o): "
 if "!model_name!"=="" set model_name=gpt-4o
 
 python -c "import json; f=open('config/config.json', 'r', encoding='utf-8'); c=json.load(f); f.close(); c['api_provider']='openai'; c['model_name']='!model_name!'; c['api_keys']['openai']={'api_key': '!api_key!', 'base_url': 'https://api.openai.com/v1'}; c['temperature']=0.7; c['top_p']=0.9; f=open('config/config.json', 'w', encoding='utf-8'); json.dump(c, f, indent=2, ensure_ascii=False); f.close()"
 
 echo.
-echo [✓] OpenAI 配置完成！
-echo   模型：!model_name!
+echo [OK] OpenAI configuration completed!
+echo   Model: !model_name!
 echo   API: https://api.openai.com/v1
 echo.
 pause
 goto MENU
 
 :: ============================================================
-:: 通义千问配置
+:: Qwen Config
 :: ============================================================
 :CONFIG_QWEN
 echo.
 echo ========================================
-echo   配置通义千问模型
+echo   Configure Qwen/Alibaba Cloud Model
 echo ========================================
 echo.
-echo 推荐模型：qwen-max（最强）/ qwen-plus（均衡）/ qwen-turbo（快速）
-echo API 地址：https://dashscope.console.aliyun.com/
+echo Recommended: qwen-max (best) / qwen-plus (balanced) / qwen-turbo (fast)
+echo API: https://dashscope.console.aliyun.com/
 echo.
 
-set /p api_key="请输入通义千问 API Key: "
+set /p api_key="Enter Qwen API Key: "
 if "!api_key!"=="" (
-    echo [错误] API Key 不能为空
+    echo [ERROR] API Key cannot be empty
     pause
     goto MENU
 )
 
-set /p model_name="请输入模型名称 (默认 qwen-max): "
+set /p model_name="Enter model name (default: qwen-max): "
 if "!model_name!"=="" set model_name=qwen-max
 
 python -c "import json; f=open('config/config.json', 'r', encoding='utf-8'); c=json.load(f); f.close(); c['api_provider']='qwen'; c['model_name']='!model_name!'; c['api_keys']['custom']={'api_key': '!api_key!', 'base_url': 'https://dashscope.aliyuncs.com/compatible-mode/v1'}; c['temperature']=0.7; c['top_p']=0.9; f=open('config/config.json', 'w', encoding='utf-8'); json.dump(c, f, indent=2, ensure_ascii=False); f.close()"
 
 echo.
-echo [✓] 通义千问配置完成！
-echo   模型：!model_name!
+echo [OK] Qwen configuration completed!
+echo   Model: !model_name!
 echo   API: https://dashscope.aliyuncs.com/compatible-mode/v1
 echo.
 pause
 goto MENU
 
 :: ============================================================
-:: 智谱AI配置
+:: Zhipu AI Config
 :: ============================================================
 :CONFIG_ZHIPU
 echo.
 echo ========================================
-echo   配置智谱 AI 模型
+echo   Configure Zhipu AI Model
 echo ========================================
 echo.
-echo 推荐模型：glm-4（最新）/ glm-3-turbo（快速）
-echo API 地址：https://open.bigmodel.cn/
+echo Recommended: glm-4 (latest) / glm-3-turbo (fast)
+echo API: https://open.bigmodel.cn/
 echo.
 
-set /p api_key="请输入智谱 AI API Key: "
+set /p api_key="Enter Zhipu AI API Key: "
 if "!api_key!"=="" (
-    echo [错误] API Key 不能为空
+    echo [ERROR] API Key cannot be empty
     pause
     goto MENU
 )
 
-set /p model_name="请输入模型名称 (默认 glm-4): "
+set /p model_name="Enter model name (default: glm-4): "
 if "!model_name!"=="" set model_name=glm-4
 
 python -c "import json; f=open('config/config.json', 'r', encoding='utf-8'); c=json.load(f); f.close(); c['api_provider']='zhipu'; c['model_name']='!model_name!'; c['api_keys']['custom']={'api_key': '!api_key!', 'base_url': 'https://open.bigmodel.cn/api/paas/v4'}; c['temperature']=0.7; c['top_p']=0.9; f=open('config/config.json', 'w', encoding='utf-8'); json.dump(c, f, indent=2, ensure_ascii=False); f.close()"
 
 echo.
-echo [✓] 智谱 AI 配置完成！
-echo   模型：!model_name!
+echo [OK] Zhipu AI configuration completed!
+echo   Model: !model_name!
 echo   API: https://open.bigmodel.cn/api/paas/v4
 echo.
 pause
 goto MENU
 
 :: ============================================================
-:: Moonshot配置
+:: Moonshot Config
 :: ============================================================
 :CONFIG_MOONSHOT
 echo.
 echo ========================================
-echo   配置 Moonshot（Kimi）模型
+echo   Configure Moonshot (Kimi) Model
 echo ========================================
 echo.
-echo 推荐模型：moonshot-v1-8k / moonshot-v1-32k / moonshot-v1-128k
-echo API 地址：https://platform.moonshot.cn/
+echo Recommended: moonshot-v1-8k / moonshot-v1-32k / moonshot-v1-128k
+echo API: https://platform.moonshot.cn/
 echo.
 
-set /p api_key="请输入 Moonshot API Key: "
+set /p api_key="Enter Moonshot API Key: "
 if "!api_key!"=="" (
-    echo [错误] API Key 不能为空
+    echo [ERROR] API Key cannot be empty
     pause
     goto MENU
 )
 
-set /p model_name="请输入模型名称 (默认 moonshot-v1-8k): "
+set /p model_name="Enter model name (default: moonshot-v1-8k): "
 if "!model_name!"=="" set model_name=moonshot-v1-8k
 
 python -c "import json; f=open('config/config.json', 'r', encoding='utf-8'); c=json.load(f); f.close(); c['api_provider']='moonshot'; c['model_name']='!model_name!'; c['api_keys']['custom']={'api_key': '!api_key!', 'base_url': 'https://api.moonshot.cn/v1'}; c['temperature']=0.7; c['top_p']=0.9; f=open('config/config.json', 'w', encoding='utf-8'); json.dump(c, f, indent=2, ensure_ascii=False); f.close()"
 
 echo.
-echo [✓] Moonshot 配置完成！
-echo   模型：!model_name!
+echo [OK] Moonshot configuration completed!
+echo   Model: !model_name!
 echo   API: https://api.moonshot.cn/v1
 echo.
 pause
 goto MENU
 
 :: ============================================================
-:: Claude配置
+:: Claude Config
 :: ============================================================
 :CONFIG_CLAUDE
 echo.
 echo ========================================
-echo   配置 Claude 模型
+echo   Configure Claude Model
 echo ========================================
 echo.
-echo 推荐模型：claude-3-5-sonnet-20240229（最新）/ claude-3-opus（最强）
-echo API 地址：https://console.anthropic.com/
+echo Recommended: claude-3-5-sonnet-20240229 (latest) / claude-3-opus (best)
+echo API: https://console.anthropic.com/
 echo.
 
-set /p api_key="请输入 Anthropic API Key: "
+set /p api_key="Enter Anthropic Claude API Key: "
 if "!api_key!"=="" (
-    echo [错误] API Key 不能为空
+    echo [ERROR] API Key cannot be empty
     pause
     goto MENU
 )
 
-set /p model_name="请输入模型名称 (默认 claude-3-5-sonnet-20240229): "
+set /p model_name="Enter model name (default: claude-3-5-sonnet-20240229): "
 if "!model_name!"=="" set model_name=claude-3-5-sonnet-20240229
 
 python -c "import json; f=open('config/config.json', 'r', encoding='utf-8'); c=json.load(f); f.close(); c['api_provider']='anthropic'; c['model_name']='!model_name!'; c['api_keys']['custom']={'api_key': '!api_key!', 'base_url': 'https://api.anthropic.com/v1'}; c['temperature']=0.7; c['top_p']=0.9; f=open('config/config.json', 'w', encoding='utf-8'); json.dump(c, f, indent=2, ensure_ascii=False); f.close()"
 
 echo.
-echo [✓] Claude 配置完成！
-echo   模型：!model_name!
+echo [OK] Claude configuration completed!
+echo   Model: !model_name!
 echo   API: https://api.anthropic.com/v1
 echo.
 pause
 goto MENU
 
 :: ============================================================
-:: Gemini配置
+:: Gemini Config
 :: ============================================================
 :CONFIG_GEMINI
 echo.
 echo ========================================
-echo   配置 Gemini 模型
+echo   Configure Gemini/Google Model
 echo ========================================
 echo.
-echo 推荐模型：gemini-1.5-pro（最强）/ gemini-1.5-flash（快速）
-echo API 地址：https://ai.google.dev/
+echo Recommended: gemini-1.5-pro (best) / gemini-1.5-flash (fast)
+echo API: https://ai.google.dev/
 echo.
 
-set /p api_key="请输入 Google AI Studio API Key: "
+set /p api_key="Enter Google AI Studio API Key: "
 if "!api_key!"=="" (
-    echo [错误] API Key 不能为空
+    echo [ERROR] API Key cannot be empty
     pause
     goto MENU
 )
 
-set /p model_name="请输入模型名称 (默认 gemini-1.5-pro): "
+set /p model_name="Enter model name (default: gemini-1.5-pro): "
 if "!model_name!"=="" set model_name=gemini-1.5-pro
 
 python -c "import json; f=open('config/config.json', 'r', encoding='utf-8'); c=json.load(f); f.close(); c['api_provider']='gemini'; c['model_name']='!model_name!'; c['api_keys']['custom']={'api_key': '!api_key!', 'base_url': 'https://generativelanguage.googleapis.com/v1beta'}; c['temperature']=0.7; c['top_p']=0.9; f=open('config/config.json', 'w', encoding='utf-8'); json.dump(c, f, indent=2, ensure_ascii=False); f.close()"
 
 echo.
-echo [✓] Gemini 配置完成！
-echo   模型：!model_name!
+echo [OK] Gemini configuration completed!
+echo   Model: !model_name!
 echo   API: https://generativelanguage.googleapis.com/v1beta
 echo.
 pause
 goto MENU
 
 :: ============================================================
-:: 查看当前配置
+:: View Config
 :: ============================================================
 :VIEW_CONFIG
 echo.
 echo ========================================
-echo   当前配置
+echo   Current Configuration
 echo ========================================
 echo.
 
-python -c "import json; f=open('config/config.json', 'r', encoding='utf-8'); c=json.load(f); f.close(); print('API 提供商:', c.get('api_provider', 'N/A')); print('模型名称:', c.get('model_name', 'N/A')); print('Temperature:', c.get('temperature', 'N/A')); print('Top P:', c.get('top_p', 'N/A')); print('并发数:', c.get('initial_concurrency', 'N/A'), '/', c.get('max_concurrency', 'N/A')); print('批量大小:', c.get('batch_size', 'N/A'))"
+python -c "import json; f=open('config/config.json', 'r', encoding='utf-8'); c=json.load(f); f.close(); print('API Provider:', c.get('api_provider', 'N/A')); print('Model:', c.get('model_name', 'N/A')); print('Temperature:', c.get('temperature', 'N/A')); print('Top P:', c.get('top_p', 'N/A')); print('Concurrency:', c.get('initial_concurrency', 'N/A'), '/', c.get('max_concurrency', 'N/A')); print('Batch Size:', c.get('batch_size', 'N/A'))"
 
 echo.
-echo 完整配置文件：config/config.json
+echo Config file: config/config.json
 echo.
 pause
 goto MENU
 
 :: ============================================================
-:: 测试 API 连接
+:: Test API
 :: ============================================================
 :TEST_API
 echo.
 echo ========================================
-echo   测试 API 连接
+echo   Test API Connection
 echo ========================================
 echo.
 
 if exist "scripts/test_deepseek_connection.py" (
     python scripts/test_deepseek_connection.py
 ) else (
-    echo [提示] 未找到测试脚本，使用简单测试...
-    python -c "import requests; from pathlib import Path; import json; c=json.load(open('config/config.json', 'r', encoding='utf-8')); provider=c.get('api_provider', 'deepseek'); keys=c.get('api_keys', {}); k=keys.get(provider, keys.get('custom', {})); api_key=k.get('api_key', ''); base_url=k.get('base_url', ''); print(f'测试连接: {base_url}'); print(f'API Key: {api_key[:10]}...' if len(api_key)>10 else 'API Key: 未设置'); print('请确保 API Key 和网络连接正常')"
+    echo [INFO] Test script not found, using simple test...
+    python -c "import json; c=json.load(open('config/config.json', 'r', encoding='utf-8')); provider=c.get('api_provider', 'deepseek'); keys=c.get('api_keys', {}); k=keys.get(provider, keys.get('custom', {})); api_key=k.get('api_key', ''); base_url=k.get('base_url', ''); print(f'Testing: {base_url}'); print(f'API Key: {api_key[:10]}...' if len(api_key)>10 else 'API Key: Not set'); print('Please ensure API Key and network are working')"
 )
 
 if errorlevel 1 (
     echo.
-    echo [错误] API 连接测试失败
-    echo 请检查:
-    echo   1. API Key 是否正确
-    echo   2. 网络连接是否正常
-    echo   3. 防火墙设置
+    echo [ERROR] API connection test failed
+    echo Please check:
+    echo   1. API Key is correct
+    echo   2. Network connection is normal
+    echo   3. Firewall settings
 ) else (
     echo.
-    echo [✓] API 连接测试成功
+    echo [OK] API connection test successful
 )
 echo.
 pause
 goto MENU
 
 :: ============================================================
-:: 启动翻译平台
+:: Start App
 :: ============================================================
 :START_APP
 echo.
 echo ========================================
-echo   启动翻译平台
+echo   Launching Translation Platform
 echo ========================================
 echo.
 
-:: 检查虚拟环境
+:: Check virtual environment
 if exist ".venv/Scripts/activate.bat" (
-    echo [提示] 使用虚拟环境...
+    echo [INFO] Using virtual environment...
     call .venv/Scripts/activate.bat
 )
 
-echo 正在启动翻译平台...
+echo Starting translation platform...
 python presentation/translation.py
 
 goto MENU
 
 :: ============================================================
-:: 退出
+:: Exit
 :: ============================================================
 :EXIT
 echo.
-echo 感谢使用 AI 智能翻译工作台！
+echo Thank you for using AI Translation Workbench!
 echo.
 pause
 exit /b 0

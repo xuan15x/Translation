@@ -1614,8 +1614,8 @@ class TranslationApp:
         # 显示/隐藏性能监控面板
         if enabled:
             self.performance_frame.pack(fill=tk.X, pady=(5, 5))
-            # 启动性能监控任务
-            self._start_performance_monitoring()
+            # 启动性能监控任务（使用 asyncio.create_task 而不是直接调用）
+            asyncio.create_task(self._start_performance_monitoring())
         else:
             self.performance_frame.pack_forget()
             # 停止性能监控任务
