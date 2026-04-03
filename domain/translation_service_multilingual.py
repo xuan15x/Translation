@@ -68,13 +68,26 @@ class MultilingualTranslationService:
         """
         try:
             # 查询术语匹配（所有目标语言）
+            tm_hit_count = 0
+            tm_exact_count = 0
             for lang in task.target_langs:
                 try:
                     tm_match = await self.terminology_repo.find_by_source(task.source_text, lang)
                     task.tm_matches[lang] = tm_match
+                    if tm_match:
+                        tm_hit_count += 1
+                        if tm_match.is_exact:
+                            tm_exact_count += 1
+                            logger.debug(f"术语精确命中 [{lang}]: {task.source_text[:30]} -> {tm_match.translation[:30]}")
+                        else:
+                            logger.debug(f"术语模糊匹配 [{lang}]: 得分 {tm_match.score}")
+                    else:
+                        logger.debug(f"术语未匹配 [{lang}]: {task.source_text[:30]}")
                 except Exception as e:
                     logger.warning(f"查询术语匹配失败 ({lang}): {e}")
                     task.tm_matches[lang] = None
+
+            logger.info(f"术语库查询结果: {task.source_text[:30]}... - 命中 {tm_hit_count}/{len(task.target_langs)} 种语言, 其中精确命中 {tm_exact_count} 种")
 
             # 检查是否全部本地命中
             all_exact_hits = all(
@@ -84,12 +97,13 @@ class MultilingualTranslationService:
 
             if all_exact_hits and task.tm_matches:
                 # 全部本地命中，直接使用术语
+                logger.info(f"✅ 术语库全部命中，跳过 API 调用: {task.source_text[:30]}...")
                 translations = {
                     lang: tm.translation
                     for lang, tm in task.tm_matches.items()
                     if tm
                 }
-                
+
                 return MultiLanguageResult(
                     task=task,
                     translations=translations,
@@ -98,18 +112,23 @@ class MultilingualTranslationService:
                     diagnosis="Local TM Hit",
                     status=TranslationStatus.LOCAL_HIT
                 )
-            
+
             # 调用多语言 API 翻译
+            logger.info(f"🤖 调用 API 翻译: {task.source_text[:30]}... -> {len(task.target_langs)} 种语言")
             result = await self.multilingual_stage.execute(task)
-            
+
             # 保存翻译结果到术语库
             if result.success:
+                saved_count = 0
                 for lang, trans in result.translations.items():
                     try:
-                        await self.terminology_repo.save(task.source_text, lang, trans)
+                        success = await self.terminology_repo.save(task.source_text, lang, trans)
+                        if success:
+                            saved_count += 1
                     except Exception as e:
                         logger.warning(f"保存术语失败 ({lang}): {e}")
-            
+                logger.info(f"✅ 术语库保存: {saved_count}/{len(result.translations)} 种语言")
+
             return result
 
         except Exception as e:

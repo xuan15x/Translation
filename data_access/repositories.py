@@ -73,12 +73,18 @@ class TerminologyRepository(ITermRepository):
             rows = cursor.fetchall()
             items = [(row[0], row[1]) for row in rows]
 
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.debug(f"术语查询 [{target_lang}]: 原文='{source_text[:30]}', 数据库中有 {len(items)} 条记录")
+
             if not items:
+                logger.debug(f"术语查询 [{target_lang}]: 数据库无记录")
                 return None
 
             # 优先精确匹配检查（字符串完全相等）
             for source, trans in items:
                 if source == source_text:  # 完全精确匹配
+                    logger.debug(f"术语精确命中 [{target_lang}]: '{source_text[:30]}' -> '{trans[:30]}'")
                     return TermMatch(
                         original=source,
                         translation=trans,
@@ -92,11 +98,13 @@ class TerminologyRepository(ITermRepository):
             result = FuzzyMatcher.find_best_match(source_text, items, 60)
 
             if result:
+                logger.debug(f"术语模糊匹配 [{target_lang}]: '{source_text[:30]}' -> 得分 {result.get('score', 0)}")
                 return TermMatch.from_dict({
                     **result,
                     'target_lang': target_lang
                 })
 
+            logger.debug(f"术语未匹配 [{target_lang}]: '{source_text[:30]}'")
             return None
 
         except ValueError:
@@ -110,6 +118,9 @@ class TerminologyRepository(ITermRepository):
 
     async def save(self, source_text: str, target_lang: str, translation: str) -> bool:
         """保存到术语库 - 使用参数化查询"""
+        import logging
+        logger = logging.getLogger(__name__)
+        
         try:
             cursor = self.db_conn.cursor()
 
@@ -125,6 +136,7 @@ class TerminologyRepository(ITermRepository):
 
             if existing:
                 # 更新现有记录（使用参数化查询）
+                logger.info(f"📚 术语库更新 [{target_lang}]: '{source_text[:30]}' -> '{translation[:30]}'")
                 cursor.execute(f'''
                     UPDATE terminology
                     SET "{target_lang}" = ?
@@ -139,12 +151,14 @@ class TerminologyRepository(ITermRepository):
                 # 列名使用双引号包裹（SQLite 语法），列名已通过白名单验证
                 column_names = ', '.join([f'"{col}"' for col in columns])
 
+                logger.info(f"📚 术语库新增 [{target_lang}]: '{source_text[:30]}' -> '{translation[:30]}'")
                 cursor.execute(f'''
                     INSERT INTO terminology ({column_names})
                     VALUES ({placeholders})
                 ''', values)
 
             self.db_conn.commit()
+            logger.debug(f"✅ 术语库保存成功 [{target_lang}]: '{source_text[:30]}'")
 
             # 同步到 Excel（可选，由持久化管理器负责）
             return True
