@@ -1131,20 +1131,53 @@ class TranslationApp:
     def _on_closing(self):
         """窗口关闭处理"""
         try:
-            self.session_handler.save_current_session()
+            logger.info("🔄 正在关闭应用程序...")
             
-            # 停止性能监控
-            self._stop_performance_monitoring()
-            
-            # 清理容器
-            if self.container:
-                self.container.cleanup()
-            
-            self.root.destroy()
+            # 1. 保存会话
+            try:
+                self.session_handler.save_current_session()
+                logger.debug("✅ 会话已保存")
+            except Exception as e:
+                logger.warning(f"保存会话失败: {e}")
+
+            # 2. 停止性能监控
+            try:
+                self._stop_performance_monitoring()
+                logger.debug("✅ 性能监控已停止")
+            except Exception as e:
+                logger.warning(f"停止性能监控失败: {e}")
+
+            # 3. 清理容器（使用shutdown而非cleanup）
+            try:
+                if self.container:
+                    self.container.shutdown()
+                    logger.debug("✅ 容器已关闭")
+            except Exception as e:
+                logger.warning(f"关闭容器失败: {e}")
+
+            # 4. 关闭日志控制器
+            try:
+                if hasattr(self, 'log_controller') and self.log_controller:
+                    # 清理日志处理器
+                    root_logger = logging.getLogger()
+                    for handler in root_logger.handlers[:]:
+                        if hasattr(handler, 'flush'):
+                            handler.flush()
+                    logger.debug("✅ 日志处理器已清理")
+            except Exception as e:
+                logger.warning(f"清理日志处理器失败: {e}")
+
             logger.info("👋 应用程序已关闭")
-        except Exception as e:
-            logger.error(f"关闭应用程序时出错: {e}")
+            
+            # 5. 销毁窗口
             self.root.destroy()
+            
+        except Exception as e:
+            logger.error(f"关闭应用程序时出错: {e}", exc_info=True)
+            try:
+                self.root.destroy()
+            except:
+                pass
 
 
 def run_gui_app(config_file: str = None):
