@@ -5,6 +5,7 @@ GUI事件处理器
 import asyncio
 import logging
 import threading
+import tkinter as tk
 from typing import Optional
 from datetime import datetime
 from tkinter import messagebox
@@ -111,6 +112,12 @@ class TranslationEventHandler:
             logger.debug(f"  - 参数: concurrency_limit={DEFAULT_CONCURRENCY_LIMIT}")
             logger.debug(f"  - 参数: source_lang={source_lang}")
             
+            # 记录翻译前的状态
+            logger.info(f"📊 翻译任务统计:")
+            logger.info(f"  - 目标语言数量: {len(self.app.selected_langs)}")
+            logger.info(f"  - 目标语言列表: {self.app.selected_langs}")
+            logger.info(f"  - 源语言: {source_lang or '自动检测'}")
+            
             result = await self.app.translation_facade.translate_file(
                 source_excel_path=self.app.source_path.get(),
                 target_langs=self.app.selected_langs,
@@ -125,6 +132,11 @@ class TranslationEventHandler:
             if hasattr(result, 'results'):
                 logger.debug(f"  - 结果数量: {len(result.results)}")
                 logger.debug(f"  - 成功率: {result.success_rate:.1f}%")
+                logger.debug(f"  - total: {result.total}")
+                logger.debug(f"  - success_count: {result.success_count}")
+                logger.debug(f"  - failed_count: {result.failed_count}")
+            else:
+                logger.warning("⚠️ 结果对象没有results属性")
 
             # 记录历史
             if self.app.translation_history_manager and hasattr(result, 'results'):
