@@ -449,13 +449,15 @@ class TranslationApp:
         style_frame.pack(fill=tk.X, pady=(0, 10))
 
         # 初译风格
-        ttk.Label(style_frame, text="📝 初译风格（例如：专业严谨、轻松活泼、简洁直接）:", font=("", 9, "bold")).pack(anchor=tk.W)
+        self.draft_style_label = ttk.Label(style_frame, text="📝 初译风格（例如：专业严谨、轻松活泼、简洁直接）:", font=("", 9, "bold"))
+        self.draft_style_label.pack(anchor=tk.W)
         self.draft_style_var = tk.StringVar(value="专业、准确、直接")
         self.draft_style_entry = ttk.Entry(style_frame, textvariable=self.draft_style_var, font=("Microsoft YaHei", 10))
         self.draft_style_entry.pack(fill=tk.X, pady=(5, 10))
 
         # 校对风格
-        ttk.Label(style_frame, text="✨ 校对风格（例如：流畅自然、地道表达、保持原文语气）:", font=("", 9, "bold")).pack(anchor=tk.W)
+        self.review_style_label = ttk.Label(style_frame, text="✨ 校对风格（例如：流畅自然、地道表达、保持原文语气）:", font=("", 9, "bold"))
+        self.review_style_label.pack(anchor=tk.W)
         self.review_style_var = tk.StringVar(value="流畅、自然、地道")
         self.review_style_entry = ttk.Entry(style_frame, textvariable=self.review_style_var, font=("Microsoft YaHei", 10))
         self.review_style_entry.pack(fill=tk.X, pady=(5, 0))
@@ -1407,40 +1409,74 @@ class TranslationApp:
 
         if mode == "draft_only":
             # 仅初译模式：隐藏校对相关配置
-            self._set_widget_visibility(False)  # 隐藏校对部分
+            self._set_widget_visibility("draft_only")
             logger.info("🔄 已切换到仅初译模式")
         elif mode == "review_only":
             # 仅校对模式：隐藏初译相关配置
-            self._set_widget_visibility(True)  # 隐藏初译部分
+            self._set_widget_visibility("review_only")
             logger.info("🔄 已切换到仅校对模式")
         else:  # full
             # 完整模式：显示所有配置
-            self._set_widget_visibility(None)  # 显示全部
+            self._set_widget_visibility("full")
             logger.info("🔄 已切换到完整双阶段模式")
 
-    def _set_widget_visibility(self, hide_draft=None):
+    def _set_widget_visibility(self, mode: str):
         """
-        设置控件可见性
+        根据翻译模式设置控件可见性
 
         Args:
-            hide_draft: True=隐藏初译显示校对, False=隐藏校对显示初译, None=显示全部
+            mode: 'full'/'draft_only'/'review_only'
         """
         try:
-            if hide_draft is True:
-                # 仅校对模式：隐藏初译风格输入
-                self.draft_style_entry.pack_forget()
-                # 在预览中也需要隐藏初译标签
+            if mode == "draft_only":
+                # 仅初译模式：显示初译，隐藏校对
+                self.draft_style_label.pack(anchor=tk.W)
+                self.draft_style_entry.pack(fill=tk.X, pady=(5, 10))
+                self.review_style_label.pack_forget()
+                self.review_style_entry.pack_forget()
+                
+                # 隐藏校对预览标签页，显示初译标签页
                 for child in self.preview_notebook.winfo_children():
                     tab_text = self.preview_notebook.tab(child, "text")
-                    if "初译" in tab_text:
+                    if "校对" in tab_text or "Review" in tab_text:
                         self.preview_notebook.hide(child)
-            elif hide_draft is False:
-                # 仅初译模式：隐藏校对风格输入
-                # 注意：这里需要根据实际布局调整
-                pass
-            else:
+                    elif "初译" in tab_text or "Draft" in tab_text:
+                        self.preview_notebook.add(child)
+                
+                # 更新提示词预览框架文本
+                self.prompt_preview_frame.config(text="👁️ 初译提示词预览（自动生成）")
+
+            elif mode == "review_only":
+                # 仅校对模式：显示校对，隐藏初译
+                self.draft_style_label.pack_forget()
+                self.draft_style_entry.pack_forget()
+                self.review_style_label.pack(anchor=tk.W)
+                self.review_style_entry.pack(fill=tk.X, pady=(5, 0))
+                
+                # 隐藏初译预览标签页，显示校对标签页
+                for child in self.preview_notebook.winfo_children():
+                    tab_text = self.preview_notebook.tab(child, "text")
+                    if "初译" in tab_text or "Draft" in tab_text:
+                        self.preview_notebook.hide(child)
+                    elif "校对" in tab_text or "Review" in tab_text:
+                        self.preview_notebook.add(child)
+                
+                # 更新提示词预览框架文本
+                self.prompt_preview_frame.config(text="👁️ 校对提示词预览（自动生成）")
+
+            else:  # full
                 # 完整模式：显示所有
-                pass
+                self.draft_style_label.pack(anchor=tk.W)
+                self.draft_style_entry.pack(fill=tk.X, pady=(5, 10))
+                self.review_style_label.pack(anchor=tk.W)
+                self.review_style_entry.pack(fill=tk.X, pady=(5, 0))
+                
+                # 显示所有预览标签页
+                for child in self.preview_notebook.winfo_children():
+                    self.preview_notebook.add(child)
+                
+                # 更新提示词预览框架文本
+                self.prompt_preview_frame.config(text="👁️ 提示词预览（自动生成，无需手动编辑）")
 
             # 更新预览
             self._update_prompt_preview()
