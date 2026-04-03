@@ -114,10 +114,13 @@ def initialize_container(config_file: Optional[str] = None,
     
     # ========== Infrastructure Layer ==========
     # 1. 数据库连接 - 修复：使用文件数据库而非内存数据库，避免数据丢失
-    db_path = os.path.join(os.path.dirname(__file__), '..', 'data', 'terminology.db')
+    # 修复路径：使用项目根目录的 data 文件夹
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+    db_path = os.path.join(project_root, 'data', 'terminology.db')
     os.makedirs(os.path.dirname(db_path), exist_ok=True)
     db_conn = sqlite3.connect(db_path, check_same_thread=False)
     container.register('db_connection', db_conn, singleton=True)
+    logger.info(f"📂 术语库数据库路径: {db_path}")
     
     # 创建terminology表（如果不存在）
     try:
