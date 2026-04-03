@@ -816,23 +816,30 @@ class TranslationApp:
             try:
                 if self.config_persistence:
                     config_data = self.config_persistence.load(self.config_file)
+                    logger.debug(f"加载到的配置数据: {list(config_data.keys())}")
+                    
                     # 支持两种配置格式：
                     # 1. 直接格式: {"api_key": "xxx"}
                     # 2. 嵌套格式: {"api_keys": {"deepseek": {"api_key": "xxx"}}}
                     api_key = config_data.get('api_key', '')
-                    
+                    logger.debug(f"直接读取api_key字段: {'已找到' if api_key else '未找到'}")
+
                     if not api_key and 'api_keys' in config_data:
                         # 嵌套格式，获取当前选择的API提供商的密钥
                         api_provider = self.current_provider_var.get()
-                        logger.debug(f"当前API提供商: {api_provider}")
-                        
+                        logger.info(f"📌 当前API提供商: {api_provider}")
+
                         api_keys_config = config_data.get('api_keys', {})
+                        logger.debug(f"api_keys配置: {list(api_keys_config.keys())}")
+                        
                         if api_provider in api_keys_config:
                             provider_config = api_keys_config[api_provider]
                             api_key = provider_config.get('api_key', '')
-                            logger.debug(f"从api_keys.{api_provider}读取API密钥: {'已配置' if api_key else '未配置'}")
+                            provider_base_url = provider_config.get('base_url', '')
+                            logger.info(f"✅ 从api_keys.{api_provider}读取API密钥: {'已配置' if api_key else '未配置'}")
+                            logger.info(f"✅ 从api_keys.{api_provider}读取base_url: {provider_base_url}")
                         else:
-                            logger.warning(f"未找到提供商 '{api_provider}' 的配置")
+                            logger.warning(f"⚠️ 未找到提供商 '{api_provider}' 的配置，可用提供商: {list(api_keys_config.keys())}")
                     elif api_key:
                         logger.debug("从api_key字段读取API密钥: 已配置")
                     else:
@@ -882,6 +889,11 @@ class TranslationApp:
                     # 如果无法解析提供商，使用默认
                     logger.warning(f"⚠️ 解析提供商失败 (异常: {type(e).__name__}: {e})，使用默认DeepSeek配置")
                     base_url = "https://api.deepseek.com"
+                
+                # 如果配置文件中提供了base_url，优先使用配置文件中的
+                if provider_base_url:
+                    logger.info(f"🔄 使用配置文件中的base_url: {provider_base_url}")
+                    base_url = provider_base_url
                 
                 logger.info(f"🌐 最终使用的base_url: {base_url}")
                 logger.info(f"🔑 API密钥前缀: {api_key[:10]}...")
