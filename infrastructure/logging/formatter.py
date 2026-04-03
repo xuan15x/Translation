@@ -67,8 +67,12 @@ class GUILogHandler(logging.Handler):
                 self.text_widget.configure(state='disabled')
             except Exception as e:
                 # 防止 GUI 控件已销毁
-                print(f"GUI log error: {e}")
+                pass
 
-        # 使用 after 方法在 GUI 线程中执行
-        if self.text_widget.winfo_exists():
-            self.text_widget.after(0, append)
+        # 使用 after 方法在 GUI 线程中执行，增加异常处理
+        try:
+            if self.text_widget.winfo_exists():
+                self.text_widget.after(0, append)
+        except Exception:
+            # GUI已销毁，静默忽略
+            pass

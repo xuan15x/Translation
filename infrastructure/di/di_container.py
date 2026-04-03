@@ -274,7 +274,12 @@ def _cleanup_on_exit():
     """程序退出时清理资源"""
     global _container
     if _container:
-        _container.shutdown()
+        try:
+            # 程序退出时可能日志系统已不可用，静默处理异常
+            _container.shutdown()
+        except Exception:
+            # 忽略退出时的所有异常，避免干扰用户
+            pass
 
 
 # 注册退出时的清理函数
