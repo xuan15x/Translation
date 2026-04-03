@@ -1678,8 +1678,8 @@ class TranslationApp:
         """风格变化时的回调"""
         # 延迟更新预览，避免频繁刷新
         if hasattr(self, '_preview_update_timer'):
-            self.after_cancel(self._preview_update_timer)
-        self._preview_update_timer = self.after(500, self._update_prompt_preview)
+            self.root.after_cancel(self._preview_update_timer)
+        self._preview_update_timer = self.root.after(500, self._update_prompt_preview)
 
     def _update_prompt_preview(self):
         """更新提示词预览"""
@@ -2027,7 +2027,14 @@ Constraints:
 
             # 获取 API 客户端
             provider_name = self.current_provider_var.get()
+            if self.provider_manager is None:
+                raise ValueError("API 提供商管理器未初始化。请检查配置文件格式。")
+            
             provider = self.provider_manager.get_provider(provider_name)
+            if provider is None:
+                available = self.provider_manager.list_providers()
+                raise ValueError(f"找不到 API 提供商 '{provider_name}'。可用提供商: {available}。请检查 config.json 中的 'api_keys' 配置。")
+            
             api_client = provider.get_client()
 
             # 初始化容器（根据模式传入需要的提示词）
@@ -2259,12 +2266,12 @@ Constraints:
                 self._update_performance_display(metrics)
 
             # 1 秒后再次调用
-            self._perf_monitor_timer = self.after(1000, self._update_performance_display_task)
+            self._perf_monitor_timer = self.root.after(1000, self._update_performance_display_task)
 
         except Exception as e:
             logger.debug(f"性能监控更新失败: {e}")
             # 即使失败也继续尝试
-            self._perf_monitor_timer = self.after(1000, self._update_performance_display_task)
+            self._perf_monitor_timer = self.root.after(1000, self._update_performance_display_task)
 
     async def _start_performance_monitoring(self):
         """启动性能监控任务"""

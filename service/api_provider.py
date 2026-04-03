@@ -5,6 +5,7 @@ API 提供商管理模块
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 from enum import Enum
+from typing import Dict, List, Optional, Union
 
 
 class APIProvider(Enum):
@@ -116,16 +117,23 @@ class APIProviderManager:
         self._current_provider: APIProvider = APIProvider.DEEPSEEK
         self._custom_providers: Dict[str, ProviderConfig] = {}
     
-    def get_provider(self, provider: APIProvider) -> Optional[ProviderConfig]:
+    def get_provider(self, provider: Union[APIProvider, str]) -> Optional[ProviderConfig]:
         """
         获取指定提供商的配置
-        
+
         Args:
-            provider: API 提供商枚举
-            
+            provider: API 提供商枚举或名称字符串
+
         Returns:
             提供商配置，如果不存在则返回 None
         """
+        # 如果是字符串，尝试转换为枚举
+        if isinstance(provider, str):
+            try:
+                provider = APIProvider(provider.lower())
+            except ValueError:
+                return self._custom_providers.get(provider.lower())
+        
         return self._providers.get(provider)
     
     def get_current_provider(self) -> APIProvider:
