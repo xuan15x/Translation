@@ -654,8 +654,9 @@ class TranslationApp:
             parent: 父容器（控制区域）
         """
         self.performance_frame = ttk.LabelFrame(parent, text="📊 性能监控", padding="8")
-        # 默认不显示，用户启用性能监控后才显示
-        # self.performance_frame.pack(fill=tk.X, pady=(5, 5))
+        # 先pack再隐藏，确保widget被正确管理
+        self.performance_frame.pack(fill=tk.X, pady=(5, 5))
+        self.performance_frame.pack_forget()  # 立即隐藏，用户启用后才显示
 
         # 性能指标网格
         perf_grid = ttk.Frame(self.performance_frame)
@@ -697,8 +698,9 @@ class TranslationApp:
             parent: 父容器（主内容区域）
         """
         self.preview_frame = ttk.LabelFrame(parent, text="🔍 翻译预览（前10行）", padding="8")
-        # 默认不显示，开始翻译后才显示
-        # self.preview_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
+        # 先pack再隐藏，确保widget被正确管理，开始翻译后才显示
+        self.preview_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
+        self.preview_frame.pack_forget()  # 立即隐藏
 
         # 预览文本区域
         self.preview_text = scrolledtext.ScrolledText(
@@ -890,10 +892,13 @@ class TranslationApp:
         """创建日志控制面板"""
         if not self.log_controller:
             return
-        
+
         # 使用 log_controller 的方法创建控制面板
         control_frame = self.log_controller.create_log_control_frame(parent)
         control_frame.pack(fill=tk.X, pady=(0, 5))
+        
+        # 保存引用以便后续访问
+        self.log_control_frame = control_frame
     
     def _select_term_file(self):
         """选择术语库文件（支持 Excel/CSV/JSON）"""
