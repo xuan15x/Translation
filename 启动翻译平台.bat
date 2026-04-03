@@ -55,8 +55,27 @@ if exist "%CONFIG_FILE_YAML%" (
     python -u presentation\translation.py "!CONFIG_FILE!"
 ) else (
     echo [WARNING] No config file found
-    echo [INFO] Starting GUI without config file...
-    python -u presentation\translation.py
+    echo [INFO] Starting quick configuration wizard...
+    echo.
+    
+    REM Run quick configuration script
+    if exist "%SCRIPT_DIR%快速配置.bat" (
+        call "%SCRIPT_DIR%快速配置.bat"
+        
+        REM Check if config was created
+        if exist "%CONFIG_FILE_JSON%" (
+            echo [OK] Config file created successfully
+            echo [INFO] Starting GUI with new config...
+            python -u presentation\translation.py "%CONFIG_FILE_JSON%"
+        ) else (
+            echo [WARNING] No config file created, starting GUI in demo mode...
+            python -u presentation\translation.py
+        )
+    ) else (
+        echo [WARNING] Quick config script not found
+        echo [INFO] Starting GUI without config file...
+        python -u presentation\translation.py
+    )
 )
 
 echo.

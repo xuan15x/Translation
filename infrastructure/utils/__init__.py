@@ -16,7 +16,7 @@ from .progress_estimator import ProgressEstimator
 from .conflict_resolver import ConflictResolver
 from .undo_manager import UndoManager
 from .smart_config import SmartConfigurator
-from .config_metrics import ConfigMetrics
+from .config_metrics import ConfigMetrics, record_config_usage
 
 __all__ = [
     'ValidationError',
@@ -35,5 +35,6 @@ __all__ = [
     'ConflictResolver',
     'UndoManager',
     'SmartConfigurator',
-    'ConfigMetrics'
+    'ConfigMetrics',
+    'record_config_usage'
 ]
