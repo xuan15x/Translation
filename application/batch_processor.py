@@ -33,7 +33,12 @@ class BatchTaskProcessor(IBatchProcessor):
 
     async def process_concurrent(self, tasks: List[TranslationTask], concurrency_limit: int) -> BatchResult:
         """并发处理任务（可配置并发数）"""
-        batch_result = BatchResult(total=len(tasks))
+        batch_result = BatchResult(
+            total=len(tasks),
+            success_count=0,
+            failed_count=0,
+            local_hit_count=0
+        )
 
         if not tasks:
             return batch_result
@@ -103,7 +108,12 @@ class SequentialTaskProcessor(IBatchProcessor):
     
     async def process_batch(self, tasks: List[TranslationTask]) -> BatchResult:
         """顺序处理任务"""
-        batch_result = BatchResult(total=len(tasks))
+        batch_result = BatchResult(
+            total=len(tasks),
+            success_count=0,
+            failed_count=0,
+            local_hit_count=0
+        )
         
         for i, task in enumerate(tasks):
             try:
@@ -130,7 +140,12 @@ class SequentialTaskProcessor(IBatchProcessor):
     
     async def process_concurrent(self, tasks: List[TranslationTask], concurrency_limit: int) -> BatchResult:
         """并发处理任务（可配置并发数）"""
-        batch_result = BatchResult(total=len(tasks))
+        batch_result = BatchResult(
+            total=len(tasks),
+            success_count=0,
+            failed_count=0,
+            local_hit_count=0
+        )
         
         if not tasks:
             return batch_result
