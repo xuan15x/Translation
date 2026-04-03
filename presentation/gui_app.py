@@ -810,7 +810,43 @@ class TranslationApp:
         if self.container is None:
             logger.debug("创建新的依赖容器...")
             from infrastructure.di.di_container import initialize_container
-            self.container = initialize_container()
+            from config import DEFAULT_DRAFT_PROMPT, DEFAULT_REVIEW_PROMPT
+            
+            # 检查配置文件中是否有API密钥
+            try:
+                if self.config_persistence:
+                    config_data = self.config_persistence.load(self.config_file)
+                    api_key = config_data.get('api_key', '')
+                    logger.debug(f"从配置文件读取API密钥: {'已配置' if api_key else '未配置'}")
+                else:
+                    api_key = ''
+            except Exception as e:
+                logger.warning(f"读取API密钥失败: {e}")
+                api_key = ''
+            
+            if not api_key:
+                logger.error("❌ 配置文件中未找到API密钥")
+                logger.error("💡 请在config/config.json中配置api_key字段")
+                raise ValueError("API密钥未配置，无法初始化翻译服务")
+            
+            # 创建API客户端
+            logger.debug("创建API客户端...")
+            from openai import OpenAI
+            try:
+                api_client = OpenAI(api_key=api_key)
+                logger.info("✅ API客户端创建成功")
+            except Exception as e:
+                logger.error(f"❌ API客户端创建失败: {e}")
+                raise
+            
+            # 初始化容器，传递必要参数
+            logger.debug("初始化依赖容器，传递API客户端和提示词...")
+            self.container = initialize_container(
+                config_file=self.config_file,
+                api_client=api_client,
+                draft_prompt=DEFAULT_DRAFT_PROMPT,
+                review_prompt=DEFAULT_REVIEW_PROMPT
+            )
             logger.info("✅ 依赖容器创建完成")
         
         if self.translation_facade is None:
