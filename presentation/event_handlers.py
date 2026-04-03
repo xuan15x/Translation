@@ -212,12 +212,31 @@ class TranslationEventHandler:
 
     def _cleanup_after_translation(self):
         """清理翻译后的状态"""
-        self.app.translation_vm.reset()
-        self.app.start_btn.config(state='normal')
-        self.app.stop_btn.config(state='disabled')
-        self.app.pause_btn.config(state='disabled')
-        self.app.pause_btn.config(text="⏸️ 暂停")
-        self.app.progress_var.set(0)
+        try:
+            self.app.translation_vm.reset()
+            self.app.start_btn.config(state='normal')
+            self.app.stop_btn.config(state='disabled')
+            self.app.pause_btn.config(state='disabled')
+            self.app.pause_btn.config(text="⏸️ 暂停")
+            self.app.progress_var.set(0)
+            
+            # 关闭API客户端连接，防止连接泄漏导致无响应
+            if hasattr(self.app, 'container') and self.app.container:
+                try:
+                    # 异步关闭客户端（如果有close方法）
+                    client = self.app.container._singletons.get('translation_service')
+                    if client and hasattr(client, 'client') and hasattr(client.client, 'close'):
+                        import asyncio
+                        try:
+                            loop = asyncio.new_event_loop()
+                            loop.run_until_complete(client.client.close())
+                            loop.close()
+                        except:
+                            pass
+                except:
+                    pass
+        except Exception as e:
+            logger.error(f"清理翻译状态失败: {e}")
 
     def stop_translation(self):
         """停止翻译"""
