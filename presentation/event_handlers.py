@@ -169,7 +169,7 @@ class TranslationEventHandler:
 
             for translation_result in result.results:
                 try:
-                    from service.translationation_history import record_translation
+                    from service.translation_history import record_translation
                     record_translation(
                         result=translation_result,
                         api_provider=api_provider,

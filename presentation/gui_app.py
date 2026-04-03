@@ -675,7 +675,55 @@ class TranslationApp:
 
     def _load_custom_prompts(self):
         """导入自定义提示词"""
-        messagebox.showinfo("导入提示词", "请使用文本编辑器直接修改配置文件中的提示词")
+        try:
+            from tkinter import filedialog
+            
+            filename = filedialog.askopenfilename(
+                title="选择提示词文件",
+                filetypes=[("Text files", "*.txt"), ("All files", "*.*")],
+                defaultextension=".txt"
+            )
+            
+            if not filename:
+                return
+            
+            logger.info(f"📂 正在加载自定义提示词: {filename}")
+            
+            with open(filename, 'r', encoding='utf-8') as f:
+                content = f.read()
+            
+            # 简单解析：尝试分割为初译和校对提示词
+            if "=== 校对提示词 ===" in content or "=== Review Prompt ===" in content:
+                # 双提示词格式
+                parts = content.split("=== 校对提示词 ===" if "=== 校对提示词 ===" in content else "=== Review Prompt ===")
+                draft_prompt = parts[0].replace("=== 初译提示词 ===", "").strip()
+                review_prompt = parts[1].strip()
+                
+                self.draft_preview_text.config(state='normal')
+                self.draft_preview_text.delete('1.0', tk.END)
+                self.draft_preview_text.insert('1.0', draft_prompt)
+                self.draft_preview_text.config(state='disabled')
+                
+                self.review_preview_text.config(state='normal')
+                self.review_preview_text.delete('1.0', tk.END)
+                self.review_preview_text.insert('1.0', review_prompt)
+                self.review_preview_text.config(state='disabled')
+                
+                logger.info("✅ 已导入初译和校对提示词")
+            else:
+                # 单提示词格式，默认导入到初译
+                self.draft_preview_text.config(state='normal')
+                self.draft_preview_text.delete('1.0', tk.END)
+                self.draft_preview_text.insert('1.0', content)
+                self.draft_preview_text.config(state='disabled')
+                
+                logger.info("✅ 已导入提示词（单格式，仅初译）")
+            
+            messagebox.showinfo("成功", f"提示词已从文件导入：\n{filename}")
+            
+        except Exception as e:
+            logger.error(f"导入自定义提示词失败: {e}", exc_info=True)
+            messagebox.showerror("错误", f"导入提示词失败：\n{str(e)}")
 
     def _show_full_prompt_structure(self):
         """显示完整提示词结构"""
