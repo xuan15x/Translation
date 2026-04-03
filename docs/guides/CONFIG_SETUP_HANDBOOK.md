@@ -1,197 +1,213 @@
-# 配置填入手册 v3.2
+# 配置指南 v3.2.0
 
-> 📖 **本手册专为新手设计**，从零开始指导您完成所有配置，无需任何前置知识。
+> 📖 **完整配置指南** - 从零基础到高级配置
 
 ## 📋 目录
 
-1. [第一次使用？从这里开始](#-第一次使用从这里开始)
-2. [⚡ v3.1.0 一键配置（⭐ 推荐）](#-v310-一键配置-推荐)
-3. [🆕 v3.2.0 新增配置功能](#-v320-新增配置功能)
-   - [翻译模式配置](#翻译模式配置)
-   - [提示词模板配置](#提示词模板配置)
-4. [📝 配置文件详解](#-配置文件详解)
-5. [🔧 常用场景配置](#-常用场景配置)
-6. [🔍 问题排查](#-问题排查)
+1. [快速开始（3 分钟配置完成）](#-快速开始3-分钟配置完成)
+2. [翻译模式配置](#-翻译模式配置)
+3. [提示词高级设置](#-提示词高级设置)
+4. [配置文件详解](#-配置文件详解)
+5. [多模型提供商配置](#-多模型提供商配置)
+6. [常见问题排查](#-常见问题排查)
 
 ---
 
-## 🎯 第一次使用？从这里开始
+## 🚀 快速开始（3 分钟配置完成）
 
-### 你需要准备什么？
+### 第一步：获取 API Key
 
-✅ **只需要 2 样东西：**
-1. Python 3.8+（已安装）
-2. API Key（免费注册获取）
+**推荐：DeepSeek（性价比高，中文优秀）**
 
-### 如何获取 API Key？
-
-**推荐：DeepSeek（深度求索）**
 1. 访问：https://platform.deepseek.com/
 2. 注册账号（支持手机号/邮箱）
-3. 点击控制台 → API Keys
+3. 进入控制台 → API Keys
 4. 创建新 API Key
 5. 复制保存（格式：`sk-xxxxxxxxxxxxxxxx`）
 
-**💡 提示：** 新用户通常有免费额度，足够测试使用。
+### 第二步：运行快速配置脚本
 
-### v3.1.0 支持的模型提供商
+**Windows 用户**：
+```bash
+# 双击运行或在命令行执行
+快速配置.bat
+```
 
-| 提供商 | 特点 | 推荐场景 | API Key 格式 |
-|--------|------|----------|--------------|
-| **DeepSeek** | 性价比高，中文优秀 | 日常翻译、技术文档 | sk-xxxxxxxxx |
-| **OpenAI** | 质量最高，生态完善 | 高质量翻译、英文 | sk-xxxxxxxxx |
-| **通义千问** | 阿里出品，中文优化 | 中文场景、商务 | sk-xxxxxxxxx |
-| **智谱 AI** | 国产模型，自主可控 | 国内合规场景 | xxxxxxxxx |
-| **Moonshot** | 高效快速，成本低 | 大批量翻译 | sk-xxxxxxxxx |
-| **Claude** | 英文质量优秀 | 英文文档、文学 | sk-ant-xxxxxxx |
-| **Gemini** | 多语言支持优秀 | 多语种翻译 | xxxxxxxxx |
+**脚本会自动**：
+1. ✅ 检查 Python 是否已安装
+2. ✅ 自动创建 `config/config.json`（如果不存在）
+3. ✅ 显示模型提供商选择菜单
 
----
+### 第三步：选择模型并输入 API Key
 
-## ⚡ v3.1.0 一键配置（⭐ 推荐）
+```
+========================================
+  Select Model Provider
+========================================
+  1. DeepSeek (Recommended, Cost-effective)
+  2. OpenAI (GPT-4o/GPT-3.5)
+  3. Qwen/Alibaba Cloud
+  4. Zhipu AI (GLM Series)
+  5. Moonshot (Kimi)
+  6. Claude (Anthropic)
+  7. Gemini (Google)
+  --------------------------------------
+  8. View Current Config
+  9. Test API Connection
+  0. Launch Translation Platform
+========================================
 
-### 方式一：快速配置向导（最简单）
+Select (0-9): 1
+```
 
-**适合人群：** 所有用户，特别是新手
+**输入 1 选择 DeepSeek**，然后：
 
-**步骤：**
+```
+Enter DeepSeek API Key: sk-你的API密钥
+Enter model name (default: deepseek-chat): deepseek-chat
+
+[OK] DeepSeek configuration completed!
+  Model: deepseek-chat
+  API: https://api.deepseek.com
+```
+
+### 第四步：启动翻译平台
+
+在快速配置脚本菜单中输入 `0`，或运行：
 
 ```bash
-# 1. 运行快速配置脚本
-python scripts/quick_setup.py
-```
-
-**接下来跟随向导操作：**
-
-#### 步骤 1/3：选择模型提供商
-```
-==================================================
-🚀 AI 智能翻译系统 - 快速配置向导 v3.1.0
-==================================================
-
-请选择模型提供商:
-1. DeepSeek (推荐，性价比高)
-2. OpenAI (高质量翻译)
-3. 通义千问 (中文场景优化)
-4. 智谱 AI (国产模型)
-5. Moonshot (高效翻译)
-6. Claude (英文质量优秀)
-7. Gemini (多语言支持)
-
-请输入选项 (1-7，默认 1):
-```
-**👉 输入 `1` 然后按回车（选择 DeepSeek）**
-
-#### 步骤 2/3：输入 API Key
-```
-请输入您的 DeepSeek API Key:
-```
-**👉 粘贴你的 API Key 然后按回车**
-```
-✅ API Key 已设置（**********abcd）
-```
-
-#### 步骤 3/3：确认配置
-```
-📋 配置摘要:
-   提供商: DeepSeek
-   模型: deepseek-chat
-   API Key: sk***********abcd
-
-是否保存配置并启动程序？(Y/n):
-```
-**👉 输入 `Y` 然后按回车**
-
-**完成！** 🎉 程序会自动保存配置并启动翻译界面。
-
----
-
-### 方式二：手动配置文件
-
-**适合人群：** 需要自定义配置的用户
-
-#### 步骤 1：复制示例文件
-
-```bash
-# 在项目根目录执行
-cp config/config.example.json config/config.json
-```
-
-或者直接用文件管理器：
-1. 打开项目文件夹
-2. 进入 `config` 目录
-3. 复制 `config.example.json`
-4. 粘贴并重命名为 `config.json`
-
-#### 步骤 2：编辑配置文件
-
-用文本编辑器（如记事本、VS Code）打开 `config/config.json`
-
-**需要修改的关键配置：**
-```json
-{
-  "api_key": "sk-your-actual-api-key-here",  // ⚠️ 改成你的 API Key
-  "api_provider": "deepseek",                 // 提供商：deepseek/openai/qwen/zhipuai/moonshot/claude/gemini
-  "model_name": "deepseek-chat"               // 模型名称
-}
-```
-
-**就这么简单！** 其他参数都用默认值即可。
-
-#### 步骤 3：保存并启动
-
-保存文件，然后运行：
-```bash
-# Windows 用户
 启动翻译平台.bat
-
-# 或者使用命令行
-python presentation/translation.py
 ```
+
+**✅ 配置完成！** 现在可以开始翻译了。
 
 ---
 
-## 🆕 v3.2.0 新增配置功能
+## 🔄 翻译模式配置
 
-### 翻译模式配置
+v3.2.0 新增了三种翻译模式，适应不同场景需求。
 
-v3.2.0 新增了灵活的翻译模式选择功能，可以根据需求选择不同的翻译流程：
+### 模式说明
 
-**三种翻译模式：**
+| 模式 | 说明 | 适用场景 | 速度 |
+|------|------|----------|------|
+| **完整双阶段** | 初译 + 校对 | 高质量翻译、正式文档 | 较慢 |
+| **仅初译** | 只执行初译 | 快速翻译、草稿生成 | 快速 |
+| **仅校对** | 只执行校对 | 已有初译结果，只需优化 | 中等 |
 
-| 模式 | 配置值 | 说明 | 适用场景 |
-|------|--------|------|----------|
-| **完整双阶段** | `full` | 初译 + 校对，确保质量 | 重要文档、出版级翻译 |
-| **仅初译** | `draft_only` | 只进行初译，跳过校对 | 快速翻译、草稿生成 |
-| **仅校对** | `review_only` | 只进行校对，优化翻译 | 翻译优化、质量提升 |
+### 如何切换模式
 
-**配置方法：**
+**方法一：GUI 界面（推荐）**
+
+在翻译平台主界面，找到"翻译模式"下拉框：
+
+```
+🔄 翻译模式: [完整双阶段（初译+校对） ▼]
+```
+
+选择后界面会自动调整：
+- **仅初译模式**：隐藏校对风格输入框和预览
+- **仅校对模式**：隐藏初译风格输入框和预览
+- **完整模式**：显示所有配置
+
+**方法二：配置文件**
+
+编辑 `config/config.json`：
+
 ```json
 {
-  "translation_mode": "full"  // full/draft_only/review_only
+  "translation_mode": "full"
 }
 ```
 
-**GUI 中使用：**
-- 在翻译控制面板找到"翻译模式"下拉框
-- 选择需要的模式
-- 界面会自动显示/隐藏相关配置项
+可选值：
+- `"full"` - 完整双阶段
+- `"draft_only"` - 仅初译
+- `"review_only"` - 仅校对
 
-**使用建议：**
-- ✅ 日常翻译：使用 `full` 模式，质量最佳
-- ✅ 大批量翻译：使用 `draft_only` 模式，速度最快
-- ✅ 已有翻译优化：使用 `review_only` 模式，提升质量
+---
 
-### 提示词模板配置
+## ⚙️ 提示词高级设置
 
-v3.2.0 新增了提示词高级设置功能，可以自定义 AI 的角色、任务和约束条件：
+v3.2.0 允许用户完全自定义提示词结构。
 
-**提示词结构说明：**
-- 🎭 **Role（角色）**: 定义 AI 的身份和专长
-- 📋 **Task（任务）**: 描述具体的翻译任务
-- ⚠️ **Constraints（约束）**: 设置翻译规则和限制
+### 默认工作流程
 
-**配置方法：**
+```
+用户输入风格 → 程序自动生成 Role/Task/Constraints → 自动注入禁止事项 → 发送给 AI
+```
+
+**用户只需输入**：
+- 初译风格：如"专业、准确、直接"
+- 校对风格：如"流畅、自然、地道"
+
+### 高级设置（可选）
+
+**打开方式**：点击"⚙️ 高级设置"按钮
+
+**可配置项**：
+
+#### 1. 角色（Role）
+
+定义 AI 的身份和专业领域。
+
+**初译默认值**：
+```
+Professional Translator
+```
+
+**校对默认**：
+```
+Senior Language Editor
+```
+
+#### 2. 任务（Task）
+
+描述 AI 需要完成的具体任务。
+
+**初译默认值**：
+```
+Translate 'Src' to {target_lang}
+```
+
+**校对默认值**：
+```
+Polish 'Draft' into native {target_lang}
+```
+
+#### 3. 约束条件（Constraints）
+
+列出 AI 必须遵守的规则，每行一条。
+
+**初译默认值**：
+```
+Output JSON ONLY: {"Trans": "string"}
+Strictly follow provided TM
+Accurate and direct
+```
+
+**校对默认值**：
+```
+Output JSON ONLY: {"Trans": "string", "Reason": "string"}
+Reason: Max 10 chars. If no change, Reason=""
+Focus on flow and tone
+```
+
+### 保存和加载自定义模板
+
+**保存**：
+1. 在高级设置窗口修改内容
+2. 点击"💾 保存设置"
+3. 自动保存到 `config/config.json`
+
+**恢复默认**：
+1. 点击"🔄 恢复默认"
+2. 确认后恢复默认值
+
+### 配置文件格式
+
+自定义模板保存在 `config/config.json` 中：
+
 ```json
 {
   "prompt_templates": {
@@ -209,7 +225,7 @@ v3.2.0 新增了提示词高级设置功能，可以自定义 AI 的角色、任
       "task": "Polish 'Draft' into native {target_lang}",
       "constraints": [
         "Output JSON ONLY: {\"Trans\": \"string\", \"Reason\": \"string\"}",
-        "'Reason': Max 10 chars. If no change, Reason=\"\"",
+        "Reason: Max 10 chars",
         "Focus on flow and tone"
       ]
     }
@@ -217,435 +233,225 @@ v3.2.0 新增了提示词高级设置功能，可以自定义 AI 的角色、任
 }
 ```
 
-**GUI 中自定义：**
-1. 点击"高级设置"按钮
-2. 选择"初译设置"或"校对设置"页签
-3. 编辑 Role、Task、Constraints 字段
-4. 点击"保存设置"应用更改
-5. 点击"恢复默认"可恢复系统默认值
+---
 
-**示例：游戏翻译模板**
+## 📝 配置文件详解
+
+### 文件位置
+
+`config/config.json`（项目根目录下）
+
+### 完整配置结构
+
 ```json
 {
+  "_version": "v3.2.0",
+  "_description": "AI Translation Workbench Config",
+  
+  "model_name": "deepseek-chat",
+  "api_provider": "deepseek",
+  
+  "api_keys": {
+    "deepseek": {
+      "api_key": "sk-your-api-key",
+      "base_url": "https://api.deepseek.com"
+    },
+    "openai": {
+      "api_key": "sk-your-openai-key",
+      "base_url": "https://api.openai.com/v1"
+    },
+    "custom": {
+      "api_key": "",
+      "base_url": ""
+    }
+  },
+  
+  "temperature": 0.7,
+  "top_p": 0.9,
+  "timeout": 60,
+  "max_retries": 3,
+  
+  "initial_concurrency": 8,
+  "max_concurrency": 10,
+  
+  "batch_size": 1000,
+  "enable_two_pass": true,
+  "translation_mode": "full",
+  
   "prompt_templates": {
     "draft": {
-      "role": "Professional Game Translator",
-      "task": "Translate game content 'Src' to {target_lang}",
+      "role": "Professional Translator",
+      "task": "Translate 'Src' to {target_lang}",
       "constraints": [
-        "Output JSON ONLY",
-        "Use game industry standard terminology",
-        "Maintain consistent tone and style"
+        "Output JSON ONLY: {\"Trans\": \"string\"}",
+        "Strictly follow provided TM",
+        "Accurate and direct"
       ]
     },
     "review": {
-      "role": "Senior Game Localization Editor",
-      "task": "Polish 'Draft' into native {target_lang} for gaming",
+      "role": "Senior Language Editor",
+      "task": "Polish 'Draft' into native {target_lang}",
       "constraints": [
         "Output JSON ONLY: {\"Trans\": \"string\", \"Reason\": \"string\"}",
-        "Ensure gaming terminology consistency",
-        "Reason: Max 10 chars"
+        "Reason: Max 10 chars",
+        "Focus on flow and tone"
       ]
+    }
+  },
+  
+  "target_languages": [
+    "英语", "德语", "法语", "日语", "韩语",
+    "意大利语", "西班牙语", "葡萄牙语", "泰语", "越南语",
+    "印尼语", "马来语", "俄语", "波兰语", "土耳其语", "阿拉伯语"
+  ],
+  "favorite_languages": ["英语", "日语", "韩语"],
+  "default_source_lang": "中文",
+  
+  "enabled_translation_types": [
+    "match3_item", "match3_skill", "match3_level",
+    "match3_dialogue", "match3_ui",
+    "dialogue", "ui", "scene", "tutorial", "achievement", "custom"
+  ],
+  
+  "gui_window_title": "AI Translation Workbench v3.2",
+  "gui_window_width": 950,
+  "gui_window_height": 800,
+  
+  "log_level": "INFO",
+  "log_max_lines": 1000,
+  
+  "pool_size": 5,
+  "cache_capacity": 2000,
+  "cache_ttl_seconds": 3600,
+  
+  "similarity_low": 60,
+  "exact_match_score": 100,
+  "gc_interval": 2
+}
+```
+
+### 必要配置项
+
+以下配置**必须设置**才能正常运行：
+
+| 配置项 | 说明 | 示例值 |
+|--------|------|--------|
+| `api_keys.[provider].api_key` | API 密钥 | `sk-xxxxxxxxx` |
+| `api_keys.[provider].base_url` | API 地址 | `https://api.deepseek.com` |
+| `model_name` | 模型名称 | `deepseek-chat` |
+| `api_provider` | 当前提供商 | `deepseek` |
+
+### 可选配置项
+
+所有其他配置项都有合理的默认值，可根据需要调整。
+
+---
+
+## 🌐 多模型提供商配置
+
+### 支持的提供商
+
+| 提供商 | 推荐模型 | API 地址 | 特点 |
+|--------|----------|----------|------|
+| **DeepSeek** | deepseek-chat | https://api.deepseek.com | 性价比高，中文优秀 |
+| **OpenAI** | gpt-4o | https://api.openai.com/v1 | 质量最高，生态完善 |
+| **通义千问** | qwen-max | https://dashscope.aliyuncs.com/compatible-mode/v1 | 阿里云，中文强项 |
+| **智谱 AI** | glm-4 | https://open.bigmodel.cn/api/paas/v4 | 国产模型，GLM 系列 |
+| **Moonshot** | moonshot-v1-8k | https://api.moonshot.cn/v1 | Kimi，长上下文 |
+| **Claude** | claude-3-5-sonnet | https://api.anthropic.com/v1 | Anthropic，逻辑推理强 |
+| **Gemini** | gemini-1.5-pro | https://generativelanguage.googleapis.com/v1beta | Google，多模态 |
+
+### 切换提供商
+
+**方法一：快速配置脚本**
+
+运行 `快速配置.bat`，选择对应的数字：
+
+```
+Select (0-9): 2  # 选择 OpenAI
+```
+
+**方法二：手动编辑配置文件**
+
+编辑 `config/config.json`：
+
+```json
+{
+  "api_provider": "openai",
+  "model_name": "gpt-4o",
+  "api_keys": {
+    "openai": {
+      "api_key": "sk-your-openai-key",
+      "base_url": "https://api.openai.com/v1"
     }
   }
 }
 ```
 
-**提示词优化技巧：**
-- ✅ 明确指定输出格式（如 JSON）
-- ✅ 强调遵循术语库
-- ✅ 设置语气和风格要求
-- ✅ 限制输出长度和结构
-
 ---
 
-## 📝 配置文件详解
+## ❓ 常见问题排查
 
-### 极简配置（只改这里就够了）
+### Q1: 运行快速配置脚本报错 "No such file or directory"
 
-```json
-{
-  "_version": "v3.1.0",
+**原因**：脚本未找到 `config/config.json`
 
-  // ========== 【必填】API 配置 ==========
-  "api_key": "sk-your-key-here",         // ⚠️ 改成你的 API Key
-  "api_provider": "deepseek",            // 提供商名称
-  "model_name": "deepseek-chat",         // 模型名称
-  "base_url": "https://api.deepseek.com", // API 地址
-
-  // ========== 【可选】新手推荐参数 ==========
-  "temperature": 0.3,        // 创造性：0.3 准确，0.7 有创意
-  "initial_concurrency": 5,  // 并发数：5 保守，10 正常，20 快速
-  "timeout": 60              // 超时时间（秒）：60 足够
-}
-```
-
-### 完整配置（按需调整）
-
-<details>
-<summary>点击查看完整配置说明</summary>
-
-#### API 配置（必须设置）
-
-| 字段 | 说明 | 必填 | 示例 |
-|------|------|------|------|
-| `api_key` | API 密钥 | ✅ | `"sk-xxx"` |
-| `api_provider` | 提供商名称 | ✅ | `"deepseek"` |
-| `model_name` | 模型名称 | ✅ | `"deepseek-chat"` |
-| `base_url` | API 地址 | ✅ | `"https://api.deepseek.com"` |
-
-**支持的提供商名称：**
-- `deepseek` - DeepSeek（深度求索）
-- `openai` - OpenAI
-- `qwen` - 通义千问（阿里）
-- `zhipuai` - 智谱 AI
-- `moonshot` - Moonshot
-- `claude` - Claude（Anthropic）
-- `gemini` - Gemini（Google）
-
-**💡 提示：** 使用一键配置脚本 `python scripts/quick_setup.py` 可自动填充所有参数，无需手动编辑。
-
-#### 模型参数（影响翻译质量）
-
-| 字段 | 范围 | 默认值 | 说明 |
-|------|------|--------|------|
-| `temperature` | 0.0-2.0 | 0.3 | 越低越准确，越高越有创意 |
-| `top_p` | 0.0-1.0 | 0.8 | 词汇多样性 |
-
-**推荐组合：**
-- 技术文档：`temperature=0.2, top_p=0.7`
-- 一般翻译：`temperature=0.3, top_p=0.8` ⭐
-- 文学翻译：`temperature=0.5, top_p=0.9`
-
-#### 并发控制（影响翻译速度）
-
-| 字段 | 默认值 | 说明 |
-|------|--------|------|
-| `initial_concurrency` | 8 | 初始并发数 |
-| `max_concurrency` | 10 | 最大并发数 |
-
-**推荐设置：**
-- 保守模式：`initial=3, max=5`
-- 正常模式：`initial=8, max=12` ⭐
-- 激进模式：`initial=15, max=20`
-
-#### 双阶段翻译（高级功能）
-
-```json
-{
-  // 初译阶段（Draft）
-  "draft_model_name": null,           // null=使用全局 model_name
-  "draft_temperature": null,          // null=使用全局 temperature
-  "draft_max_tokens": 512,
-  
-  // 校对阶段（Review）
-  "review_model_name": null,          // null=使用全局 model_name
-  "review_temperature": null,         // null=使用全局 temperature
-  "review_max_tokens": 512
-}
-```
-
-**💡 提示：** 设置为 `null` 表示继承全局配置，无需重复设置。
-
-</details>
-
----
-
-## 🎨 常用场景配置
-
-### 场景 1：日常翻译（最常用）
-
-**需求：** 翻译一般文档，平衡质量和速度
-
-**配置：**
-```json
-{
-  "api_key": "sk-your-key",
-  "api_provider": "deepseek",
-  "model_name": "deepseek-chat",
-  "base_url": "https://api.deepseek.com",
-  "temperature": 0.3,
-  "initial_concurrency": 8,
-  "max_concurrency": 12,
-  "timeout": 60,
-  "enable_two_pass": true,
-  "skip_review_if_local_hit": true
-}
-```
-
-**特点：**
-- ✅ 速度快（8-12 并发）
-- ✅ 质量好（双阶段翻译）
-- ✅ 成本低（使用 DeepSeek）
-
----
-
-### 场景 2：技术文档翻译
-
-**需求：** 术语准确，质量优先
-
-**配置：**
-```json
-{
-  "api_key": "sk-your-key",
-  "api_provider": "deepseek",
-  "model_name": "deepseek-chat",
-  "base_url": "https://api.deepseek.com",
-  "temperature": 0.2,
-  "top_p": 0.7,
-  "initial_concurrency": 6,
-  "max_concurrency": 10,
-  "timeout": 90,
-  "similarity_low": 70
-}
-```
-
-**特点：**
-- ✅ 术语准确（低温度）
-- ✅ 输出稳定（低 top_p）
-- ✅ 匹配严格（高相似度阈值）
-
----
-
-### 场景 3：批量翻译（追求速度）
-
-**需求：** 大量文档，速度优先
-
-**配置：**
-```json
-{
-  "api_key": "sk-your-key",
-  "api_provider": "deepseek",
-  "model_name": "deepseek-chat",
-  "base_url": "https://api.deepseek.com",
-  "initial_concurrency": 15,
-  "max_concurrency": 20,
-  "timeout": 45,
-  "cache_capacity": 5000,
-  "batch_size": 2000
-}
-```
-
-**特点：**
-- ✅ 速度快（高并发）
-- ✅ 缓存大（减少重复）
-- ✅ 批量大（减少开销）
-
----
-
-### 场景 4：高质量翻译（不计成本）
-
-**需求：** 重要文档，质量至上
-
-**配置：**
-```json
-{
-  "api_key": "sk-deepseek-key",
-  "api_provider": "deepseek",
-  "model_name": "deepseek-chat",
-  "base_url": "https://api.deepseek.com",
-  "draft_temperature": 0.3,
-  "review_model_name": "gpt-4-turbo",
-  "review_temperature": 0.5,
-  "timeout": 120
-}
-```
-
-**特点：**
-- ✅ 初译快速（DeepSeek）
-- ✅ 校对优质（GPT-4）
-- ✅ 质量最高（双模型）
-
----
-
-## 🔧 智能配置工具
-
-### 使用预设模板
-
-系统内置了 4 种预设模板，一键应用：
-
-```python
-from infrastructure.smart_config import SmartConfigurator
-
-configurator = SmartConfigurator()
-
-# 新手模式（最简单）
-config = configurator.quick_setup(
-    api_key="sk-your-key",
-    preset='beginner'
-)
-
-# 平衡模式（推荐）
-config = configurator.quick_setup(
-    api_key="sk-your-key",
-    preset='balanced'
-)
-
-# 高质量模式
-config = configurator.quick_setup(
-    api_key="sk-your-key",
-    preset='quality'
-)
-
-# 快速模式
-config = configurator.quick_setup(
-    api_key="sk-your-key",
-    preset='speed'
-)
-```
-
-### 自动验证和修复
-
-```python
-# 检查配置是否有问题
-success, issues = configurator.validate_and_fix(config)
-
-if not success:
-    print("发现问题:")
-    for issue in issues:
-        print(f"  - {issue['message']}")
-    
-    # config 已被自动修复
-    print("已自动修复配置")
-```
-
----
-
-## ❓ 问题排查
-
-### Q1: 找不到配置文件？
-
-**症状：**
-```
-FileNotFoundError: [FILE_002] 配置文件不存在
-```
-
-**解决：**
-```bash
-# 1. 检查文件是否存在
-ls config/config.json
-
-# 2. 如果不存在，创建它
-cp config/config.example.json config/config.json
-
-# 3. 编辑文件，设置 api_key
-```
-
----
-
-### Q2: API Key 无效？
-
-**症状：**
-```
-AuthenticationError: API 密钥不能为空
-```
-
-**解决：**
-1. 运行一键配置脚本：`python scripts/quick_setup.py`
-2. 或手动打开 `config/config.json`
-3. 找到 `"api_key": ""`
-4. 填入你的 API Key：`"api_key": "sk-xxxxx"`
-5. 保存文件
-
----
-
-### Q3: 翻译速度慢？
-
-**解决：**
-```json
-// 在配置文件中调整
-{
-  "initial_concurrency": 15,  // 提高并发
-  "max_concurrency": 20,
-  "timeout": 45               // 降低超时
-}
-```
-
----
-
-### Q4: 翻译质量不好？
-
-**解决：**
-```json
-// 降低 temperature 提高准确性
-{
-  "temperature": 0.2  // 从 0.3 降到 0.2
-}
-
-// 或使用更强的模型
-{
-  "review_model_name": "gpt-4-turbo"
-}
-```
-
----
-
-### Q5: 配置不生效？
-
-**可能原因：**
-1. 文件未保存
-2. JSON 格式错误
-3. 参数名称拼写错误
-
-**解决：**
-```bash
-# 验证 JSON 格式
-python -c "import json; json.load(open('config/config.json'))"
-
-# 如果有错误会显示具体位置
-```
-
----
-
-## 📞 获取帮助
-
-### 查看配置示例
+**解决**：
+1. 确保在项目根目录运行脚本
+2. 脚本会自动创建配置文件
+3. 如果仍失败，手动创建 `config` 目录
 
 ```bash
-# 查看完整的配置示例
-cat config/config.example.json
-
-# 或 YAML 格式
-cat config/config.example.yaml
+mkdir config
 ```
 
-### 使用配置检查工具
+### Q2: JSON 解析错误 "Expecting property name enclosed in double quotes"
+
+**原因**：配置文件包含注释（`//`），标准 JSON 不支持
+
+**解决**：
+1. 删除 `config/config.json`
+2. 重新运行 `快速配置.bat`
+3. 脚本会创建有效的 JSON 配置
+
+### Q3: 翻译模式切换后界面没有变化
+
+**解决**：
+1. 关闭并重新打开翻译平台
+2. 确保选择了正确的模式（检查下拉框）
+3. 查看日志确认模式切换信息
+
+### Q4: 高级设置中修改的模板没有生效
+
+**检查清单**：
+1. ✅ 是否点击了"💾 保存设置"？
+2. ✅ 检查 `config/config.json` 中 `prompt_templates` 是否更新？
+3. ✅ 是否重新初始化了服务（重启翻译平台）？
+
+### Q5: 如何恢复默认配置？
+
+**方法一**：删除配置文件重新生成
 
 ```bash
-# 检查当前配置
-python scripts/check_config.py
-
-# 查看详细报告
-python scripts/manage_config.py validate
+del config\config.json
+快速配置.bat
 ```
 
-### 阅读更多文档
+**方法二**：手动编辑，恢复默认值
 
-- [快速入门](QUICKSTART.md) - 5 分钟上手
-- [最佳实践](BEST_PRACTICES.md) - 使用技巧
-- [故障排查](TROUBLESHOOTING.md) - 常见问题
-- [配置检查器](CONFIG_CHECKER_GUIDE.md) - 验证工具
+参考本手册的"完整配置结构"部分。
 
 ---
 
-## 🎉 总结
+## 📚 相关文档
 
-**v3.1.0 配置其实很简单：**
+- [完整使用手册](../../COMPLETE_MANUAL.md) - 一站式使用指南
+- [模型配置指南](./MODEL_CONFIG_GUIDE.md) - 详细模型参数说明
+- [快速参考速查表](./CHEATSHEET.md) - 常用操作快速查阅
+- [项目 README](../../README.md) - 项目总览
 
-1. **获取 API Key** （1 分钟）
-2. **运行一键配置脚本** `python scripts/quick_setup.py`（30 秒）
-3. **开始翻译** （0 分钟）
+---
 
-**记住这 3 步，就能搞定 99% 的配置！**
-
-**不需要：**
-- ❌ 手动编辑复杂的配置文件
-- ❌ 理解 50+ 个参数的含义
-- ❌ 担心配置错误导致程序崩溃
-
-**系统会自动：**
-- ✅ 引导你完成配置
-- ✅ 验证配置的有效性
-- ✅ 修复常见配置问题
-- ✅ 支持 7 种模型提供商一键切换
-
-**就这么简单！** 🎊
+**文档版本**: v3.2.0  
+**更新日期**: 2026-04-03  
+**适用版本**: AI Translation Workbench v3.2.0+

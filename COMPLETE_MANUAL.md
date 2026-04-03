@@ -115,10 +115,10 @@ pip install -r requirements.txt
 **方式 1：一键配置向导（⭐ v3.1.0 推荐）**
 ```bash
 # 运行快速配置脚本
-python scripts/quick_setup.py
+python scripts/quick_start.py
 
 # 按提示选择模型提供商，输入 API Key 即可
-# 支持 7 种模型：DeepSeek、OpenAI、通义千问、智谱 AI、Moonshot、Claude、Gemini
+# 支持 4 种模型：DeepSeek、OpenAI、Azure OpenAI、自定义 API
 ```
 
 **方式 2：配置文件（手动）**
@@ -312,35 +312,29 @@ v3.2.0 新增了提示词高级设置功能，用户可以自定义 AI 的角色
 
 **步骤 1：运行配置向导**
 ```bash
-python scripts/quick_setup.py
+python scripts/quick_start.py
 ```
 
 **步骤 2：选择模型提供商**
 ```
-请选择模型提供商:
-1. DeepSeek (推荐，性价比高)
-2. OpenAI (高质量翻译)
-3. 通义千问 (中文场景优化)
-4. 智谱 AI (国产模型)
-5. Moonshot (高效翻译)
-6. Claude (英文质量优秀)
-7. Gemini (多语言支持)
+请选择 API 提供商:
+  1. DeepSeek (推荐，性价比高)
+  2. OpenAI
+  3. Azure OpenAI
+  4. 自定义 API
 ```
 
 **步骤 3：输入 API Key**
 ```
-请输入您的 API Key: sk-xxxxxxxxxxxxxxxx
+请输入 API Key:
+💡 提示：如果是 DeepSeek，访问 https://platform.deepseek.com/ 获取
 ```
 
 **步骤 4：确认配置**
 ```
-✅ 配置完成！
-📋 配置摘要:
-   提供商: DeepSeek
-   模型: deepseek-chat
-   API Key: sk***********xxxx
-   
-是否保存配置并启动程序？(Y/n): Y
+✅ API Key 已设置：sk******xxxx
+📝 更新配置文件：config/config.json
+✅ 已更新 deepseek 的 API Key
 ```
 
 ### 核心参数说明
@@ -348,10 +342,19 @@ python scripts/quick_setup.py
 #### API 配置（必须设置）
 ```json
 {
-  "api_key": "sk-your-api-key",        // ⚠️ 必须修改
-  "api_provider": "deepseek",          // API 提供商
-  "base_url": "https://api.deepseek.com",
-  "model_name": "deepseek-chat"
+  "model_name": "deepseek-chat",
+  "api_keys": {
+    "deepseek": {
+      "api_key": "sk-your-api-key",
+      "base_url": "https://api.deepseek.com"
+    },
+    "openai": {
+      "api_key": "sk-your-openai-key",
+      "base_url": "https://api.openai.com/v1"
+    }
+  },
+  "temperature": 0.3,
+  "top_p": 0.8
 }
 ```
 
@@ -360,70 +363,26 @@ python scripts/quick_setup.py
 **DeepSeek（默认）**：
 ```json
 {
-  "api_provider": "deepseek",
-  "api_key": "sk-your-deepseek-key",
-  "base_url": "https://api.deepseek.com",
-  "model_name": "deepseek-chat"
+  "model_name": "deepseek-chat",
+  "api_keys": {
+    "deepseek": {
+      "api_key": "sk-your-deepseek-key",
+      "base_url": "https://api.deepseek.com"
+    }
+  }
 }
 ```
 
 **OpenAI**：
 ```json
 {
-  "api_provider": "openai",
-  "api_key": "sk-your-openai-key",
-  "base_url": "https://api.openai.com/v1",
-  "model_name": "gpt-3.5-turbo"
-}
-```
-
-**通义千问**：
-```json
-{
-  "api_provider": "qwen",
-  "api_key": "sk-your-qwen-key",
-  "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
-  "model_name": "qwen-turbo"
-}
-```
-
-**智谱 AI**：
-```json
-{
-  "api_provider": "zhipuai",
-  "api_key": "your-zhipuai-key",
-  "base_url": "https://open.bigmodel.cn/api/paas/v4",
-  "model_name": "chatglm_turbo"
-}
-```
-
-**Moonshot**：
-```json
-{
-  "api_provider": "moonshot",
-  "api_key": "sk-your-moonshot-key",
-  "base_url": "https://api.moonshot.cn/v1",
-  "model_name": "moonshot-v1-8k"
-}
-```
-
-**Claude**：
-```json
-{
-  "api_provider": "claude",
-  "api_key": "sk-ant-your-claude-key",
-  "base_url": "https://api.anthropic.com/v1",
-  "model_name": "claude-3-sonnet-20240229"
-}
-```
-
-**Gemini**：
-```json
-{
-  "api_provider": "gemini",
-  "api_key": "your-gemini-key",
-  "base_url": "https://generativelanguage.googleapis.com/v1beta/openai",
-  "model_name": "gemini-pro"
+  "model_name": "gpt-3.5-turbo",
+  "api_keys": {
+    "openai": {
+      "api_key": "sk-your-openai-key",
+      "base_url": "https://api.openai.com/v1"
+    }
+  }
 }
 ```
 

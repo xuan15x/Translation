@@ -1,4 +1,4 @@
-# AI 智能翻译系统 v3.2
+# AI 智能翻译系统 v3.2.0
 
 一款基于 AI 大语言模型的专业翻译工具，采用**六层分层架构**设计，支持**多语言批量翻译**、**术语库管理**、**双阶段翻译流程**等功能。
 
@@ -107,9 +107,9 @@ python -m venv .venv
 # 3. 安装依赖
 pip install -r requirements.txt
 
-# 4. 配置 API Key（v3.1.0 一键配置系统）
+# 4. 配置 API Key（推荐一键配置）
 # 方式 1：运行快速配置脚本（推荐）
-python scripts/quick_setup.py
+python scripts/quick_start.py
 # 按提示选择模型提供商，输入 API Key 即可
 
 # 方式 2：使用启动脚本自动配置
@@ -174,7 +174,7 @@ pytest --cov=translation tests/
 ## ❓ 常见问题
 
 ### Q1: API Key 在哪里配置？
-**A:** v3.2.0 版本提供了一键配置系统，运行 `python scripts/quick_setup.py` 即可快速配置。也可手动编辑 `config/config.json` 文件。详见 [配置填入手册](docs/guides/CONFIG_SETUP_HANDBOOK.md)。
+**A:** v3.2.0 版本提供了一键配置系统，运行 `python scripts/quick_start.py` 即可快速配置。也可手动编辑 `config/config.json` 文件。详见 [配置填入手册](docs/guides/CONFIG_SETUP_HANDBOOK.md)。
 
 ### Q2: 翻译速度慢怎么办？
 **A:** 适当增加并发数（调整 `initial_concurrency`），或查看 [故障排查手册](docs/guides/TROUBLESHOOTING.md) 和 [完整使用手册](COMPLETE_MANUAL.md) 的配置指南章节。

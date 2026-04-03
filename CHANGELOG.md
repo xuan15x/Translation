@@ -194,7 +194,7 @@
 
 #### 1. 一键配置系统 ⭐ NEW
 - **重新设计快速配置脚本**
-  - 🎯 支持 7 种模型提供商：DeepSeek、OpenAI、通义千问、智谱 AI、Moonshot、Claude、Gemini
+  - 🎯 支持 4 种模型提供商：DeepSeek、OpenAI、Azure OpenAI、自定义 API
   - ⚡ 一键配置流程 - 用户只需选择提供商并输入 API Key
   - 🚀 自动配置所有参数，无需手动编辑配置文件
   - 💡 智能引导提示，适合所有用户群体
@@ -202,9 +202,9 @@
 - **简化的配置流程**
   ```bash
   # 运行快速配置脚本
-  python scripts/quick_setup.py
-  
-  # 选择模型提供商（1-7）
+  python scripts/quick_start.py
+
+  # 选择模型提供商（1-4）
   # 输入 API Key
   # 完成！
   ```
@@ -214,22 +214,18 @@
   |--------|----------|--------------|
   | DeepSeek | deepseek-chat | sk-xxxxxxxxx |
   | OpenAI | gpt-3.5-turbo, gpt-4 | sk-xxxxxxxxx |
-  | 通义千问 | qwen-turbo, qwen-plus | sk-xxxxxxxxx |
-  | 智谱 AI | chatglm_turbo | xxxxxxxxx |
-  | Moonshot | moonshot-v1-8k | sk-xxxxxxxxx |
-  | Claude | claude-3-sonnet | sk-ant-xxxxxxx |
-  | Gemini | gemini-pro | xxxxxxxxx |
+  | Azure OpenAI | gpt-35-turbo, gpt-4 | xxxxxxxxx |
+  | 自定义 API | 自定义 | 根据提供商 |
 
 #### 2. 多模型支持扩展 ⭐ NEW
-- **新增 5 种 API 提供商**
-  - 通义千问（阿里）- 适合中文场景
-  - 智谱 AI - 国产模型，支持 ChatGLM
-  - Moonshot - 高效翻译模型
-  - Claude（Anthropic）- 高质量英文翻译
-  - Gemini（Google）- 多语言支持优秀
+- **支持 4 种 API 提供商**
+  - DeepSeek - 默认提供商，性价比高
+  - OpenAI - 高质量翻译
+  - Azure OpenAI - 企业级服务
+  - 自定义 API - 兼容 OpenAI API 的其他提供商
 
 - **统一的配置接口**
-  - 所有提供商使用统一的 API Key 配置格式
+  - 所有提供商使用统一的 API Keys 字典配置
   - 自动识别提供商并配置 base_url
   - 支持动态切换模型，无需重启
 
@@ -273,34 +269,29 @@
 
 #### 一键配置示例
 ```bash
-$ python scripts/quick_setup.py
+$ python scripts/quick_start.py
 
-==================================================
-🚀 AI 智能翻译系统 - 快速配置向导 v3.1.0
-==================================================
+======================================================================
+  AI 智能翻译平台 - 快速配置向导
+======================================================================
 
-请选择模型提供商:
-1. DeepSeek (推荐，性价比高)
-2. OpenAI (高质量翻译)
-3. 通义千问 (中文场景优化)
-4. 智谱 AI (国产模型)
-5. Moonshot (高效翻译)
-6. Claude (英文质量优秀)
-7. Gemini (多语言支持)
+请选择 API 提供商:
+  1. DeepSeek (推荐，性价比高)
+  2. OpenAI
+  3. Azure OpenAI
+  4. 自定义 API
 
-请输入选项 (1-7，默认 1): 1
+请输入选择 (1-4): 1
 
-请输入您的 DeepSeek API Key: sk-xxxxxxxxxxxxxxxx
+请输入 API Key:
+💡 提示：如果是 DeepSeek，访问 https://platform.deepseek.com/ 获取
 
-✅ 配置完成！
-📋 配置摘要:
-   提供商: DeepSeek
-   模型: deepseek-chat
-   API Key: sk***********xxxx
+API Key: sk-xxxxxxxxxxxxxxxx
 
-是否保存配置并启动程序？(Y/n): Y
-✅ 配置已保存到 config/config.json
-🚀 正在启动翻译平台...
+✅ API Key 已设置：sk***********xxxx
+📝 更新配置文件：config/config.json
+✅ 已更新 deepseek 的 API Key
+✅ 配置文件已更新
 ```
 
 ---

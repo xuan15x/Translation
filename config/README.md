@@ -1,5 +1,8 @@
 # 配置管理模块文档
 
+**版本**: v3.2.0
+**最后更新**: 2026-04-03
+
 ## 📑 目录
 
 - [📋 概述](#-概述)
@@ -112,7 +115,7 @@ GUI 界面配置。
 
 ```python
 GUI_CONFIG = {
-    "window_title": "AI 智能翻译工作台 v2.0",
+    "window_title": "AI 智能翻译工作台 v3.2",
     "window_width": 950,
     "window_height": 800,
 }
