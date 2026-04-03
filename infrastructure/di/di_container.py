@@ -119,9 +119,73 @@ def initialize_container(config_file: Optional[str] = None,
     db_conn = sqlite3.connect(db_path, check_same_thread=False)
     container.register('db_connection', db_conn, singleton=True)
     
+    # 创建terminology表（如果不存在）
+    try:
+        db_conn.execute('''
+            CREATE TABLE IF NOT EXISTS terminology (
+                Key TEXT PRIMARY KEY,
+                中文原文 TEXT NOT NULL,
+                英语 TEXT,
+                日语 TEXT,
+                韩语 TEXT,
+                法语 TEXT,
+                德语 TEXT,
+                西班牙语 TEXT,
+                葡萄牙语 TEXT,
+                意大利语 TEXT,
+                俄语 TEXT,
+                泰语 TEXT,
+                越南语 TEXT,
+                印尼语 TEXT,
+                马来语 TEXT,
+                波兰语 TEXT,
+                土耳其语 TEXT,
+                瑞典语 TEXT,
+                挪威语 TEXT,
+                丹麦语 TEXT,
+                芬兰语 TEXT,
+                印地语 TEXT,
+                乌尔都语 TEXT,
+                孟加拉语 TEXT,
+                菲律宾语 TEXT,
+                缅甸语 TEXT,
+                柬埔寨语 TEXT,
+                老挝语 TEXT,
+                波斯语 TEXT,
+                希伯来语 TEXT,
+                斯瓦希里语 TEXT,
+                豪萨语 TEXT,
+                哈萨克语 TEXT,
+                乌兹别克语 TEXT
+            )
+        ''')
+        db_conn.commit()
+        logger.info("✅ terminology表已创建或确认存在")
+    except Exception as e:
+        logger.warning(f"创建terminology表失败: {e}")
+    
     # 2. Excel 路径（从配置加载）
     excel_path = loader.get('terminology_excel_path', "terminology.xlsx")
     container.register('excel_path', excel_path, singleton=True)
+    
+    # 从术语库Excel文件同步数据到数据库
+    try:
+        import pandas as pd
+        
+        # 检查术语库文件是否存在
+        term_excel_path = loader.get('terminology_excel_path', '')
+        if term_excel_path and os.path.exists(term_excel_path):
+            logger.info(f"📂 从术语库Excel文件同步数据: {term_excel_path}")
+            df = pd.read_excel(term_excel_path)
+            
+            # 同步到数据库
+            df.to_sql('terminology', db_conn, if_exists='replace', index=False)
+            db_conn.commit()
+            logger.info(f"✅ 已同步 {len(df)} 条术语到数据库")
+        else:
+            logger.debug(f"术语库Excel文件不存在: {term_excel_path}")
+    except Exception as e:
+        logger.warning(f"同步术语库Excel数据失败: {e}")
     
     # ========== Data Access Layer ==========
     # 3. 仓储实现
