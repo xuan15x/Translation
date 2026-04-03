@@ -1121,32 +1121,47 @@ class TranslationApp:
         current_tab_index = self.lang_notebook.index(self.lang_notebook.select())
         tier_map = {0: 'T1', 1: 'T2', 2: 'T3'}
         current_tier = tier_map.get(current_tab_index)
-        
-        if current_tier and current_tier in self.tier_lang_frames:
-            # 获取该分页的所有语言复选框
-            tier_frame = self.tier_lang_frames[current_tier]
-            for widget in tier_frame.winfo_children():
-                if isinstance(widget, ttk.Checkbutton):
-                    widget.invoke()  # 触发复选框
-            logger.info(f"✅ 已全选 {current_tier} 所有语言")
-    
+
+        if current_tier:
+            # 直接使用 lang_vars 字典，而不是遍历控件
+            count = 0
+            for lang, var in self.lang_vars.items():
+                # 检查语言是否属于当前 tier
+                lang_tier = self._get_language_tier(lang)
+                if lang_tier == current_tier:
+                    var.set(True)
+                    count += 1
+            self._update_lang_status()
+            logger.info(f"✅ 已全选 {current_tier} 所有语言 ({count} 个)")
+
     def _deselect_all_langs(self):
         """取消全选当前页的所有语言"""
         # 获取当前选中的分页
         current_tab_index = self.lang_notebook.index(self.lang_notebook.select())
         tier_map = {0: 'T1', 1: 'T2', 2: 'T3'}
         current_tier = tier_map.get(current_tab_index)
-        
-        if current_tier and current_tier in self.tier_lang_frames:
-            # 获取该分页的所有语言复选框
-            tier_frame = self.tier_lang_frames[current_tier]
-            for widget in tier_frame.winfo_children():
-                if isinstance(widget, ttk.Checkbutton):
-                    var = widget.cget('variable')
-                    if var and var.get():
-                        var.set(False)
+
+        if current_tier:
+            # 直接使用 lang_vars 字典，而不是遍历控件
+            count = 0
+            for lang, var in self.lang_vars.items():
+                # 检查语言是否属于当前 tier
+                lang_tier = self._get_language_tier(lang)
+                if lang_tier == current_tier:
+                    var.set(False)
+                    count += 1
             self._update_lang_status()
-            logger.info(f"✅ 已取消全选 {current_tier} 所有语言")
+            logger.info(f"✅ 已取消全选 {current_tier} 所有语言 ({count} 个)")
+
+    def _get_language_tier(self, lang: str) -> str:
+        """获取语言所属的分级"""
+        if lang in T1_LANGUAGES:
+            return 'T1'
+        elif lang in T2_LANGUAGES:
+            return 'T2'
+        elif lang in T3_LANGUAGES:
+            return 'T3'
+        return 'T1'  # 默认
     
     def _sync_draft_model_to_review(self):
         """将初译模型的所有参数同步到校对模型"""
