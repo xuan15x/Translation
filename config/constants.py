@@ -28,18 +28,21 @@ class ConcurrencyConfig:
     DEFAULT_MAX_CONCURRENCY = 10
     DEFAULT_COOLDOWN_SECONDS = 5.0
     DEFAULT_RETRY_STREAK_THRESHOLD = 3
-    
+
     # 延迟阈值（毫秒）
     HIGH_LATENCY_THRESHOLD_MS = 2000
-    
+
     # 调整频率限制（秒）
     ADJUST_INTERVAL_SECONDS = 2
-    
+
     # 并发调整超时（秒）
     ADJUST_TIMEOUT_SECONDS = 2.0
-    
+
     # 最大延迟样本数
     MAX_LATENCY_SAMPLES = 20
+
+    # 错误率阈值（从 APIConfig 复制，避免循环引用）
+    HIGH_ERROR_RATE_THRESHOLD = 0.3  # 30%
 
 
 # ========== 缓存配置 ==========

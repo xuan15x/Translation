@@ -851,9 +851,32 @@ class TranslationApp:
             # 创建API客户端
             logger.debug("创建API客户端...")
             from openai import OpenAI
+            from service.api_provider import get_provider_manager, APIProvider
             try:
-                api_client = OpenAI(api_key=api_key)
-                logger.info("✅ API客户端创建成功")
+                # 获取当前选择的API提供商
+                api_provider_name = self.current_provider_var.get()
+                logger.debug(f"当前API提供商: {api_provider_name}")
+                
+                # 获取提供商管理器
+                provider_manager = get_provider_manager()
+                
+                # 获取提供商配置
+                try:
+                    provider_enum = APIProvider(api_provider_name.lower())
+                    provider_config = provider_manager.get_provider(provider_enum)
+                    base_url = provider_config.base_url
+                    logger.debug(f"使用base_url: {base_url}")
+                except (ValueError, KeyError):
+                    # 如果无法解析提供商，使用默认
+                    logger.warning(f"无法识别的提供商: {api_provider_name}，使用默认配置")
+                    base_url = "https://api.deepseek.com"
+                
+                # 创建API客户端，传入api_key和base_url
+                api_client = OpenAI(
+                    api_key=api_key,
+                    base_url=base_url
+                )
+                logger.info(f"✅ API客户端创建成功 (提供商: {api_provider_name}, base_url: {base_url})")
             except Exception as e:
                 logger.error(f"❌ API客户端创建失败: {e}")
                 raise
