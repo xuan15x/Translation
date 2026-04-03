@@ -1123,16 +1123,14 @@ class TranslationApp:
         current_tier = tier_map.get(current_tab_index)
 
         if current_tier:
-            # 直接使用 lang_vars 字典，而不是遍历控件
-            count = 0
             for lang, var in self.lang_vars.items():
-                # 检查语言是否属于当前 tier
                 lang_tier = self._get_language_tier(lang)
                 if lang_tier == current_tier:
                     var.set(True)
-                    count += 1
+
             self._update_lang_status()
-            logger.info(f"✅ 已全选 {current_tier} 所有语言 ({count} 个)")
+            self.root.update_idletasks()
+            logger.info(f"✅ 已全选 {current_tier} 所有语言")
 
     def _deselect_all_langs(self):
         """取消全选当前页的所有语言"""
@@ -1142,16 +1140,14 @@ class TranslationApp:
         current_tier = tier_map.get(current_tab_index)
 
         if current_tier:
-            # 直接使用 lang_vars 字典，而不是遍历控件
-            count = 0
             for lang, var in self.lang_vars.items():
-                # 检查语言是否属于当前 tier
                 lang_tier = self._get_language_tier(lang)
                 if lang_tier == current_tier:
                     var.set(False)
-                    count += 1
+
             self._update_lang_status()
-            logger.info(f"✅ 已取消全选 {current_tier} 所有语言 ({count} 个)")
+            self.root.update_idletasks()
+            logger.info(f"✅ 已取消全选 {current_tier} 所有语言")
 
     def _get_language_tier(self, lang: str) -> str:
         """获取语言所属的分级"""
