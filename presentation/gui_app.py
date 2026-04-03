@@ -413,33 +413,66 @@ class TranslationApp:
         self.lang_notebook.add(t3_frame, text="🌱 T3 新兴市场 (13)")
         self._create_language_grid(t3_frame, T3_LANGUAGES, "T3")
         
-        # --- 5. 提示词配置区 ---
-        prompt_frame = ttk.LabelFrame(main_frame, text="⚙️ 提示词配置", padding="10")
+        # --- 5. 提示词配置区（简化版：只需输入风格） ---
+        prompt_frame = ttk.LabelFrame(main_frame, text="⚙️ 提示词配置（只需输入风格，其他自动处理）", padding="10")
         prompt_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
-        
-        self.notebook = ttk.Notebook(prompt_frame)
-        self.notebook.pack(fill=tk.BOTH, expand=True)
-        
-        draft_tab = ttk.Frame(self.notebook)
-        self.notebook.add(draft_tab, text="初译提示词 (Draft)")
-        self.draft_text = scrolledtext.ScrolledText(draft_tab, height=6, font=("Consolas", 10))
-        self.draft_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
-        self.draft_text.insert('1.0', self.default_draft)
-        
-        review_tab = ttk.Frame(self.notebook)
-        self.notebook.add(review_tab, text="校对提示词 (Review)")
-        self.review_text = scrolledtext.ScrolledText(review_tab, height=6, font=("Consolas", 10))
-        self.review_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
-        self.review_text.insert('1.0', self.default_review)
-        
+
+        # 风格输入区
+        style_frame = ttk.Frame(prompt_frame)
+        style_frame.pack(fill=tk.X, pady=(0, 10))
+
+        # 初译风格
+        ttk.Label(style_frame, text="📝 初译风格（例如：专业严谨、轻松活泼、简洁直接）:", font=("", 9, "bold")).pack(anchor=tk.W)
+        self.draft_style_var = tk.StringVar(value="专业、准确、直接")
+        self.draft_style_entry = ttk.Entry(style_frame, textvariable=self.draft_style_var, font=("Microsoft YaHei", 10))
+        self.draft_style_entry.pack(fill=tk.X, pady=(5, 10))
+
+        # 校对风格
+        ttk.Label(style_frame, text="✨ 校对风格（例如：流畅自然、地道表达、保持原文语气）:", font=("", 9, "bold")).pack(anchor=tk.W)
+        self.review_style_var = tk.StringVar(value="流畅、自然、地道")
+        self.review_style_entry = ttk.Entry(style_frame, textvariable=self.review_style_var, font=("Microsoft YaHei", 10))
+        self.review_style_entry.pack(fill=tk.X, pady=(5, 0))
+
+        # 提示预览区（可折叠）
+        self.prompt_preview_frame = ttk.LabelFrame(prompt_frame, text="👁️ 提示词预览（自动生成，无需手动编辑）", padding="10")
+        self.prompt_preview_frame.pack(fill=tk.BOTH, expand=True, pady=(10, 0))
+
+        # 预览 Notebook
+        self.preview_notebook = ttk.Notebook(self.prompt_preview_frame)
+        self.preview_notebook.pack(fill=tk.BOTH, expand=True)
+
+        # 初译预览
+        draft_preview_tab = ttk.Frame(self.preview_notebook)
+        self.preview_notebook.add(draft_preview_tab, text="初译提示词（自动生成）")
+        self.draft_preview_text = scrolledtext.ScrolledText(draft_preview_tab, height=6, font=("Consolas", 9), state='disabled', bg="#f5f5f5")
+        self.draft_preview_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+
+        # 校对预览
+        review_preview_tab = ttk.Frame(self.preview_notebook)
+        self.preview_notebook.add(review_preview_tab, text="校对提示词（自动生成）")
+        self.review_preview_text = scrolledtext.ScrolledText(review_preview_tab, height=6, font=("Consolas", 9), state='disabled', bg="#f5f5f5")
+        self.review_preview_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+
         # 提示词操作按钮
         prompt_btn_frame = ttk.Frame(prompt_frame)
         prompt_btn_frame.pack(fill=tk.X, pady=(5, 0))
-        
-        ttk.Button(prompt_btn_frame, text="💾 保存自定义提示词", command=self._save_custom_prompts).pack(side=tk.LEFT, padx=5)
-        ttk.Button(prompt_btn_frame, text="📂 加载已保存提示词", command=self._load_custom_prompts).pack(side=tk.LEFT, padx=5)
-        ttk.Button(prompt_btn_frame, text="🔄 恢复默认模板", command=self._restore_default_prompts).pack(side=tk.LEFT, padx=5)
-        ttk.Button(prompt_btn_frame, text="✅ 验证提示词格式", command=self._validate_prompts).pack(side=tk.LEFT, padx=5)
+
+        ttk.Button(prompt_btn_frame, text="🔄 更新预览", command=self._update_prompt_preview).pack(side=tk.LEFT, padx=5)
+        ttk.Button(prompt_btn_frame, text="💾 导出完整提示词", command=self._export_full_prompts).pack(side=tk.LEFT, padx=5)
+        ttk.Button(prompt_btn_frame, text="📂 导入自定义提示词", command=self._load_custom_prompts).pack(side=tk.LEFT, padx=5)
+        ttk.Button(prompt_btn_frame, text="🔍 查看完整结构", command=self._show_full_prompt_structure).pack(side=tk.LEFT, padx=5)
+
+        # 绑定风格变化事件
+        self.draft_style_var.trace('w', lambda *args: self._on_style_changed())
+        self.review_style_var.trace('w', lambda *args: self._on_style_changed())
+
+        # 初始化预览
+        self._update_prompt_preview()
+
+        # 向后兼容：保留 draft_text 和 review_text 引用（指向预览文本框）
+        # 这样其他代码访问 self.draft_text 时仍能工作
+        self.draft_text = self.draft_preview_text
+        self.review_text = self.review_preview_text
         
         # --- 6. 控制与日志区 ---
         control_frame = ttk.LabelFrame(main_frame, text="🚀 执行控制", padding="10")
@@ -1335,6 +1368,181 @@ class TranslationApp:
         except Exception as e:
             logger.error(f"❌ 保存提示词失败：{e}")
             messagebox.showerror("错误", f"保存提示词失败:\n{str(e)}")
+
+    def _on_style_changed(self):
+        """风格变化时的回调"""
+        # 延迟更新预览，避免频繁刷新
+        if hasattr(self, '_preview_update_timer'):
+            self.after_cancel(self._preview_update_timer)
+        self._preview_update_timer = self.after(500, self._update_prompt_preview)
+
+    def _update_prompt_preview(self):
+        """更新提示词预览"""
+        try:
+            # 获取当前风格
+            draft_style = self.draft_style_var.get().strip()
+            review_style = self.review_style_var.get().strip()
+
+            # 获取翻译类型
+            translation_type = self._get_translation_type_key()
+
+            # 生成完整的初译提示词
+            draft_prompt = self._build_draft_prompt(draft_style, translation_type)
+
+            # 生成完整的校对提示词
+            review_prompt = self._build_review_prompt(review_style, translation_type)
+
+            # 更新预览（只读）
+            self.draft_preview_text.config(state='normal')
+            self.draft_preview_text.delete('1.0', tk.END)
+            self.draft_preview_text.insert('1.0', draft_prompt)
+            self.draft_preview_text.config(state='disabled')
+
+            self.review_preview_text.config(state='normal')
+            self.review_preview_text.delete('1.0', tk.END)
+            self.review_preview_text.insert('1.0', review_prompt)
+            self.review_preview_text.config(state='disabled')
+
+            logger.debug("✅ 提示词预览已更新")
+
+        except Exception as e:
+            logger.error(f"❌ 更新提示词预览失败：{e}")
+
+    def _build_draft_prompt(self, style: str, translation_type: str) -> str:
+        """
+        构建完整的初译提示词
+
+        Args:
+            style: 用户输入的风格
+            translation_type: 翻译类型
+
+        Returns:
+            完整的初译提示词
+        """
+        # 基础结构
+        prompt = f"""Role: Professional Translator.
+Task: Translate 'Src' to {{target_lang}}.
+Style: {style if style else '专业、准确、直接'}.
+Constraints:
+1. Output JSON ONLY: {{"Trans": "string"}}.
+2. Strictly follow provided TM.
+3. Accurate and direct."""
+
+        # 自动注入禁止事项
+        try:
+            from infrastructure.prompt_injector import get_prompt_injector
+            injector = get_prompt_injector()
+            prompt = injector.inject_draft_prompt(prompt, translation_type)
+        except Exception as e:
+            logger.warning(f"⚠️ 禁止事项注入失败（继续使用基础提示词）：{e}")
+
+        return prompt
+
+    def _build_review_prompt(self, style: str, translation_type: str) -> str:
+        """
+        构建完整的校对提示词
+
+        Args:
+            style: 用户输入的风格
+            translation_type: 翻译类型
+
+        Returns:
+            完整的校对提示词
+        """
+        # 基础结构
+        prompt = f"""Role: Senior Language Editor.
+Task: Polish 'Draft' into native {{target_lang}}.
+Style: {style if style else '流畅、自然、地道'}.
+Constraints:
+1. Output JSON ONLY: {{"Trans": "string", "Reason": "string"}}.
+2. 'Reason': Max 10 chars. If no change, Reason="".
+3. Focus on flow and tone."""
+
+        # 自动注入禁止事项
+        try:
+            from infrastructure.prompt_injector import get_prompt_injector
+            injector = get_prompt_injector()
+            prompt = injector.inject_review_prompt(prompt, translation_type)
+        except Exception as e:
+            logger.warning(f"⚠️ 禁止事项注入失败（继续使用基础提示词）：{e}")
+
+        return prompt
+
+    def _export_full_prompts(self):
+        """导出完整的提示词到文件"""
+        try:
+            from tkinter import filedialog
+
+            draft_style = self.draft_style_var.get().strip()
+            review_style = self.review_style_var.get().strip()
+            translation_type = self._get_translation_type_key()
+
+            # 生成完整提示词
+            draft_prompt = self._build_draft_prompt(draft_style, translation_type)
+            review_prompt = self._build_review_prompt(review_style, translation_type)
+
+            # 选择保存位置
+            file_path = filedialog.asksaveasfilename(
+                title="导出完整提示词",
+                defaultextension=".txt",
+                filetypes=[("Text files", "*.txt"), ("All files", "*.*")],
+                initialfile="translation_prompts"
+            )
+
+            if not file_path:
+                return
+
+            # 保存为两个文件
+            draft_path = file_path + "_draft.txt"
+            review_path = file_path + "_review.txt"
+
+            with open(draft_path, 'w', encoding='utf-8') as f:
+                f.write(draft_prompt)
+
+            with open(review_path, 'w', encoding='utf-8') as f:
+                f.write(review_prompt)
+
+            logger.info(f"💾 已导出完整提示词到：{draft_path} 和 {review_path}")
+            messagebox.showinfo("成功", f"已导出完整提示词：\n- {draft_path}\n- {review_path}")
+
+        except Exception as e:
+            logger.error(f"❌ 导出提示词失败：{e}")
+            messagebox.showerror("错误", f"导出失败:\n{str(e)}")
+
+    def _show_full_prompt_structure(self):
+        """显示完整提示词结构说明"""
+        structure_text = """
+📋 提示词结构说明
+
+提示词由以下部分自动生成：
+
+1️⃣ 角色定义（Role）
+   - 初译：Professional Translator
+   - 校对：Senior Language Editor
+
+2️⃣ 任务描述（Task）
+   - 自动根据目标语言生成
+
+3️⃣ 风格要求（Style）← 您只需输入这部分
+   - 初译风格：专业、准确、直接
+   - 校对风格：流畅、自然、地道
+
+4️⃣ 约束条件（Constraints）
+   - JSON 输出格式
+   - 术语库遵循
+   - 质量要求
+
+5️⃣ 禁止事项（Prohibitions）← 程序自动注入
+   - 根据翻译类型自动添加
+   - 通用禁止事项
+   - 专项禁止事项
+
+💡 使用建议：
+- 只需关注"风格"输入
+- 使用简短明确的描述
+- 其他部分由程序自动处理
+"""
+        messagebox.showinfo("提示词结构说明", structure_text)
     
     def _load_custom_prompts(self):
         """从文件加载自定义提示词（支持 .txt 格式）"""
@@ -1404,55 +1612,56 @@ class TranslationApp:
             messagebox.showerror("错误", f"恢复失败:\n{str(e)}")
     
     def _initialize_services(self):
-        """初始化服务容器 - 从配置文件加载配置并自动注入禁止事项"""
+        """初始化服务容器 - 从风格自动生成完整提示词并注入禁止事项"""
         if self.container:
             return
-        
+
         try:
-            # 获取用户配置的提示词（从 GUI）
-            user_draft_prompt = self.draft_text.get("1.0", tk.END).strip()
-            user_review_prompt = self.review_text.get("1.0", tk.END).strip()
-            
-            # 根据翻译方向自动注入禁止事项
+            # 获取用户输入的风格
+            draft_style = self.draft_style_var.get().strip()
+            review_style = self.review_style_var.get().strip()
+
+            # 获取翻译类型
             translation_type_key = self._get_translation_type_key()
-            injected_draft, injected_review = inject_prompts(
-                user_draft_prompt,
-                user_review_prompt,
-                translation_type_key
-            )
-            
-            logger.info(f"✅ 已自动注入禁止事项到提示词 - 类型：{translation_type_key}")
-            
+
+            # 自动生成完整的初译和校对提示词（包含禁止事项注入）
+            draft_prompt = self._build_draft_prompt(draft_style, translation_type_key)
+            review_prompt = self._build_review_prompt(review_style, translation_type_key)
+
+            logger.info(f"✅ 已自动生成完整提示词 - 类型：{translation_type_key}")
+            logger.info(f"   初译风格：{draft_style}")
+            logger.info(f"   校对风格：{review_style}")
+
             # 获取配置（从配置文件加载）
             config = self._create_config()
-            
+
             # 获取 API 客户端
             provider_name = self.current_provider_var.get()
             provider = self.provider_manager.get_provider(provider_name)
             api_client = provider.get_client()
-            
-            # 初始化容器（传入注入后的提示词）
+
+            # 初始化容器（传入自动生成的提示词）
             self.container = initialize_container(
                 config_file=self.config_file,
                 api_client=api_client,
-                draft_prompt=injected_draft,
-                review_prompt=injected_review
+                draft_prompt=draft_prompt,
+                review_prompt=review_prompt
             )
-            
+
             # 获取外观服务
             self.translation_facade = self.container.get('translation_facade')
 
             # 设置进度回调
             self.translation_facade.set_progress_callback(self._update_progress)
-            
+
             # 设置预览回调（新增）
             self.translation_facade.set_preview_callback(self._on_translation_preview)
-            
+
             # 启用增强型翻译器（支持暂停/恢复）
             self.translation_facade.enable_enhanced_translator(True)
 
-            logger.info("✅ 服务初始化完成（使用配置文件 + 注入禁止事项 + 增强型翻译器）")
-            
+            logger.info("✅ 服务初始化完成（风格输入 + 自动生成 + 禁止事项注入 + 增强型翻译器）")
+
         except Exception as e:
             logger.error(f"❌ 服务初始化失败：{e}")
             raise
