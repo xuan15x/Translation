@@ -850,7 +850,7 @@ class TranslationApp:
             
             # 创建API客户端
             logger.debug("创建API客户端...")
-            from openai import OpenAI
+            from openai import AsyncOpenAI
             from service.api_provider import get_provider_manager, APIProvider
             try:
                 # 获取当前选择的API提供商
@@ -871,8 +871,8 @@ class TranslationApp:
                     logger.warning(f"无法识别的提供商: {api_provider_name}，使用默认配置")
                     base_url = "https://api.deepseek.com"
                 
-                # 创建API客户端，传入api_key和base_url
-                api_client = OpenAI(
+                # 创建异步API客户端，传入api_key和base_url
+                api_client = AsyncOpenAI(
                     api_key=api_key,
                     base_url=base_url
                 )
