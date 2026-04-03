@@ -260,19 +260,18 @@ class TranslationServiceFacade:
             rows[idx]['行号'] = idx + 1
             rows[idx]['Key'] = result.task.key
             rows[idx]['原文'] = result.task.source_text
+            # 仅保留译文列
             rows[idx][f'译文_{lang_full}'] = result.final_trans if result.success else '(Failed)'
-            rows[idx][f'状态_{lang_full}'] = result.status.value
         
         # 转换为 DataFrame
         df = pd.DataFrame.from_dict(rows, orient='index')
         
-        # 确保列顺序（使用完整语言名称）
+        # 确保列顺序（仅保留译文）
         base_cols = ['行号', 'Key', '原文']
         lang_cols = []
         for lang in target_langs:
             lang_full = lang_name_map.get(lang, lang)
             lang_cols.append(f'译文_{lang_full}')
-            lang_cols.append(f'状态_{lang_full}')
         
         all_cols = base_cols + lang_cols
         # 只保留存在的列
