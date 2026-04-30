@@ -13,6 +13,7 @@ import asyncio
 import json
 import logging
 import os
+import threading
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
@@ -124,8 +125,8 @@ class EnhancedTranslator:
         self.state: Optional[TranslationState] = None
         self.progress = TranslationProgress()
         
-        # 控制标志
-        self._pause_event = asyncio.Event()
+        # 控制标志（使用threading.Event保证GUI线程安全）
+        self._pause_event = threading.Event()
         self._pause_event.set()  # 默认运行状态
         self._stop_flag = False
         
@@ -326,10 +327,11 @@ class EnhancedTranslator:
                 logger.info(f"⏹️ 翻译已停止在第 {idx} 行")
                 break
             
-            # 检查暂停标志（等待恢复）
+            # 检查暂停标志（等待恢复，使用run_in_executor避免阻塞事件循环）
             if self.state.is_paused:
                 logger.info(f"⏸️ 翻译已暂停，等待恢复... (第 {idx} 行)")
-                await self._pause_event.wait()
+                loop = asyncio.get_event_loop()
+                await loop.run_in_executor(None, self._pause_event.wait)
                 logger.info(f"▶️ 翻译已恢复，继续第 {idx} 行")
             
             try:
@@ -363,13 +365,11 @@ class EnhancedTranslator:
                 if (idx + 1) % 10 == 0:
                     self.state.save(state_file)
                 
-                # 批次保存（达到batch_size时写入Excel）
+                # 批次达到时保存中间状态（仅保存状态文件，不写入Excel避免覆盖）
                 if len(self.state.completed_rows) >= batch_size:
-                    await self._save_batch_to_excel(
-                        self.state.completed_rows,
-                        output_excel_path or self._generate_output_path(source_excel_path)
-                    )
-                    self.state.completed_rows = []  # 清空缓存
+                    state_file_path = state_file
+                    self.state.save(state_file_path)
+                    logger.debug(f"💾 中间状态已保存: {self.state.completed_lines} 行已完成")
                 
             except Exception as e:
                 logger.error(f"❌ 第 {idx + 1} 行翻译失败: {e}")
@@ -380,12 +380,13 @@ class EnhancedTranslator:
                     'data': row_data
                 })
         
-        # 保存剩余数据
+        # 保存所有已完成的数据到Excel（一次性写入，避免覆盖丢失）
         if self.state.completed_rows:
             await self._save_batch_to_excel(
                 self.state.completed_rows,
                 output_excel_path or self._generate_output_path(source_excel_path)
             )
+            logger.info(f"📁 翻译结果已写入: {len(self.state.completed_rows)} 行")
         
         # 完成翻译
         if not self._stop_flag:

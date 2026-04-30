@@ -44,19 +44,11 @@ class AdaptiveConcurrencyController:
             latency_ms: 请求延迟（毫秒），用于性能感知调整
         """
         try:
-            # 修复：使用 asyncio.wait_for 替代 asyncio.timeout，确保状态一致性
-            async with asyncio.timeout(ConcurrencyConfig.ADJUST_TIMEOUT_SECONDS):
-                async with self.lock:
-                    try:
-                        self._do_adjust(success, latency_ms)
-                    except Exception as e:
-                        # 锁内异常处理，确保状态一致
-                        logger.error(f"并发度调整内部错误：{e}")
-                        # 发生错误时重置部分状态，但不影响并发度
-                        if not success:
-                            self.error_requests = max(0, self.error_requests - 1)
-                            self.total_requests = max(0, self.total_requests - 1)
-                        raise
+            # 使用 asyncio.wait_for 兼容 Python 3.8+
+            await asyncio.wait_for(
+                self._adjust_with_lock(success, latency_ms),
+                timeout=ConcurrencyConfig.ADJUST_TIMEOUT_SECONDS
+            )
         except asyncio.TimeoutError:
             logger.error("并发度调整超时，跳过本次调整")
             # 超时情况下不更新任何状态，保持数据一致性
@@ -70,6 +62,20 @@ class AdaptiveConcurrencyController:
                         self.total_requests = max(0, self.total_requests - 1)
                 except Exception:
                     pass  # 忽略二次错误
+
+    async def _adjust_with_lock(self, success: bool, latency_ms: Optional[float] = None):
+        """在锁内执行并发度调整"""
+        async with self.lock:
+            try:
+                self._do_adjust(success, latency_ms)
+            except Exception as e:
+                # 锁内异常处理，确保状态一致
+                logger.error(f"并发度调整内部错误：{e}")
+                # 发生错误时重置部分状态，但不影响并发度
+                if not success:
+                    self.error_requests = max(0, self.error_requests - 1)
+                    self.total_requests = max(0, self.total_requests - 1)
+                raise
 
     def _do_adjust(self, success: bool, latency_ms: Optional[float] = None):
         """

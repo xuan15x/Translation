@@ -111,15 +111,15 @@ Example Output:
         max_tokens = max(self.config.max_tokens, len(task.target_langs) * 200)
         
         while attempt < max_retries:
-            async with self.semaphore:
-                try:
-                    # 构建提示词
-                    user_prompt = self._build_multilingual_prompt(task)
-                    system_prompt = self._build_system_prompt(task.target_langs)
-                    
-                    logger.debug(f"多语言翻译请求: {task.source_text[:50]}... -> {task.target_langs}")
-                    
-                    # 调用 API
+            # 信号量仅包裹API调用本身，sleep在信号量外执行
+            try:
+                # 构建提示词
+                user_prompt = self._build_multilingual_prompt(task)
+                system_prompt = self._build_system_prompt(task.target_langs)
+
+                logger.debug(f"多语言翻译请求: {task.source_text[:50]}... -> {task.target_langs}")
+
+                async with self.semaphore:
                     response = await self.client.chat.completions.create(
                         model=self.config.model_name,
                         messages=[
@@ -132,58 +132,57 @@ Example Output:
                         response_format={"type": "json_object"},
                         timeout=self.config.timeout
                     )
-                    
-                    # 解析响应
-                    content = response.choices[0].message.content
-                    logger.debug(f"API 响应: {content[:200]}...")
-                    
-                    # 尝试解析 JSON
-                    translations = json.loads(content)
-                    
-                    # 验证结果
-                    success_langs = []
-                    failed_langs = []
-                    
-                    for lang in task.target_langs:
-                        if lang in translations and translations[lang]:
-                            success_langs.append(lang)
-                        else:
-                            failed_langs.append(lang)
-                            logger.warning(f"语言 {lang} 翻译结果缺失或为空")
-                    
-                    # 创建结果
-                    result = MultiLanguageResult(
-                        task=task,
-                        translations=translations,
-                        success_langs=success_langs,
-                        failed_langs=failed_langs,
-                        diagnosis="API Success",
-                        status=TranslationStatus.SUCCESS if not failed_langs else TranslationStatus.FAILED
-                    )
-                    
-                    # 记录成功
-                    self.controller.record_result(True, response.usage.total_tokens if response.usage else 0)
-                    
-                    logger.info(f"多语言翻译完成: {len(success_langs)}/{len(task.target_langs)} 成功")
-                    
-                    return result
 
-                except json.JSONDecodeError as e:
-                    logger.warning(f"JSON 解析失败 (尝试 {attempt + 1}/{max_retries}): {e}")
-                    attempt += 1
-                    self.controller.record_result(False, 0)
-                    await asyncio.sleep(self.config.base_retry_delay * (2 ** attempt))
-                    
-                except Exception as e:
-                    logger.exception(f"多语言翻译异常 (尝试 {attempt + 1}/{max_retries}): {e}")
-                    attempt += 1
-                    self.controller.record_result(False, 0)
-                    
-                    # 检查是否为速率限制
-                    if "rate limit" in str(e).lower():
-                        await asyncio.sleep(self.config.base_retry_delay * (2 ** attempt) * 2)
+                # 解析响应
+                content = response.choices[0].message.content
+                logger.debug(f"API 响应: {content[:200]}...")
+
+                # 尝试解析 JSON
+                translations = json.loads(content)
+
+                # 验证结果
+                success_langs = []
+                failed_langs = []
+
+                for lang in task.target_langs:
+                    if lang in translations and translations[lang]:
+                        success_langs.append(lang)
                     else:
-                        await asyncio.sleep(self.config.base_retry_delay * (2 ** attempt))
+                        failed_langs.append(lang)
+                        logger.warning(f"语言 {lang} 翻译结果缺失或为空")
+
+                # 创建结果
+                result = MultiLanguageResult(
+                    task=task,
+                    translations=translations,
+                    success_langs=success_langs,
+                    failed_langs=failed_langs,
+                    diagnosis="API Success",
+                    status=TranslationStatus.SUCCESS if not failed_langs else TranslationStatus.FAILED
+                )
+
+                await self.controller.adjust(True)
+
+                logger.info(f"多语言翻译完成: {len(success_langs)}/{len(task.target_langs)} 成功")
+
+                return result
+
+            except json.JSONDecodeError as e:
+                logger.warning(f"JSON 解析失败 (尝试 {attempt + 1}/{max_retries}): {e}")
+                attempt += 1
+                await self.controller.adjust(False)
+                await asyncio.sleep(self.config.base_retry_delay * (2 ** attempt))
+
+            except Exception as e:
+                logger.exception(f"多语言翻译异常 (尝试 {attempt + 1}/{max_retries}): {e}")
+                attempt += 1
+                await self.controller.adjust(False)
+
+                # 检查是否为速率限制
+                if "rate limit" in str(e).lower():
+                    await asyncio.sleep(self.config.base_retry_delay * (2 ** attempt) * 2)
+                else:
+                    await asyncio.sleep(self.config.base_retry_delay * (2 ** attempt))
         
         # 所有重试失败
         logger.error(f"多语言翻译失败，已重试 {max_retries} 次")

@@ -135,7 +135,7 @@ class VersionHistoryManager:
                             parts = line.split('[')
                             if len(parts) > 1:
                                 return parts[1].split(']')[0]
-        except:
+        except Exception:
             pass
         
         return datetime.now().strftime("%Y-%m-%d")

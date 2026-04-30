@@ -45,19 +45,24 @@ class BatchTaskProcessor(IBatchProcessor):
 
         # 创建信号量控制并发
         semaphore = asyncio.Semaphore(concurrency_limit)
+        completed_count = 0  # 使用计数器避免O(n^2)扫描
 
         async def process_with_semaphore(task: TranslationTask):
+            nonlocal completed_count
             async with semaphore:
                 try:
                     result = await self.task_executor(task)
 
-                    # 更新进度
+                    # 更新进度（使用计数器 O(1)）
+                    completed_count += 1
                     if self.progress_callback:
-                        current = len([r for r in batch_result.results if r.status != TranslationStatus.PENDING])
-                        self.progress_callback(current + 1, len(tasks))
+                        self.progress_callback(completed_count, len(tasks))
 
                     return result
                 except Exception as e:
+                    completed_count += 1
+                    if self.progress_callback:
+                        self.progress_callback(completed_count, len(tasks))
                     return TranslationResult(
                         task=task,
                         final_trans="(Error)",
@@ -146,25 +151,30 @@ class SequentialTaskProcessor(IBatchProcessor):
             failed_count=0,
             local_hit_count=0
         )
-        
+
         if not tasks:
             return batch_result
-        
+
         # 创建信号量控制并发
         semaphore = asyncio.Semaphore(concurrency_limit)
-        
+        completed_count = 0  # 使用计数器避免O(n^2)扫描
+
         async def process_with_semaphore(task: TranslationTask):
+            nonlocal completed_count
             async with semaphore:
                 try:
                     result = await self.task_executor(task)
-                    
-                    # 更新进度
+
+                    # 更新进度（使用计数器 O(1)）
+                    completed_count += 1
                     if self.progress_callback:
-                        current = len([r for r in batch_result.results if r.status != TranslationStatus.PENDING])
-                        self.progress_callback(current + 1, len(tasks))
-                    
+                        self.progress_callback(completed_count, len(tasks))
+
                     return result
                 except Exception as e:
+                    completed_count += 1
+                    if self.progress_callback:
+                        self.progress_callback(completed_count, len(tasks))
                     return TranslationResult(
                         task=task,
                         final_trans="(Error)",
@@ -173,11 +183,11 @@ class SequentialTaskProcessor(IBatchProcessor):
                         diagnosis="Execution Error",
                         status=TranslationStatus.FAILED
                     )
-        
+
         # 并发执行所有任务
         coroutines = [process_with_semaphore(task) for task in tasks]
         results = await asyncio.gather(*coroutines, return_exceptions=True)
-        
+
         # 统计结果
         for i, result in enumerate(results):
             if isinstance(result, Exception):
@@ -193,5 +203,5 @@ class SequentialTaskProcessor(IBatchProcessor):
                 batch_result.add_result(failed_result)
             elif isinstance(result, TranslationResult):
                 batch_result.add_result(result)
-        
+
         return batch_result

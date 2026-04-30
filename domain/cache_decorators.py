@@ -3,9 +3,12 @@
 为领域服务添加缓存功能，提升性能
 """
 import asyncio
+import logging
 from typing import Optional, Any
 from domain.services import ITerminologyDomainService, ITranslationDomainService
 from domain.models import TermMatch, TranslationTask, TranslationResult
+
+logger = logging.getLogger(__name__)
 
 
 class CachedTerminologyService(ITerminologyDomainService):
@@ -73,8 +76,8 @@ class CachedTerminologyService(ITerminologyDomainService):
                     # 写入本地缓存
                     self._add_to_local_cache(cache_key, result)
                     return result
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug(f"缓存查询失败，回退到服务调用: {e}")
         
         # 3. 查询服务
         result = await self.service.find_match(source_text, target_lang)

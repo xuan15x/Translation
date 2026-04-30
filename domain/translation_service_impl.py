@@ -85,13 +85,16 @@ class TranslationDomainServiceImpl(ITranslationDomainService):
             draft_result = await self.draft_stage.execute(ctx)
             
             if draft_result.success:
-                # 翻译成功，保存到术语库
-                await self.terminology_service.save_term(
-                    task.source_text,
-                    task.target_lang,
-                    draft_result.translation
-                )
-                
+                # 翻译成功，保存到术语库（失败不影响翻译结果）
+                try:
+                    await self.terminology_service.save_term(
+                        task.source_text,
+                        task.target_lang,
+                        draft_result.translation
+                    )
+                except Exception as e:
+                    logger.warning(f"术语保存失败（翻译结果不受影响）: {e}")
+
                 return TranslationResult(
                     task=task,
                     final_trans=draft_result.translation,
@@ -142,13 +145,16 @@ class TranslationDomainServiceImpl(ITranslationDomainService):
             if review_result.success:
                 final_trans = review_result.translation if review_result.translation else draft
                 
-                # 如果有修改，保存新术语
+                # 如果有修改，保存新术语（失败不影响翻译结果）
                 if final_trans != draft:
-                    await self.terminology_service.save_term(
-                        task.source_text,
-                        task.target_lang,
-                        final_trans
-                    )
+                    try:
+                        await self.terminology_service.save_term(
+                            task.source_text,
+                            task.target_lang,
+                            final_trans
+                        )
+                    except Exception as e:
+                        logger.warning(f"术语保存失败（校对结果不受影响）: {e}")
                 
                 return TranslationResult(
                     task=task,

@@ -481,7 +481,7 @@ class UnifiedCacheManager:
         """估算对象的内存大小"""
         try:
             return sys.getsizeof(value)
-        except:
+        except Exception:
             return 100  # 默认估算
     
     def _update_memory_estimate(self, datasource: str, key: str,

@@ -1149,7 +1149,7 @@ class TranslationApp:
             logger.error(f"关闭应用程序时出错: {e}", exc_info=True)
             try:
                 self.root.destroy()
-            except:
+            except Exception:
                 pass
 
 

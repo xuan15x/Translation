@@ -92,7 +92,6 @@ class APIStageBase(ABC):
             阶段执行结果
         """
         attempt = 0
-        last_error: Optional[str] = None
 
         # 获取当前阶段的配置
         stage_config = self._get_stage_config()
@@ -103,8 +102,9 @@ class APIStageBase(ABC):
         max_tokens = stage_config['max_tokens']
 
         while attempt < self.config.max_retries:
-            async with self.semaphore:
-                try:
+            # 信号量仅包裹API调用本身，sleep在信号量外执行
+            try:
+                async with self.semaphore:
                     response = await self.client.chat.completions.create(
                         model=model_name,
                         messages=messages,
@@ -115,89 +115,90 @@ class APIStageBase(ABC):
                         timeout=timeout
                     )
 
-                    await self.controller.adjust(True)
+                await self.controller.adjust(True)
 
-                    # 解析响应
-                    if not response.choices or not response.choices[0].message.content:
-                        return StageResult(
-                            False,
-                            "",
-                            error_msg="Empty API response",
-                            source="API"
-                        )
-
-                    content = re.sub(
-                        r'^```json\s*|\s*```$',
-                        '',
-                        response.choices[0].message.content.strip(),
-                        flags=re.MULTILINE
-                    )
-
-                    try:
-                        data = json.loads(content)
-                    except json.JSONDecodeError as e:
-                        logger.warning(f"JSON 解析失败：{e}, content: {content[:100]}")
-                        attempt += 1
-                        if attempt >= self.config.max_retries:
-                            return StageResult(False, "", error_msg="Invalid JSON format", source="API")
-                        await asyncio.sleep(self.config.base_retry_delay * (2 ** attempt))
-                        continue
-
-                    trans = self._extract_translation(data)
-                    if not trans:
-                        attempt += 1
-                        if attempt >= self.config.max_retries:
-                            return StageResult(False, "", error_msg="Empty translation result", source="API")
-                        await asyncio.sleep(self.config.base_retry_delay)
-                        continue
-
-                    return StageResult(
-                        success=True,
-                        translation=trans
-                    )
-
-                except RateLimitError as e:
-                    # 速率限制，指数退避
-                    await self.controller.adjust(False)
-                    retry_after = getattr(e, 'retry_after', self.config.base_retry_delay * (2 ** attempt))
-                    logger.warning(f"API 速率限制，等待 {retry_after}s 后重试")
-                    await asyncio.sleep(retry_after)
-                    attempt += 1
-
-                except APITimeoutError as e:
-                    # 超时错误
-                    await self.controller.adjust(False)
-                    logger.error(f"API 超时：{e}")
+                # 检查finish_reason，截断的响应无法解析JSON
+                finish_reason = response.choices[0].finish_reason if response.choices else None
+                if finish_reason in ('length', 'max_tokens'):
+                    logger.warning(f"响应被截断 (finish_reason={finish_reason})")
                     attempt += 1
                     if attempt >= self.config.max_retries:
-                        return StageResult(False, "", error_msg=f"API timeout after {attempt} attempts", source="API")
+                        return StageResult(False, "", error_msg="Response truncated (length limit)", source="API")
                     await asyncio.sleep(self.config.base_retry_delay * (2 ** attempt))
+                    continue
 
-                except APIError as e:
-                    # 其他 API 错误
-                    await self.controller.adjust(False)
-                    error_msg = str(e)
-                    logger.error(f"API 错误：{error_msg}")
+                # 解析响应
+                if not response.choices or not response.choices[0].message.content:
+                    return StageResult(
+                        False, "",
+                        error_msg="Empty API response",
+                        source="API"
+                    )
 
-                    # 429 错误特殊处理
-                    if "429" in error_msg:
-                        await asyncio.sleep(self.config.base_retry_delay * (2 ** attempt))
-                        attempt += 1
-                    elif attempt >= self.config.max_retries:
-                        return StageResult(False, "", error_msg=error_msg, source="API")
-                    else:
-                        attempt += 1
-                        await asyncio.sleep(self.config.base_retry_delay)
+                content = re.sub(
+                    r'^```json\s*|\s*```$',
+                    '',
+                    response.choices[0].message.content.strip(),
+                    flags=re.MULTILINE
+                )
 
-                except Exception as e:
-                    # 未知错误
-                    await self.controller.adjust(False)
-                    error_msg = f"Unexpected error: {str(e)}"
-                    logger.exception(error_msg)
+                try:
+                    data = json.loads(content)
+                except json.JSONDecodeError as e:
+                    logger.warning(f"JSON 解析失败：{e}, content: {content[:100]}")
                     attempt += 1
                     if attempt >= self.config.max_retries:
-                        return StageResult(False, "", error_msg=error_msg, source="API")
+                        return StageResult(False, "", error_msg="Invalid JSON format", source="API")
+                    await asyncio.sleep(self.config.base_retry_delay * (2 ** attempt))
+                    continue
+
+                trans = self._extract_translation(data)
+                if not trans:
+                    attempt += 1
+                    if attempt >= self.config.max_retries:
+                        return StageResult(False, "", error_msg="Empty translation result", source="API")
                     await asyncio.sleep(self.config.base_retry_delay)
+                    continue
+
+                return StageResult(success=True, translation=trans)
+
+            except RateLimitError as e:
+                await self.controller.adjust(False)
+                retry_after = getattr(e, 'retry_after', self.config.base_retry_delay * (2 ** attempt))
+                logger.warning(f"API 速率限制，等待 {retry_after}s 后重试")
+                attempt += 1
+                await asyncio.sleep(retry_after)
+
+            except APITimeoutError as e:
+                await self.controller.adjust(False)
+                logger.error(f"API 超时：{e}")
+                attempt += 1
+                if attempt >= self.config.max_retries:
+                    return StageResult(False, "", error_msg=f"API timeout after {attempt} attempts", source="API")
+                await asyncio.sleep(self.config.base_retry_delay * (2 ** attempt))
+
+            except APIError as e:
+                await self.controller.adjust(False)
+                error_msg = str(e)
+                logger.error(f"API 错误：{error_msg}")
+
+                if "429" in error_msg:
+                    attempt += 1
+                    await asyncio.sleep(self.config.base_retry_delay * (2 ** attempt))
+                elif attempt >= self.config.max_retries:
+                    return StageResult(False, "", error_msg=error_msg, source="API")
+                else:
+                    attempt += 1
+                    await asyncio.sleep(self.config.base_retry_delay)
+
+            except Exception as e:
+                await self.controller.adjust(False)
+                error_msg = f"Unexpected error: {str(e)}"
+                logger.exception(error_msg)
+                attempt += 1
+                if attempt >= self.config.max_retries:
+                    return StageResult(False, "", error_msg=error_msg, source="API")
+                await asyncio.sleep(self.config.base_retry_delay)
 
         return StageResult(False, "", error_msg="Max retries exceeded", source="API")
 

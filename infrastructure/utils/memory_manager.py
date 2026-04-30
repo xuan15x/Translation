@@ -321,11 +321,11 @@ class SwapManager:
                 filename = f"{self.config.swap_file_prefix}{hash(key)}_{int(time.time())}.pkl"
                 file_path = self.swap_dir / filename
                 
-                # 序列化并写入文件
+                # 序列化并写入文件（使用上下文管理器防止FD泄漏）
                 loop = asyncio.get_event_loop()
                 await loop.run_in_executor(
                     None,
-                    lambda: pickle.dump(data, open(file_path, 'wb'))
+                    lambda: self._safe_pickle_dump(data, file_path)
                 )
                 
                 file_size = file_path.stat().st_size
@@ -358,11 +358,11 @@ class SwapManager:
                 
                 swap_info = self._swap_files[key]
                 
-                # 读取并反序列化
+                # 读取并反序列化（使用上下文管理器防止FD泄漏）
                 loop = asyncio.get_event_loop()
                 data = await loop.run_in_executor(
                     None,
-                    lambda: pickle.load(open(swap_info.file_path, 'rb'))
+                    lambda: self._safe_pickle_load(swap_info.file_path)
                 )
                 
                 # 更新访问统计
@@ -378,6 +378,18 @@ class SwapManager:
             logger.error(f"交换入失败：{e}")
             return None
     
+    @staticmethod
+    def _safe_pickle_dump(data: Any, file_path) -> None:
+        """使用上下文管理器安全序列化到文件"""
+        with open(file_path, 'wb') as f:
+            pickle.dump(data, f)
+
+    @staticmethod
+    def _safe_pickle_load(file_path) -> Any:
+        """使用上下文管理器安全从文件反序列化"""
+        with open(file_path, 'rb') as f:
+            return pickle.load(f)
+
     async def delete(self, key: str) -> bool:
         """删除交换文件"""
         try:

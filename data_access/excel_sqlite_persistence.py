@@ -313,15 +313,24 @@ class HistoryPersistence:
     def add_record(self, record_data: Dict):
         """
         添加历史记录
-        
+
         Args:
             record_data: 记录字典
         """
+        # 白名单验证列名，防止SQL注入
+        allowed_columns = {'key', 'source_text', 'target_lang', 'original_trans',
+                          'draft_trans', 'final_trans', 'status', 'diagnosis',
+                          'reason', 'api_provider', 'model_name', 'created_at',
+                          'file_path', 'batch_id'}
+        invalid_keys = set(record_data.keys()) - allowed_columns
+        if invalid_keys:
+            raise ValueError(f"不允许的列名：{invalid_keys}")
+
         columns = ', '.join(record_data.keys())
         placeholders = ', '.join(['?' for _ in record_data])
-        
+
         sql = f"""
-            INSERT INTO history ({columns}) 
+            INSERT INTO history ({columns})
             VALUES ({placeholders})
         """
         self.manager.execute_update(sql, tuple(record_data.values()))

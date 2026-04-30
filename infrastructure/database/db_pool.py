@@ -33,6 +33,7 @@ class ConnectionPool:
         
         # 连接池队列
         self._pool: asyncio.Queue = asyncio.Queue(maxsize=pool_size)
+        self._overflow_connections: set = set()  # 跟踪溢出连接的ID
         self._overflow_count = 0
         self._created_count = 0
         self._stats = {
@@ -124,6 +125,7 @@ class ConnectionPool:
                 if self._overflow_count < self.max_overflow:
                     self._overflow_count += 1
                     conn = await self._create_connection()
+                    self._overflow_connections.add(id(conn))
                     logger.debug(
                         f"创建溢出连接 (当前溢出数：{self._overflow_count}/{self.max_overflow})"
                     )
@@ -140,8 +142,9 @@ class ConnectionPool:
         finally:
             # 归还连接到池
             if conn:
-                if self._overflow_count > 0 and conn in []:
+                if self._overflow_count > 0 and id(conn) in self._overflow_connections:
                     # 如果是溢出连接，直接关闭
+                    self._overflow_connections.discard(id(conn))
                     await self._close_connection(conn)
                     self._overflow_count -= 1
                 else:
@@ -162,18 +165,17 @@ class ConnectionPool:
     async def close_all(self):
         """关闭所有连接"""
         logger.info("关闭所有数据库连接")
-        
+
         # 关闭池中所有连接
         while not self._pool.empty():
             conn = self._pool.get_nowait()
             await self._close_connection(conn)
-        
-        # 关闭所有溢出连接（如果有引用则在这里处理）
-        
+
         logger.info(
             f"连接池关闭完成："
             f"创建={self._stats['connections_created']}, "
             f"关闭={self._stats['connections_closed']}, "
+            f"溢出={self._overflow_count}, "
             f"查询={self._stats['queries_executed']}"
         )
     
