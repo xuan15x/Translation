@@ -1,3 +1,12 @@
+---
+name: config-structure-validator
+description: >
+  验证配置文件的结构完整性，支持 JSON/YAML 配置文件的多版本向后兼容检查。
+  检测缺失字段、类型错误、无效值等问题。
+  当需要配置结构变更、配置脚本开发、应用启动前验证时使用。
+  触发关键字：配置验证、配置文件、JSON Schema、配置结构、配置检查、向后兼容。
+---
+
 # 配置结构验证器 (Config Structure Validator)
 
 **版本**: 1.0.0

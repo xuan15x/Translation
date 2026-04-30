@@ -1,3 +1,12 @@
+---
+name: gui-event-handler
+description: >
+  提供 Tkinter GUI 事件处理的最佳实践，避免 Tcl_Obj 错误、状态不同步和 UI 刷新问题。
+  核心原则是状态与视图分离，使用独立数据结构管理状态。
+  当需要开发或修改 GUI 事件处理代码、复选框全选、控件状态同步、长时操作 UI 响应时使用。
+  触发关键字：Tkinter、GUI 事件、控件状态、Tcl 错误、UI 刷新、状态同步、事件处理。
+---
+
 # GUI 事件处理最佳实践 (GUI Event Handler)
 
 **版本**: 1.0.0

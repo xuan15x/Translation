@@ -1,3 +1,12 @@
+---
+name: arch-dependency-checker
+description: >
+  验证 Python 项目的分层架构依赖规则，检测违反架构规范的导入关系。
+  适用于六层架构（presentation/application/domain/service/data_access/infrastructure）的项目。
+  当需要检查架构一致性、识别违规依赖、生成架构报告时使用。
+  触发关键字：架构检查、依赖检查、架构验证、分层架构、六层架构、违规依赖。
+---
+
 # 架构依赖检查器 (Arch Dependency Checker)
 
 **版本**: 1.0.0

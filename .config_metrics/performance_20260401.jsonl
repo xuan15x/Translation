@@ -1,9 +1,0 @@
-{"timestamp": "2026-04-01T14:47:21.980093", "session_id": "session_20260401_144721", "name": "translation_speed", "value": 150.5, "unit": "tokens/s", "tags": {"batch_size": 50}}
-{"timestamp": "2026-04-01T14:47:21.980165", "session_id": "session_20260401_144721", "name": "translation_speed", "value": 180.2, "unit": "tokens/s", "tags": {"batch_size": 100}}
-{"timestamp": "2026-04-01T14:47:21.980206", "session_id": "session_20260401_144721", "name": "translation_speed", "value": 120.8, "unit": "tokens/s", "tags": {"batch_size": 30}}
-{"timestamp": "2026-04-01T14:47:21.980345", "session_id": "session_20260401_144721", "name": "cache_hit_rate", "value": 85.3, "unit": "%", "tags": {"cache_size": 2000}}
-{"timestamp": "2026-04-01T14:47:21.980493", "session_id": "session_20260401_144721", "name": "cache_hit_rate", "value": 92.1, "unit": "%", "tags": {"cache_size": 3000}}
-{"timestamp": "2026-04-01T14:47:21.980538", "session_id": "session_20260401_144721", "name": "error_rate", "value": 2.5, "unit": "%", "tags": {"concurrency": 8}}
-{"timestamp": "2026-04-01T14:47:21.980656", "session_id": "session_20260401_144721", "name": "error_rate", "value": 5.8, "unit": "%", "tags": {"concurrency": 15}}
-{"timestamp": "2026-04-01T14:47:21.980702", "session_id": "session_20260401_144721", "name": "memory_usage", "value": 256.5, "unit": "MB", "tags": {"operation": "terminology_query"}}
-{"timestamp": "2026-04-01T14:47:21.980796", "session_id": "session_20260401_144721", "name": "memory_usage", "value": 512.3, "unit": "MB", "tags": {"operation": "batch_translation"}}

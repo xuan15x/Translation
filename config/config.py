@@ -531,12 +531,12 @@ def get_default_config() -> Dict[str, Any]:
         包含所有默认配置的字典
     """
     return {
-        # API 基础配置
+        # API 基础配置（仅支持 DeepSeek）
         "api_provider": "deepseek",
         "api_key": "",  # 必须在配置文件中设置
         "base_url": "https://api.deepseek.com",
-        
-        # 全局模型配置（默认配置，可被子配置覆盖）
+
+        # DeepSeek 模型配置
         "model_name": "deepseek-chat",
         "temperature": 0.3,
         "top_p": 0.8,

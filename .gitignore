@@ -3,90 +3,68 @@ __pycache__/
 *.py[cod]
 *$py.class
 *.so
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
 *.egg
+*.egg-info/
+dist/
+build/
 
 # 虚拟环境
+venv/
 .venv/
 env/
-ENV/
 
 # IDE
-.idea/
 .vscode/
+.idea/
 *.swp
 *.swo
-*~
 
-# 测试
-.pytest_cache/
-.coverage
-htmlcov/
-*.cover
-.hypothesis/
-
-# 数据库
-*.db
-*.sqlite
-*.sqlite3
+# OS
+.DS_Store
+Thumbs.db
 
 # 日志
 *.log
 
+# 配置文件（包含敏感信息）
+config/config.json
+config/*.json
+.env
+
+# 数据库
+*.db
+*.sqlite
+
+# 术语库
+*.xlsx
+data/
+
+# 会话配置
+session_config.json
+
+# 翻译状态
+.translation_state/
+
+# 配置指标
+.config_metrics/
+
+# 备份
+.terminology_backups/
+*.bak
+
 # 临时文件
 *.tmp
-*.bak
-*.swp
+*.temp
 
-# 结果文件
-Result_*.xlsx
-test_*.txt
-test_*.xlsx
+# 测试（生产环境不需要）
+tests/
+pytest.ini
+conftest.py
+.coverage
+htmlcov/
+.pytest_cache/
 
-# 报告文件（性能优化相关）
-*_REPORT.md
-*_SUMMARY.md
-PERFORMANCE_*.md
-
-# 配置文件 (包含 API 密钥等敏感信息)
-config/config.json
-config/config.yaml
-config.json
-config.yaml
-
-# 环境变量文件
-.env
-.env.local
-
-# macOS
-.DS_Store
-
-# Windows
-Thumbs.db
-
-# 测试和调试脚本（非生产代码）
-simple_test.py
-verify_performance.py
-scripts/auto_fix_*.py
-scripts/fix_*.py
-scripts/check_*.py
-scripts/generate_docs.py
-scripts/quick_start_verify.py
-scripts/test_config_checker.py
-
-# 但保留版本检查工具
-!scripts/check_version_before_push.py
+# 开发脚本（生产环境不需要）
+scripts/
+demo*.py
+test_*.py

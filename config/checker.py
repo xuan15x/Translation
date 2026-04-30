@@ -51,15 +51,9 @@ class CheckResult:
 class ConfigChecker:
     """配置检查器"""
     
-    # API 提供商映射
+    # API 提供商映射（仅 DeepSeek）
     PROVIDER_ENV_MAPPING = {
         'deepseek': 'DEEPSEEK_API_KEY',
-        'openai': 'OPENAI_API_KEY',
-        'anthropic': 'ANTHROPIC_API_KEY',
-        'moonshot': 'MOONSHOT_API_KEY',
-        'zhipu': 'ZHIPU_API_KEY',
-        'baidu': 'BAIDU_API_KEY',
-        'alibaba': 'ALIBABA_API_KEY',
     }
     
     # URL 正则表达式
@@ -195,8 +189,7 @@ class ConfigChecker:
             base_url = config.get('base_url', '')
         
         # 检查提供商有效性
-        valid_providers = ['deepseek', 'openai', 'azure_openai', 'custom',
-                          'anthropic', 'moonshot', 'zhipu', 'qwen', 'gemini']
+        valid_providers = ['deepseek']
         if api_provider not in valid_providers:
             self._add_result(
                 CheckLevel.WARNING,

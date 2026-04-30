@@ -19,7 +19,7 @@ from infrastructure.logging import GUILogController
 from infrastructure.models.models import Config
 from infrastructure.di import initialize_container
 from data_access.config_persistence import ConfigPersistence
-from service.api_provider import get_provider_manager
+from service.api_provider import get_provider_manager  # DeepSeek 专用
 from service.session_config import get_session_manager, SessionConfigManager
 from service.version_history import get_version_manager, VersionHistoryManager
 from service.translation_history import get_history_manager as get_translation_history_manager, TranslationHistoryManager, record_translation
@@ -108,15 +108,10 @@ class TranslationApp:
         # 游戏翻译
         self.translation_type_var = tk.StringVar(value="match3_item")
 
-        # API提供商
+        # API提供商（仅 DeepSeek）
         self.provider_manager = get_provider_manager()
         self.current_provider_var = tk.StringVar(value="deepseek")
-        self.available_providers = self._get_available_providers_from_config()
-        if self.available_providers:
-            providers_dict = {provider: provider for provider in self.available_providers}
-            self.available_providers = providers_dict
-            default_provider = list(self.available_providers.keys())[0]
-            self.current_provider_var.set(default_provider)
+        self.available_providers = {"deepseek": "deepseek"}
 
         # 源语言
         self.source_lang_var = tk.StringVar(value="自动检测")
@@ -178,7 +173,6 @@ class TranslationApp:
 
         # Notebook引用
         self.advanced_notebook = None
-        self.lang_notebook = None
         self.preview_notebook = None
 
         # 文本控件（向后兼容）
@@ -189,7 +183,6 @@ class TranslationApp:
 
         # 常用语言
         self.favorite_langs = []
-        self.favorite_frame = None
         self.tier_lang_frames = {}
 
         # 按钮
@@ -507,12 +500,6 @@ class TranslationApp:
             self.output_path.set(file_path)
             logger.info(f"已设置输出路径：{file_path}")
 
-    def _on_provider_changed(self, event):
-        """API提供商切换"""
-        provider_name = self.current_provider_var.get()
-        logger.info(f"切换到 API 提供商：{provider_name}")
-        self._update_model_list()
-
     def _on_translation_type_changed(self, event):
         """翻译方向切换"""
         translation_type = self.translation_type_var.get()
@@ -540,8 +527,11 @@ class TranslationApp:
         self._update_lang_status()
 
     def _update_lang_status(self):
-        """更新语言选择状态"""
+        """更新语言选择状态和计数显示"""
         self.selected_langs = [lang for lang, var in self.lang_vars.items() if var.get()]
+        if hasattr(self, 'lang_count_var'):
+            total = len(self.lang_vars)
+            self.lang_count_var.set(f"已选: {len(self.selected_langs)} / {total}")
         logger.debug(f"已选择 {len(self.selected_langs)} 个语言")
 
     def _add_custom_language(self):
@@ -552,6 +542,17 @@ class TranslationApp:
             if lang_name not in self.lang_vars:
                 var = tk.BooleanVar(value=True)
                 self.lang_vars[lang_name] = var
+                # 添加到滚动列表末尾
+                if hasattr(self, 'lang_scroll_frame'):
+                    total = len(self.lang_vars) - 1
+                    row_offset = 0
+                    for w in self.lang_scroll_frame.winfo_children():
+                        row_offset = max(row_offset, w.grid_info().get('row', 0))
+                    cb = ttk.Checkbutton(
+                        self.lang_scroll_frame, text=f"{lang_name} (自定义)",
+                        variable=var, command=self._update_lang_status
+                    )
+                    cb.grid(row=row_offset + 1, column=0, sticky=tk.W, padx=10, pady=2)
                 self._update_lang_status()
                 logger.info(f"✅ 已添加自定义语言：{lang_name}")
             else:
@@ -580,30 +581,22 @@ class TranslationApp:
             logger.error(f"刷新源语言列表失败: {e}")
 
     def _update_model_list(self):
-        """更新模型列表"""
-        provider_name = self.current_provider_var.get()
+        """更新 DeepSeek 模型列表"""
         try:
-            from service.api_provider import APIProvider
-            if provider_name.startswith('APIProvider.'):
-                provider_name = provider_name.split('.')[-1].lower()
+            provider_instance = self.provider_manager.get_config()
+            models = ["deepseek-chat", "deepseek-reasoner"]
+            if hasattr(provider_instance, 'models') and provider_instance.models:
+                models = list(provider_instance.models)
 
-            provider = APIProvider(provider_name)
-            provider_instance = self.provider_manager.get_provider(provider)
-            
-            if hasattr(provider_instance, 'models'):
-                models = provider_instance.models if isinstance(provider_instance.models, list) else []
-            else:
-                models = []
-            
             model_list = [""] + models
             self.draft_model_combo['values'] = model_list
             self.review_model_combo['values'] = model_list
-            
+
             logger.debug(f"✅ 已更新模型列表，共 {len(models)} 个模型")
         except Exception as e:
             logger.error(f"更新模型列表失败: {e}")
-            self.draft_model_combo['values'] = [""]
-            self.review_model_combo['values'] = [""]
+            self.draft_model_combo['values'] = ["", "deepseek-chat", "deepseek-reasoner"]
+            self.review_model_combo['values'] = ["", "deepseek-chat", "deepseek-reasoner"]
 
     def _sync_draft_model_to_review(self):
         """同步初译模型到校对"""
@@ -819,29 +812,17 @@ class TranslationApp:
                 if self.config_persistence:
                     config_data = self.config_persistence.load(self.config_file)
                     logger.debug(f"加载到的配置数据: {list(config_data.keys())}")
-                    
-                    # 支持两种配置格式：
-                    # 1. 直接格式: {"api_key": "xxx"}
-                    # 2. 嵌套格式: {"api_keys": {"deepseek": {"api_key": "xxx"}}}
+
+                    # 读取 DeepSeek API 密钥
                     api_key = config_data.get('api_key', '')
-                    logger.debug(f"直接读取api_key字段: {'已找到' if api_key else '未找到'}")
+                    logger.debug(f"读取api_key字段: {'已找到' if api_key else '未找到'}")
 
                     if not api_key and 'api_keys' in config_data:
-                        # 嵌套格式，获取当前选择的API提供商的密钥
-                        api_provider = self.current_provider_var.get()
-                        logger.info(f"📌 当前API提供商: {api_provider}")
-
                         api_keys_config = config_data.get('api_keys', {})
-                        logger.debug(f"api_keys配置: {list(api_keys_config.keys())}")
-                        
-                        if api_provider in api_keys_config:
-                            provider_config = api_keys_config[api_provider]
+                        if 'deepseek' in api_keys_config:
+                            provider_config = api_keys_config['deepseek']
                             api_key = provider_config.get('api_key', '')
-                            provider_base_url = provider_config.get('base_url', '')
-                            logger.info(f"✅ 从api_keys.{api_provider}读取API密钥: {'已配置' if api_key else '未配置'}")
-                            logger.info(f"✅ 从api_keys.{api_provider}读取base_url: {provider_base_url}")
-                        else:
-                            logger.warning(f"⚠️ 未找到提供商 '{api_provider}' 的配置，可用提供商: {list(api_keys_config.keys())}")
+                            logger.info("从api_keys.deepseek读取API密钥: " + ('已配置' if api_key else '未配置'))
                     elif api_key:
                         logger.debug("从api_key字段读取API密钥: 已配置")
                     else:
@@ -851,63 +832,28 @@ class TranslationApp:
             except Exception as e:
                 logger.warning(f"读取API密钥失败: {e}")
                 api_key = ''
-            
+
             if not api_key:
-                logger.error("❌ 配置文件中未找到API密钥")
-                logger.error("💡 请在config/config.json中配置api_key字段")
-                raise ValueError("API密钥未配置，无法初始化翻译服务")
-            
-            # 创建API客户端
-            logger.debug("创建API客户端...")
+                logger.error("❌ 配置文件中未找到 DeepSeek API 密钥")
+                logger.error("💡 请在 config/config.json 中配置 api_key 字段")
+                raise ValueError("DeepSeek API密钥未配置，无法初始化翻译服务")
+
+            # 创建 DeepSeek API 客户端
+            logger.debug("创建 DeepSeek API 客户端...")
             from openai import AsyncOpenAI
-            from service.api_provider import get_provider_manager, APIProvider
             try:
-                # 获取当前选择的API提供商
-                api_provider_name = self.current_provider_var.get()
-                logger.info(f"📌 当前界面选择的API提供商: {api_provider_name}")
+                base_url = config_data.get('base_url', 'https://api.deepseek.com')
 
-                # 获取提供商管理器
-                provider_manager = get_provider_manager()
-                logger.debug(f"提供商管理器: {provider_manager}")
-                logger.debug(f"预定义提供商: {list(provider_manager._providers.keys())}")
-
-                # 获取提供商配置
-                base_url = None
-                try:
-                    provider_enum = APIProvider(api_provider_name.lower())
-                    logger.debug(f"转换后的APIProvider枚举: {provider_enum}")
-                    
-                    provider_config = provider_manager.get_provider(provider_enum)
-                    logger.debug(f"获取到的提供商配置: {provider_config}")
-                    
-                    if provider_config:
-                        base_url = provider_config.base_url
-                        logger.info(f"✅ 从提供商配置获取base_url: {base_url}")
-                    else:
-                        logger.warning(f"⚠️ get_provider返回None")
-                        base_url = "https://api.deepseek.com"
-                        
-                except (ValueError, KeyError, AttributeError) as e:
-                    # 如果无法解析提供商，使用默认
-                    logger.warning(f"⚠️ 解析提供商失败 (异常: {type(e).__name__}: {e})，使用默认DeepSeek配置")
-                    base_url = "https://api.deepseek.com"
-                
-                # 如果配置文件中提供了base_url，优先使用配置文件中的
-                if provider_base_url:
-                    logger.info(f"🔄 使用配置文件中的base_url: {provider_base_url}")
-                    base_url = provider_base_url
-                
-                logger.info(f"🌐 最终使用的base_url: {base_url}")
+                logger.info(f"🌐 DeepSeek base_url: {base_url}")
                 logger.info(f"🔑 API密钥前缀: {api_key[:10]}...")
-                
-                # 创建异步API客户端，传入api_key和base_url
+
                 api_client = AsyncOpenAI(
                     api_key=api_key,
                     base_url=base_url
                 )
-                logger.info(f"✅ API客户端创建成功 (提供商: {api_provider_name}, base_url: {base_url})")
+                logger.info(f"✅ DeepSeek API 客户端创建成功 (base_url: {base_url})")
             except Exception as e:
-                logger.error(f"❌ API客户端创建失败: {e}", exc_info=True)
+                logger.error(f"❌ DeepSeek API 客户端创建失败: {e}", exc_info=True)
                 raise
             
             # 初始化容器，传递必要参数
@@ -949,7 +895,7 @@ class TranslationApp:
             self._load_favorite_languages_from_config()
             
             if self.favorite_langs:
-                self._create_favorite_tab()
+                self._preselect_favorite_languages()
         except Exception as e:
             logger.error(f"❌ 初始化历史记录管理器失败：{e}")
 
@@ -1016,12 +962,6 @@ class TranslationApp:
         except Exception as e:
             logger.error(f"❌ 应用配置到 GUI 失败：{e}")
 
-    def _get_available_providers_from_config(self) -> list:
-        """获取可用的API提供商"""
-        if self.provider_manager:
-            return [p.value for p in self.provider_manager.list_providers()]
-        return ["deepseek"]
-
     def _load_favorite_languages_from_config(self):
         """从配置加载常用语言"""
         try:
@@ -1035,35 +975,16 @@ class TranslationApp:
         except Exception as e:
             logger.error(f"加载常用语言失败: {e}")
 
-    def _create_favorite_tab(self):
-        """创建常用语言分页"""
+    def _preselect_favorite_languages(self):
+        """在语言列表中预选收藏的语言"""
         try:
-            for i in range(self.lang_notebook.index("end")):
-                if self.lang_notebook.tab(i, "text") == "⭐ 常用语言":
-                    self.lang_notebook.forget(i)
-                    break
-
-            for widget in self.favorite_frame.winfo_children():
-                widget.destroy()
-
-            if not self.favorite_langs:
-                return False
-
-            self.lang_notebook.insert(0, self.favorite_frame, text="⭐ 常用语言")
-
-            for i, lang in enumerate(self.favorite_langs):
-                var = tk.BooleanVar(value=False)
-                self.lang_vars[lang] = var
-                lang_text = f"{lang} (常用)"
-                cb = ttk.Checkbutton(self.favorite_frame, text=lang_text, variable=var, command=self._update_lang_status)
-                cb.grid(row=i // GC.LANGUAGES_PER_ROW, column=i % GC.LANGUAGES_PER_ROW, sticky=tk.W, padx=10, pady=2)
-
-            self.tier_lang_frames["FAVORITE"] = self.favorite_frame
-            logger.info(f"✅ 已创建常用语言分页，包含 {len(self.favorite_langs)} 个语言")
-            return True
+            for lang in self.favorite_langs:
+                if lang in self.lang_vars:
+                    self.lang_vars[lang].set(True)
+            self._update_lang_status()
+            logger.info(f"✅ 已预选 {len(self.favorite_langs)} 个常用语言")
         except Exception as e:
-            logger.error(f"❌ 创建常用语言分页失败：{e}")
-            return False
+            logger.error(f"预选收藏语言失败: {e}")
 
     def _save_favorite_languages(self, langs: List[str]):
         """保存常用语言"""

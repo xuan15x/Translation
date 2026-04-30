@@ -60,7 +60,7 @@ class FileConfigUIBuilder:
 
 
 class ProviderConfigUIBuilder:
-    """API提供商配置区UI构建器"""
+    """API提供商配置区UI构建器（仅 DeepSeek）"""
 
     def __init__(self, app):
         self.app = app
@@ -70,20 +70,10 @@ class ProviderConfigUIBuilder:
         frame = ttk.LabelFrame(parent, text="🔌 API 提供商", padding="10")
         frame.pack(fill=tk.X, pady=(0, 10))
 
-        ttk.Label(frame, text="选择 API 提供商:").grid(row=0, column=0, sticky=tk.W, padx=5, pady=5)
+        ttk.Label(frame, text="API 提供商: DeepSeek", font=("", 9, "bold"), foreground="#0066cc").grid(
+            row=0, column=0, sticky=tk.W, padx=5, pady=5)
 
-        providers_list = list(self.app.available_providers.keys()) if self.app.available_providers else ["deepseek"]
-        self.app.provider_combo = ttk.Combobox(
-            frame,
-            textvariable=self.app.current_provider_var,
-            values=providers_list,
-            state='readonly',
-            width=30
-        )
-        self.app.provider_combo.grid(row=0, column=1, sticky=tk.W, padx=5, pady=5)
-        self.app.provider_combo.bind('<<ComboboxSelected>>', self.app._on_provider_changed)
-
-        ttk.Label(frame, text="💡 模型请在下方「双阶段翻译参数」中配置", foreground="gray").grid(
+        ttk.Label(frame, text="💡 模型请在下方「双阶段翻译参数」中配置（deepseek-chat / deepseek-reasoner）", foreground="gray").grid(
             row=1, column=0, columnspan=2, sticky=tk.W, padx=5, pady=2)
 
         return frame
@@ -218,65 +208,88 @@ class GameTranslationUIBuilder:
 
 
 class LanguageSelectionUIBuilder:
-    """语言选择区UI构建器"""
+    """语言选择区UI构建器 — 单一列表，多选"""
 
     def __init__(self, app):
         self.app = app
 
     def build(self, parent) -> ttk.LabelFrame:
-        """创建语言选择区"""
-        from config import T1_LANGUAGES, T2_LANGUAGES, T3_LANGUAGES
-        
-        frame = ttk.LabelFrame(parent, text="🌍 目标语言", padding="10")
+        """创建语言选择区（全部语言在单一可滚动列表中，多选）"""
+        from config import TARGET_LANGUAGES, T1_LANGUAGES, T2_LANGUAGES, T3_LANGUAGES
+
+        frame = ttk.LabelFrame(parent, text="🌍 目标语言（多选）", padding="10")
         frame.pack(fill=tk.X, pady=(0, 10))
 
         # 顶部按钮
         btn_row = ttk.Frame(frame)
         btn_row.pack(fill=tk.X, pady=(0, 5))
-        ttk.Button(btn_row, text="全选当前页", command=self.app._select_all_langs).pack(side=tk.LEFT, padx=5)
-        ttk.Button(btn_row, text="取消全选当前页", command=self.app._deselect_all_langs).pack(side=tk.LEFT, padx=5)
+        ttk.Button(btn_row, text="✅ 全选", command=self.app._select_all_langs).pack(side=tk.LEFT, padx=5)
+        ttk.Button(btn_row, text="❌ 取消全选", command=self.app._deselect_all_langs).pack(side=tk.LEFT, padx=5)
+
+        # 已选计数
+        self.app.lang_count_var = tk.StringVar(value="已选: 0 / 33")
+        ttk.Label(btn_row, textvariable=self.app.lang_count_var, font=("", 9, "bold"),
+                  foreground=ACCENT_COLOR).pack(side=tk.LEFT, padx=20)
+
         ttk.Button(btn_row, text="➕ 添加自定义语言", command=self.app._add_custom_language).pack(side=tk.RIGHT, padx=5)
 
-        # Notebook分页
-        self.app.lang_notebook = ttk.Notebook(frame)
-        self.app.lang_notebook.pack(fill=tk.BOTH, expand=True)
+        # 单一可滚动列表区
+        canvas = tk.Canvas(frame, height=200, highlightthickness=0)
+        scrollbar = ttk.Scrollbar(frame, orient="vertical", command=canvas.yview)
+        self.app.lang_scroll_frame = ttk.Frame(canvas)
 
+        self.app.lang_scroll_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+
+        canvas.create_window((0, 0), window=self.app.lang_scroll_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+
+        # 鼠标滚轮
+        def _on_lang_mousewheel(event):
+            canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+        canvas.bind("<Enter>", lambda e: canvas.bind_all("<MouseWheel>", _on_lang_mousewheel))
+        canvas.bind("<Leave>", lambda e: canvas.unbind_all("<MouseWheel>"))
+
+        # 按 T1 → T2 → T3 顺序排列，用分隔标签区分
+        all_langs = list(TARGET_LANGUAGES)
         self.app.tier_lang_frames = {}
 
-        # 常用语言分页
-        self.app.favorite_frame = ttk.Frame(self.app.lang_notebook, padding="5")
+        row = 0
+        for tier_name, tier_color, tier_langs in [
+            ("⭐ T1 核心市场", "#0066cc", T1_LANGUAGES),
+            ("🚀 T2 潜力市场", "#cc6600", T2_LANGUAGES),
+            ("🌱 T3 新兴市场", "#00aa00", T3_LANGUAGES),
+        ]:
+            # 分隔标签
+            sep = ttk.Label(self.app.lang_scroll_frame, text=tier_name,
+                            font=("", 9, "bold"), foreground=tier_color)
+            sep.grid(row=row, column=0, columnspan=5, sticky=tk.W, padx=10, pady=(8 if row > 0 else 2, 2))
+            row += 1
 
-        # T1/T2/T3分页
-        t1_frame = ttk.Frame(self.app.lang_notebook, padding="5")
-        self.app.lang_notebook.add(t1_frame, text="⭐ T1 核心市场 (9)")
-        self._create_language_grid(t1_frame, T1_LANGUAGES, "T1")
+            # 该 tier 的语言复选框
+            for i, lang_name in enumerate(tier_langs):
+                var = tk.BooleanVar(value=False)
+                self.app.lang_vars[lang_name] = var
+                cb = ttk.Checkbutton(
+                    self.app.lang_scroll_frame, text=lang_name,
+                    variable=var, command=self.app._update_lang_status
+                )
+                cb.grid(row=row + i // 5, column=i % 5, sticky=tk.W, padx=10, pady=2)
 
-        t2_frame = ttk.Frame(self.app.lang_notebook, padding="5")
-        self.app.lang_notebook.add(t2_frame, text="🚀 T2 潜力市场 (11)")
-        self._create_language_grid(t2_frame, T2_LANGUAGES, "T2")
+            row += (len(tier_langs) + 4) // 5  # 向上取整
 
-        t3_frame = ttk.Frame(self.app.lang_notebook, padding="5")
-        self.app.lang_notebook.add(t3_frame, text="🌱 T3 新兴市场 (13)")
-        self._create_language_grid(t3_frame, T3_LANGUAGES, "T3")
+        # 默认选中 T1 全部语言
+        for lang in T1_LANGUAGES:
+            if lang in self.app.lang_vars:
+                self.app.lang_vars[lang].set(True)
+        self.app._update_lang_status()
 
         return frame
-
-    def _create_language_grid(self, parent, languages, tier: str):
-        """创建语言复选框网格"""
-        # languages可能是dict或list，需要处理两种情况
-        if isinstance(languages, dict):
-            lang_items = list(languages.items())
-        else:
-            # 如果是列表，假设它包含字符串或(language_code, language_name)元组
-            lang_items = [(lang, lang) if isinstance(lang, str) else lang for lang in languages]
-        
-        for i, (lang_code, lang_name) in enumerate(lang_items):
-            var = tk.BooleanVar(value=False)
-            self.app.lang_vars[lang_name] = var
-            cb = ttk.Checkbutton(parent, text=lang_name, variable=var, command=self.app._update_lang_status)
-            cb.grid(row=i // LANGUAGES_PER_ROW, column=i % LANGUAGES_PER_ROW, sticky=tk.W, padx=10, pady=2)
-
-        self.app.tier_lang_frames[tier] = parent
 
 
 class PromptConfigUIBuilder:
