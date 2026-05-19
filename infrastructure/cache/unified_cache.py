@@ -13,12 +13,6 @@ from enum import Enum
 import logging
 import sys
 
-from infrastructure.utils import (
-    get_memory_manager,
-    IntelligentMemoryManager,
-    MemoryPoolConfig
-)
-
 logger = logging.getLogger(__name__)
 
 
@@ -37,12 +31,17 @@ class VersionedData:
     version: int
     timestamp: float
     expires_at: Optional[float] = None
+    last_access: float = field(default_factory=time.time)
     
     def is_expired(self) -> bool:
         """检查是否过期"""
         if self.expires_at is None:
             return False
         return time.time() > self.expires_at
+
+    def touch(self):
+        """更新最近访问时间"""
+        self.last_access = time.time()
 
 
 @dataclass
@@ -89,15 +88,12 @@ class DataVersionManager:
 
 
 class UnifiedCacheManager:
-    """统一缓存管理器 - 支持版本控制、缓存同步、并发安全
-    集成智能内存管理（动态内存池 + 冷热数据分离 + 磁盘交换）
-    """
-    
+    """统一缓存管理器 - 支持版本控制、缓存同步、并发安全"""
+
     def __init__(self, 
                  isolation_level: CacheIsolationLevel = CacheIsolationLevel.READ_COMMITTED,
                  default_ttl: int = 3600,
-                 max_memory_mb: int = 500,
-                 enable_intelligent_memory: bool = True):
+                 max_memory_mb: int = 500):
         """
         初始化缓存管理器
         
@@ -105,26 +101,13 @@ class UnifiedCacheManager:
             isolation_level: 缓存隔离级别
             default_ttl: 默认缓存生存时间（秒）
             max_memory_mb: 最大内存使用量（MB）
-            enable_intelligent_memory: 是否启用智能内存管理
         """
         self.isolation_level = isolation_level
         self.default_ttl = default_ttl
         self.max_memory_mb = max_memory_mb
-        self.enable_intelligent_memory = enable_intelligent_memory
         
         # 主缓存：数据源 -> 键 -> 版本化数据
         self._cache: Dict[str, Dict[str, VersionedData]] = {}
-        
-        # 智能内存管理器（可选）
-        self.memory_manager: Optional[IntelligentMemoryManager] = None
-        if enable_intelligent_memory:
-            config = MemoryPoolConfig(
-                initial_size_mb=min(200, max_memory_mb // 2),
-                max_size_mb=max_memory_mb,
-                min_size_mb=50,
-                swap_enabled=True
-            )
-            self.memory_manager = get_memory_manager()
         
         # 版本管理器
         self.version_manager = DataVersionManager()
@@ -169,7 +152,7 @@ class UnifiedCacheManager:
     async def get(self, datasource: str, key: str, 
                   default: Any = None) -> Optional[Any]:
         """
-        读取缓存数据（保证隔离级别，支持智能内存）
+        读取缓存数据（保证隔离级别）
         
         Args:
             datasource: 数据源名称
@@ -179,32 +162,6 @@ class UnifiedCacheManager:
         Returns:
             缓存值，如果不存在或已过期则返回 default
         """
-        # 使用智能内存管理器读取（如果启用）
-        if self.enable_intelligent_memory and self.memory_manager:
-            try:
-                versioned_data = await self.memory_manager.get(datasource, key)
-                if versioned_data is not None:
-                    # 检查过期
-                    if versioned_data.is_expired():
-                        await self.delete(datasource, key)
-                        self.stats.misses += 1
-                        return default
-                    
-                    # 根据隔离级别检查可见性
-                    if not await self._check_visibility(datasource, key, versioned_data):
-                        self.stats.dirty_reads_prevented += 1
-                        self.stats.misses += 1
-                        return default
-                    
-                    self.stats.hits += 1
-                    logger.debug(f"✅ 缓存命中：{datasource}:{key} (v{versioned_data.version})")
-                    return versioned_data.data
-            except Exception as e:
-                logger.error(f"智能内存读取失败：{e}")
-                # 降级到传统方式
-                return await self._get_traditional(datasource, key, default)
-        
-        # 传统方式读取
         return await self._get_traditional(datasource, key, default)
     
     async def set(self, datasource: str, key: str, value: Any,
@@ -251,17 +208,7 @@ class UnifiedCacheManager:
             })
             return
         
-        # 使用智能内存管理器存储（如果启用）
-        if self.enable_intelligent_memory and self.memory_manager:
-            try:
-                await self.memory_manager.put(datasource, key, versioned_data)
-            except Exception as e:
-                logger.error(f"智能内存存储失败：{e}")
-                # 降级到传统方式
-                await self._set_traditional(datasource, key, versioned_data)
-        else:
-            # 传统方式存储
-            await self._set_traditional(datasource, key, versioned_data)
+        await self._set_traditional(datasource, key, versioned_data)
     
     async def delete(self, datasource: str, key: str,
                     transaction_id: Optional[str] = None):
@@ -444,6 +391,7 @@ class UnifiedCacheManager:
             
             self.stats.hits += 1
             logger.debug(f"✅ 缓存命中：{datasource}:{key} (v{versioned_data.version})")
+            versioned_data.touch()
             return versioned_data.data
     
     async def _set_traditional(self, datasource: str, key: str, 
@@ -500,7 +448,55 @@ class UnifiedCacheManager:
                 f"⚠️ 缓存内存超出限制："
                 f"{self._memory_estimate_bytes / 1024 / 1024:.2f}MB > {self.max_memory_mb}MB"
             )
-            # TODO: 实现 LRU 淘汰策略
+            self._evict_lru(max_bytes)
+
+    def _evict_lru(self, max_bytes: int):
+        """
+        LRU 淘汰策略：逐出最久未访问的缓存项，直到内存降至限制内
+
+        策略：
+        1. 收集所有非过期缓存项的 (datasource, key, last_access, size)
+        2. 按 last_access 升序排列（最久未访问的在前）
+        3. 逐个淘汰，直到内存估算 <= max_bytes
+        """
+        # 构建淘汰候选列表
+        candidates: list[tuple[str, str, float, int]] = []
+        for ds, entries in self._cache.items():
+            for k, vdata in entries.items():
+                if not vdata.is_expired():
+                    candidates.append(
+                        (ds, k, vdata.last_access, self._estimate_size(vdata.data))
+                    )
+
+        if not candidates:
+            return
+
+        # 按 last_access 升序（最久未访问的排在最前）
+        candidates.sort(key=lambda x: x[2])
+
+        evicted = 0
+        freed_bytes = 0
+        target_bytes = max_bytes * 0.85  # 回退到 85%，避免频繁触发
+
+        for ds, k, last_ts, size in candidates:
+            if self._memory_estimate_bytes <= target_bytes:
+                break
+            if ds in self._cache and k in self._cache[ds]:
+                del self._cache[ds][k]
+                self._memory_estimate_bytes -= size
+                evicted += 1
+                freed_bytes += size
+
+        if evicted > 0:
+            logger.info(
+                f"🗑️ LRU 淘汰完成：移除 {evicted} 项，释放 {freed_bytes / 1024:.1f}KB，"
+                f"当前内存 {self._memory_estimate_bytes / 1024 / 1024:.2f}MB"
+            )
+
+        # 清理空的 datasource
+        empty_ds = [ds for ds, entries in self._cache.items() if not entries]
+        for ds in empty_ds:
+            del self._cache[ds]
     
     def subscribe(self, datasource: str, callback: Callable):
         """
@@ -547,17 +543,8 @@ class UnifiedCacheManager:
                 'total_entries': total_entries,
                 'datasources_count': len(self._cache),
                 'memory_usage_mb': round(self._memory_estimate_bytes / 1024 / 1024, 2),
-                'isolation_level': self.isolation_level.value,
-                'intelligent_memory_enabled': self.enable_intelligent_memory
+                'isolation_level': self.isolation_level.value
             }
-            
-            # 添加智能内存统计（如果启用）
-            if self.enable_intelligent_memory and self.memory_manager:
-                try:
-                    mem_stats = await self.memory_manager.get_stats()
-                    stats['smart_memory'] = mem_stats
-                except Exception as e:
-                    logger.error(f"获取智能内存统计失败：{e}")
             
             return stats
     
@@ -585,8 +572,7 @@ def get_cache_manager() -> UnifiedCacheManager:
 
 def init_cache_manager(isolation_level: str = "read_committed",
                       default_ttl: int = 3600,
-                      max_memory_mb: int = 500,
-                      enable_intelligent_memory: bool = True) -> UnifiedCacheManager:
+                      max_memory_mb: int = 500) -> UnifiedCacheManager:
     """
     初始化缓存管理器
     
@@ -594,7 +580,6 @@ def init_cache_manager(isolation_level: str = "read_committed",
         isolation_level: 隔离级别 ("read_uncommitted"|"read_committed"|"repeatable_read"|"serializable")
         default_ttl: 默认 TTL（秒）
         max_memory_mb: 最大内存（MB）
-        enable_intelligent_memory: 是否启用智能内存管理
         
     Returns:
         缓存管理器实例
@@ -612,8 +597,7 @@ def init_cache_manager(isolation_level: str = "read_committed",
     _cache_manager = UnifiedCacheManager(
         isolation_level=isolation,
         default_ttl=default_ttl,
-        max_memory_mb=max_memory_mb,
-        enable_intelligent_memory=enable_intelligent_memory
+        max_memory_mb=max_memory_mb
     )
     
     return _cache_manager

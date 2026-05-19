@@ -80,16 +80,6 @@ class LogConfig:
     DEFAULT_LOG_MAX_SIZE_MB = 10
 
 
-# ========== GUI 配置 ==========
-class GUIConfig:
-    """GUI 相关常量"""
-    DEFAULT_WINDOW_TITLE = "AI 智能翻译工作台 v3.0"
-    DEFAULT_WINDOW_WIDTH = 950
-    DEFAULT_WINDOW_HEIGHT = 800
-    MIN_WINDOW_WIDTH = 400
-    MIN_WINDOW_HEIGHT = 300
-
-
 # ========== 性能监控配置 ==========
 class PerformanceMonitorConfig:
     """性能监控相关常量"""
@@ -124,12 +114,6 @@ class ValidationThresholds:
     # Timeout 范围
     TIMEOUT_MIN = 1
     TIMEOUT_RECOMMENDED = 60
-    
-    # 窗口尺寸
-    WINDOW_WIDTH_MIN = 400
-    WINDOW_WIDTH_RECOMMENDED = 950
-    WINDOW_HEIGHT_MIN = 300
-    WINDOW_HEIGHT_RECOMMENDED = 800
     
     # 批处理
     BATCH_SIZE_MIN = 1

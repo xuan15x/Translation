@@ -21,7 +21,6 @@ class LogCategory(Enum):
     TERMINOLOGY = "TERMINOLOGY"
     API = "API"
     WORKFLOW = "WORKFLOW"
-    GUI = "GUI"
     GENERAL = "GENERAL"
 
 

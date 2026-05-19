@@ -83,12 +83,6 @@ LANGUAGES_BY_TIER = {
     'T3': T3_LANGUAGES,
 }
 
-GUI_CONFIG = {
-    "window_title": "AI 智能翻译工作台 v3.0",
-    "window_width": 950,
-    "window_height": 800,
-}
-
 # ============================================================================
 # 提示词注入配置 - 禁止事项（通过配置文件配置，自动注入）
 # ============================================================================
@@ -582,15 +576,13 @@ def get_default_config() -> Dict[str, Any]:
         "cache_capacity": 2000,
         "cache_ttl_seconds": 3600,
         
+        # 数据存储配置
+        "db_path": "",  # 术语库数据库路径，空字符串表示自动检测 (data/terminology.db)
+        
         # 日志配置
         "log_level": "INFO",
         "log_granularity": "normal",
         "log_max_lines": 1000,
-        
-        # GUI 配置
-        "gui_window_title": GUI_CONFIG["window_title"],
-        "gui_window_width": GUI_CONFIG["window_width"],
-        "gui_window_height": GUI_CONFIG["window_height"],
         
         # 提示词配置
         "draft_prompt": DEFAULT_DRAFT_PROMPT,
@@ -664,7 +656,7 @@ def create_sample_config_file(output_path: str, format: str = "yaml") -> None:
     if format == "yaml":
         yaml_content = """# AI 智能翻译工作台 - 配置文件
 # 复制此文件为 config.yaml 并修改配置值
-# 所有配置项都可以通过 GUI 界面或环境变量覆盖
+# 所有配置项都可以通过配置文件或环境变量覆盖
 
 """
         
@@ -692,9 +684,6 @@ def create_sample_config_file(output_path: str, format: str = "yaml") -> None:
             ],
             "# ==================== 日志配置 ====================": [
                 "log_level", "log_granularity", "log_max_lines"
-            ],
-            "# ==================== GUI 配置 ====================": [
-                "gui_window_title", "gui_window_width", "gui_window_height"
             ],
             "# ==================== 提示词配置 ====================": [
                 "draft_prompt", "review_prompt"

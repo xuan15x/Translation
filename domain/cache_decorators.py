@@ -4,7 +4,7 @@
 """
 import asyncio
 import logging
-from typing import Optional, Any
+from typing import Optional, Any, List, Dict
 from domain.services import ITerminologyDomainService, ITranslationDomainService
 from domain.models import TermMatch, TranslationTask, TranslationResult
 

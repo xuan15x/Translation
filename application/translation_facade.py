@@ -1,6 +1,6 @@
 """
-翻译服务外观模式 - 重构版
-支持新旧两种翻译模式和多语言批量翻译
+翻译服务外观模式
+支持多语言批量翻译
 """
 import asyncio
 from typing import List, Optional, Callable, Dict
@@ -10,7 +10,6 @@ from domain.models import TranslationTask, BatchResult, TranslationStatus
 from application.result_builder import TaskFactory, ResultBuilder
 from application.batch_processor import BatchTaskProcessor
 from application.workflow_coordinator import TranslationWorkflowCoordinator
-from application.enhanced_translator import EnhancedTranslator, TranslationState, TranslationProgress
 
 logger = logging.getLogger(__name__)
 
@@ -38,11 +37,7 @@ class TranslationServiceFacade:
         # 进度回调
         self.progress_callback: Optional[Callable[[int, int], None]] = None
 
-        # 增强型翻译器（支持断点续传）
-        self.enhanced_translator: Optional[EnhancedTranslator] = None
-        self._use_enhanced = False  # 是否使用增强型翻译器
-
-        # 保存服务引用供增强型翻译器使用
+        # 保存服务引用
         self._terminology_service = terminology_service
         self._translation_service = translation_service
         
@@ -52,60 +47,6 @@ class TranslationServiceFacade:
     def set_progress_callback(self, callback: Callable[[int, int], None]):
         """设置进度回调函数"""
         self.progress_callback = callback
-
-    def enable_enhanced_translator(self, enable: bool = True) -> None:
-        """
-        启用/禁用增强型翻译器
-
-        Args:
-            enable: 是否启用
-        """
-        self._use_enhanced = enable
-        if enable and not self.enhanced_translator:
-            self.enhanced_translator = EnhancedTranslator(
-                translation_facade=self,
-                state_dir=".translation_state",
-                preview_lines=10
-            )
-            logger.info("✅ 增强型翻译器已启用（支持断点续传）")
-
-    def set_progress_callback_enhanced(self, callback: Callable[[TranslationProgress], None]) -> None:
-        """
-        设置增强型进度回调
-
-        Args:
-            callback: 进度回调函数
-        """
-        if self.enhanced_translator:
-            self.enhanced_translator.on_progress = callback
-
-    def set_preview_callback(self, callback: Callable[[List[dict]], None]) -> None:
-        """
-        设置预览回调
-
-        Args:
-            callback: 预览回调函数
-        """
-        if self.enhanced_translator:
-            self.enhanced_translator.on_preview = callback
-
-    def pause_translation(self) -> bool:
-        """暂停翻译"""
-        if self.enhanced_translator:
-            return self.enhanced_translator.pause()
-        return False
-
-    def resume_translation(self) -> bool:
-        """恢复翻译"""
-        if self.enhanced_translator:
-            return self.enhanced_translator.resume()
-        return False
-
-    def stop_translation(self) -> bool:
-        """停止翻译"""
-        if self.enhanced_translator:
-            return self.enhanced_translator.stop()
-        return False
 
     def enable_multilingual_mode(self, enable: bool = True) -> None:
         """
@@ -245,54 +186,90 @@ class TranslationServiceFacade:
         return batch_result
     
     def _export_multilingual_results(self, results, output_path, target_langs):
-        """导出多语言翻译结果（所有语言在一个文件中）"""
+        """导出宽格式多语言翻译结果 (36列): 行号 | Key | 原文 | 译文_语言"""
         import pandas as pd
         from collections import defaultdict
-        
-        # 语言代码到完整名称的映射
-        lang_name_map = {
-            'en': '英语', 'ja': '日语', 'ko': '韩语', 'fr': '法语', 'de': '德语',
-            'es': '西班牙语', 'pt': '葡萄牙语', 'ru': '俄语', 'it': '意大利语',
-            'th': '泰语', 'vi': '越南语', 'id': '印尼语', 'ms': '马来语',
-            'pl': '波兰语', 'tr': '土耳其语', 'ar': '阿拉伯语', 'hi': '印地语',
-            'ur': '乌尔都语', 'bn': '孟加拉语', 'fil': '菲律宾语', 'my': '缅甸语',
-            'km': '柬埔寨语', 'lo': '老挝语', 'fa': '波斯语', 'he': '希伯来语',
-            'sw': '斯瓦希里语', 'ha': '豪萨语', 'kk': '哈萨克语', 'uz': '乌兹别克语',
-            'sv': '瑞典语', 'no': '挪威语', 'da': '丹麦语', 'fi': '芬兰语'
-        }
-        
-        # 按行索引组织数据
-        rows = defaultdict(dict)
-        
-        for result in results:
-            idx = result.task.idx
-            # 获取语言的完整名称（如果映射中没有则使用原代码）
-            lang_full = lang_name_map.get(result.task.target_lang, result.task.target_lang)
-            
-            rows[idx]['行号'] = idx + 1
-            rows[idx]['Key'] = result.task.key
-            rows[idx]['原文'] = result.task.source_text
-            # 仅保留译文列
-            rows[idx][f'译文_{lang_full}'] = result.final_trans if result.success else '(Failed)'
-        
-        # 转换为 DataFrame
-        df = pd.DataFrame.from_dict(rows, orient='index')
-        
-        # 确保列顺序（仅保留译文）
+
+        # 按 source_text 分组，一行 = 一个原文的所有语言翻译
+        rows_data = defaultdict(lambda: {})
+
+        for r in results:
+            src = r.task.source_text
+            key = r.task.key
+            idx = r.task.idx
+            lang = r.task.target_lang
+            trans = r.final_trans if r.success else '(Failed)'
+
+            rows_data[src]['行号'] = idx + 1
+            rows_data[src]['Key'] = key
+            rows_data[src]['原文'] = src
+            rows_data[src][f'译文_{lang}'] = trans
+
+        df = pd.DataFrame.from_dict(rows_data, orient='index')
         base_cols = ['行号', 'Key', '原文']
-        lang_cols = []
-        for lang in target_langs:
-            lang_full = lang_name_map.get(lang, lang)
-            lang_cols.append(f'译文_{lang_full}')
-        
+        lang_cols = [f'译文_{lang}' for lang in target_langs]
         all_cols = base_cols + lang_cols
-        # 只保留存在的列
         final_cols = [c for c in all_cols if c in df.columns]
-        
+
+        if '行号' in df.columns:
+            df = df.sort_values('行号')
+
         df = df[final_cols]
         df.to_excel(output_path, index=False, engine='openpyxl')
-        logger.info(f"多语言 Excel 导出完成：{output_path}")
-    
+        logger.info(f"多语言宽格式 Excel 导出完成：{output_path} ({len(df)}行 × {len(final_cols)}列)")
+
+    async def translate_file_wide_format(self,
+                                         source_excel_path: str,
+                                         output_excel_path: str,
+                                         concurrency_limit: int = 5) -> BatchResult:
+        """
+        翻译 Excel 文件 — 宽格式模式（匹配用户模板）
+
+        输入:  2列 [key, 中文]
+        输出: 36列 [行号, Key, 原文, 译文_英语, ..., 译文_乌兹别克语] (33种语言)
+
+        Args:
+            source_excel_path: 源文件路径
+            output_excel_path: 输出文件路径
+            concurrency_limit: 并发数
+        """
+        from config.config import TARGET_LANGUAGES
+
+        logger.info(f"📂 宽格式翻译启动: {source_excel_path}")
+        logger.info(f"🌐 目标语言: {len(TARGET_LANGUAGES)} 种")
+
+        self.enable_multilingual_mode(True)
+
+        multi_tasks = TaskFactory.from_excel_file_wide_format(source_excel_path, TARGET_LANGUAGES)
+        logger.info(f"📋 创建 {len(multi_tasks)} 个多语言任务")
+
+        if not multi_tasks:
+            logger.warning("未找到可翻译的内容")
+            return BatchResult(0, 0, 0, 0, [])
+
+        sem = asyncio.Semaphore(concurrency_limit)
+        all_results = []
+
+        async def process_one(task):
+            async with sem:
+                res = await self._multilingual_service.translate_multilingual(task)
+                all_results.extend(res.to_single_results())
+                if self.progress_callback:
+                    self.progress_callback(len(all_results), len(multi_tasks) * len(TARGET_LANGUAGES))
+
+        await asyncio.gather(*[process_one(t) for t in multi_tasks])
+
+        batch = BatchResult(
+            total=len(all_results),
+            success_count=sum(1 for r in all_results if r.success),
+            failed_count=sum(1 for r in all_results if not r.success),
+            local_hit_count=sum(1 for r in all_results if r.status == TranslationStatus.LOCAL_HIT),
+            results=all_results
+        )
+
+        self._export_multilingual_results(all_results, output_excel_path, TARGET_LANGUAGES)
+        return batch
+
     async def _translate_file_single(self,
                                     source_excel_path: str,
                                     target_langs: List[str],

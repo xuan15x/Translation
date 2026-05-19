@@ -254,7 +254,47 @@ class TaskFactory:
             tasks.append(task)
 
         return tasks
-    
+
+    @staticmethod
+    def from_excel_file_wide_format(excel_path: str, target_langs: List[str]) -> List['MultiLanguageTask']:
+        """
+        从宽格式 Excel 文件创建多语言任务（2列：key + 中文）
+
+        Args:
+            excel_path: Excel 文件路径 (A=key, B=中文)
+            target_langs: 目标语言列表
+
+        Returns:
+            多语言任务列表
+        """
+        import pandas as pd
+        from domain.models import MultiLanguageTask
+
+        df = pd.read_excel(excel_path, engine='openpyxl')
+        tasks = []
+
+        for idx, row in df.iterrows():
+            row_dict = row.to_dict()
+            cols = list(row_dict.keys())
+
+            # A列=key, B列=中文
+            key = row_dict.get(cols[0], f'row_{idx}') if cols else f'row_{idx}'
+            source_text = str(row_dict.get(cols[1], '')) if len(cols) > 1 else ''
+
+            if not source_text or source_text == 'nan':
+                continue
+
+            task = MultiLanguageTask(
+                idx=idx,
+                key=str(key),
+                source_text=source_text,
+                target_langs=target_langs.copy(),
+                source_lang="zh"
+            )
+            tasks.append(task)
+
+        return tasks
+
     @staticmethod
     def from_list(texts: List[str], target_lang: str, source_lang: Optional[str] = None) -> List[TranslationTask]:
         """

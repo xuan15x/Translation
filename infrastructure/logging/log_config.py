@@ -1,10 +1,9 @@
 """
-日志配置模块
-提供可配置的日志粒度控制和格式化输出
+日志配置模块（扩展版）
+提供可配置的日志粒度控制、管理器和格式化输出
 """
 import logging
 import sys
-import tkinter as tk
 from enum import Enum
 from typing import Optional, List, Dict
 from dataclasses import dataclass
@@ -50,8 +49,7 @@ class LogConfig:
     show_timestamp: bool = True         # 显示时间戳
     show_colors: bool = True            # 启用颜色
     show_tags: bool = True              # 显示标签
-    max_lines: int = 1000               # GUI 最大显示行数
-    enable_gui: bool = True             # 启用 GUI 日志
+    max_lines: int = 1000               # 最大显示行数
     enable_console: bool = True         # 启用控制台日志
     enable_file: bool = False           # 启用文件日志
     file_path: Optional[str] = None     # 日志文件路径
@@ -157,37 +155,6 @@ class PlainFormatter(logging.Formatter):
         return formatter.format(record)
 
 
-class GUILogHandler(logging.Handler):
-    """GUI 文本控件日志处理器"""
-    def __init__(self, text_widget, config: LogConfig):
-        super().__init__()
-        self.text_widget = text_widget
-        self.config = config
-        self.line_count = 0
-        
-        # 添加标签过滤器
-        self.addFilter(TagFilter(config))
-    
-    def emit(self, record):
-        msg = self.format(record)
-        
-        def append():
-            self.text_widget.configure(state='normal')
-            
-            # 检查是否超过最大行数
-            if self.line_count >= self.config.max_lines:
-                # 删除第一行
-                self.text_widget.delete('1.0', '2.0')
-                self.line_count -= 1
-            
-            self.text_widget.insert(tk.END, msg + "\n")
-            self.text_widget.see(tk.END)
-            self.text_widget.configure(state='disabled')
-            self.line_count += 1
-        
-        self.text_widget.after(0, append)
-
-
 class TagFilter(logging.Filter):
     """日志标签过滤器"""
     def __init__(self, config: LogConfig):
@@ -267,21 +234,10 @@ class LogManager:
                 file_handler.setFormatter(PlainFormatter(config))
                 self._logger.addHandler(file_handler)
             except Exception as e:
-                print(f"Failed to create file log handler: {e}")
+                import logging as _logging
+                _logging.getLogger(__name__).error("Failed to create file log handler: %s", e)
         
         return self._logger
-    
-    def add_gui_handler(self, text_widget):
-        """添加 GUI 日志处理器"""
-        if not self._config or not self._config.enable_gui:
-            return
-        
-        gui_handler = GUILogHandler(text_widget, self._config)
-        gui_handler.setLevel(self._config.level.value)
-        gui_handler.setFormatter(ColorFormatter(self._config))
-        
-        if self._logger:
-            self._logger.addHandler(gui_handler)
     
     def set_granularity(self, granularity: LogGranularity):
         """动态设置日志粒度"""
@@ -396,24 +352,19 @@ def log_with_tag(message: str, level: LogLevel = LogLevel.INFO, tag: LogTag = Lo
     logger.log(level.value, message, **kwargs)
 
 
-def setup_logger(gui_handler=None, config: Optional[LogConfig] = None):
+def setup_logger(config: Optional[LogConfig] = None):
     """
-    设置日志记录器 (兼容旧接口)
-    
+    设置日志记录器
+
     Args:
-        gui_handler: 可选的 GUI 日志处理器
         config: 可选的日志配置
-        
+
     Returns:
         配置好的 logger 实例
     """
     manager = LogManager.get_instance()
     logger = manager.initialize(config)
-    
-    # 如果提供了 gui_handler,添加它
-    if gui_handler and (not config or config.enable_gui):
-        manager.add_gui_handler(gui_handler.text_widget if hasattr(gui_handler, 'text_widget') else gui_handler)
-    
+
     return logger
 
 

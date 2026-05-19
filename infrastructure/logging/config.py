@@ -4,7 +4,6 @@
 """
 import logging
 import sys
-import tkinter as tk
 from enum import Enum
 from typing import Optional, List, Dict
 from dataclasses import dataclass
@@ -49,9 +48,7 @@ class LogConfig:
     show_module: bool = True            # 显示模块名
     show_timestamp: bool = True         # 显示时间戳
     show_colors: bool = True            # 终端显示颜色
-    gui_mode: bool = False              # GUI 模式
-    text_widget: Optional[tk.Text] = None  # GUI 文本控件
-    max_lines: int = 1000               # GUI 最大显示行数
+    max_lines: int = 1000               # 最大显示行数
 
 
 def get_log_level_for_granularity(granularity: LogGranularity) -> LogLevel:
@@ -97,8 +94,7 @@ def get_min_tag_for_granularity(granularity: LogGranularity) -> LogTag:
 def setup_logger(
     name: str,
     level: Optional[LogLevel] = None,
-    granularity: LogGranularity = LogGranularity.NORMAL,
-    gui_config: Optional[Dict] = None
+    granularity: LogGranularity = LogGranularity.NORMAL
 ) -> logging.Logger:
     """
     设置日志器
@@ -107,7 +103,6 @@ def setup_logger(
         name: 日志器名称
         level: 日志级别
         granularity: 日志粒度
-        gui_config: GUI 配置（包含 text_widget 等）
 
     Returns:
         配置好的日志器
@@ -126,26 +121,6 @@ def setup_logger(
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setLevel(level.value)
 
-    # 设置格式化器
-    if gui_config and gui_config.get('show_colors', True):
-        from .formatter import ColorFormatter
-        console_handler.setFormatter(ColorFormatter())
-    else:
-        formatter = logging.Formatter(
-            '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-            datefmt="%H:%M:%S"
-        )
-        console_handler.setFormatter(formatter)
-
-    logger.addHandler(console_handler)
-
-    # 如果是 GUI 模式，添加 GUI handler
-    if gui_config and gui_config.get('gui_mode', False):
-        text_widget = gui_config.get('text_widget')
-        if text_widget:
-            from .formatter import GUILogHandler
-            gui_handler = GUILogHandler(text_widget)
-            gui_handler.setLevel(level.value)
-            logger.addHandler(gui_handler)
-
-    return logger
+    # 设置彩色格式化器
+    from .formatter import ColorFormatter
+    console_handler.setFormatter(ColorFormatter())

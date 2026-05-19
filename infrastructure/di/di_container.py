@@ -113,10 +113,13 @@ def initialize_container(config_file: Optional[str] = None,
     container.register('config', config, singleton=True)
     
     # ========== Infrastructure Layer ==========
-    # 1. 数据库连接 - 修复：使用文件数据库而非内存数据库，避免数据丢失
-    # 修复路径：使用项目根目录的 data 文件夹
+    # 1. 数据库连接 - 优先使用配置中的 db_path，否则自动检测
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-    db_path = os.path.join(project_root, 'data', 'terminology.db')
+    config_db_path = loader.get('db_path', '')
+    if config_db_path:
+        db_path = config_db_path if os.path.isabs(config_db_path) else os.path.join(project_root, config_db_path)
+    else:
+        db_path = os.path.join(project_root, 'data', 'terminology.db')
     os.makedirs(os.path.dirname(db_path), exist_ok=True)
     db_conn = sqlite3.connect(db_path, check_same_thread=False)
     container.register('db_connection', db_conn, singleton=True)
@@ -253,14 +256,14 @@ def initialize_container(config_file: Optional[str] = None,
         )
         container.register('translation_facade', facade, singleton=True)
     
-    print("✅ 依赖容器初始化完成")
-    print("   - Database Connection")
-    print("   - Repositories")
-    print("   - Domain Services (with Cache)")
-    print("   - Application Coordinators")
+    logger.info("✅ 依赖容器初始化完成")
+    logger.info("   - Database Connection")
+    logger.info("   - Repositories")
+    logger.info("   - Domain Services (with Cache)")
+    logger.info("   - Application Coordinators")
     if api_client:
-        print("   - Translation Services")
-        print("   - Facade Pattern")
+        logger.info("   - Translation Services")
+        logger.info("   - Facade Pattern")
     
     return container
 

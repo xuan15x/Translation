@@ -1,10 +1,9 @@
 """
 日志格式化模块
-提供彩色格式化输出和 GUI 日志处理器
+提供彩色格式化输出
 """
 import logging
 import sys
-import tkinter as tk
 from typing import Optional
 
 
@@ -34,45 +33,3 @@ class ColorFormatter(logging.Formatter):
         log_fmt = self.FORMATS.get(record.levelno)
         formatter = logging.Formatter(log_fmt, datefmt="%H:%M:%S")
         return formatter.format(record)
-
-
-class GUILogHandler(logging.Handler):
-    """GUI 文本控件日志处理器"""
-
-    def __init__(self, text_widget: tk.Text):
-        """
-        初始化 GUI 日志处理器
-
-        Args:
-            text_widget: Tkinter 文本控件
-        """
-        super().__init__()
-        self.text_widget = text_widget
-
-    def emit(self, record: logging.LogRecord):
-        """
-        发射日志记录到 GUI 控件
-
-        Args:
-            record: 日志记录
-        """
-        msg = self.format(record)
-
-        def append():
-            """在 GUI 线程中添加文本"""
-            try:
-                self.text_widget.configure(state='normal')
-                self.text_widget.insert(tk.END, msg + "\n")
-                self.text_widget.see(tk.END)
-                self.text_widget.configure(state='disabled')
-            except Exception as e:
-                # 防止 GUI 控件已销毁
-                pass
-
-        # 使用 after 方法在 GUI 线程中执行，增加异常处理
-        try:
-            if self.text_widget.winfo_exists():
-                self.text_widget.after(0, append)
-        except Exception:
-            # GUI已销毁，静默忽略
-            pass

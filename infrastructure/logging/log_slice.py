@@ -21,7 +21,6 @@ class LogCategory(Enum):
     TERMINOLOGY = "TERMINOLOGY"
     API = "API"
     WORKFLOW = "WORKFLOW"
-    GUI = "GUI"
     GENERAL = "GENERAL"
 
 
@@ -326,9 +325,6 @@ def get_category_by_module(module_name: str) -> LogCategory:
         # Application Layer
         'workflow_coordinator': LogCategory.WORKFLOW,
         'translation_facade': LogCategory.TRANSLATION,
-        
-        # Presentation Layer
-        'gui_app': LogCategory.GUI,
     }
     
     # 提取模块名（去除路径）

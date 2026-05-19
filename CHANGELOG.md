@@ -1,6 +1,27 @@
 # 📋 更新日志
 
-所有重要的项目变更都将记录在此文件中。
+---
+
+## [3.3.0] - 2026-05-15
+
+### 🚀 黑盒 CLI 模式（重大变更）
+- **移除 presentation/ 层**：去掉 tkinter GUI，`python presentation/translation.py` 启动方式已删除
+- **新增 `run.py`**：一行命令执行翻译
+- **配置驱动**：所有参数通过 `translation_task.json` + `config/config.json` 配置
+- **宽格式输出**：输入 2 列 → 输出 36 列（33 语言 + 行号/Key/原文）
+
+### 📊 测试与质量
+- 测试套件：285 tests，覆盖率 51%
+- CI 脚本：`ci.sh` 支持导入检查、单元测试、覆盖率检查
+
+### 🛠️ 代码优化
+- `print()` 全部替换为 `logger`
+- db 路径配置化（`config.json` 中 `db_path` 字段）
+- `BatchTaskProcessor` 去重
+
+### 📖 文档
+- 新增 `README.md`：黑盒模式使用说明
+- 新增 `CONFIG_GUIDE.md`：约 70 个参数完整手册
 
 ---
 

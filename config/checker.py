@@ -108,19 +108,16 @@ class ConfigChecker:
         # 9. 日志配置检查
         self._check_log_config(config)
         
-        # 10. GUI 配置检查
-        self._check_gui_config(config)
-        
-        # 11. 语言配置检查
+        # 10. 语言配置检查
         self._check_language_config(config)
         
-        # 12. 备份配置检查
+        # 11. 备份配置检查
         self._check_backup_config(config)
         
-        # 13. 监控配置检查
+        # 12. 监控配置检查
         self._check_monitor_config(config)
         
-        # 14. 提示词检查
+        # 13. 提示词检查
         self._check_prompts(config)
         
         # 按级别排序：ERROR > WARNING > INFO
@@ -493,33 +490,6 @@ class ConfigChecker:
                 "建议设置 >= 100",
                 log_max_lines
             )
-    
-    def _check_gui_config(self, config: Dict[str, Any]):
-        """检查 GUI 配置"""
-        window_width = config.get('gui_window_width', 950)
-        window_height = config.get('gui_window_height', 800)
-        
-        for name, value, min_val in [
-            ('gui_window_width', window_width, 640),
-            ('gui_window_height', window_height, 480)
-        ]:
-            if not isinstance(value, int):
-                self._add_result(
-                    CheckLevel.WARNING,
-                    CheckCategory.SYNTAX,
-                    name,
-                    f"{name} 应该是整数，当前类型：{type(value).__name__}",
-                    f"设置 >= {min_val} 的整数"
-                )
-            elif value < min_val:
-                self._add_result(
-                    CheckLevel.INFO,
-                    CheckCategory.BEST_PRACTICE,
-                    name,
-                    f"{name} 值为 {value}，可能太小",
-                    f"建议设置 >= {min_val}",
-                    value
-                )
     
     def _check_language_config(self, config: Dict[str, Any]):
         """检查语言配置"""

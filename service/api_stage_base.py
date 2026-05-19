@@ -104,16 +104,27 @@ class APIStageBase(ABC):
         while attempt < self.config.max_retries:
             # 信号量仅包裹API调用本身，sleep在信号量外执行
             try:
+                # 是否启用思考模式（DeepSeek v4 专用）
+                use_thinking = self.config.enable_thinking_mode and "deepseek-v4" in model_name
+
+                kwargs = {
+                    "model": model_name,
+                    "messages": messages,
+                    "max_tokens": max_tokens,
+                    "timeout": timeout,
+                    "response_format": {"type": "json_object"},
+                }
+
+                if use_thinking:
+                    # DeepSeek 思考模式：temperature/top_p 等不生效，传入 extra_body
+                    kwargs["extra_body"] = {"thinking": {"type": "enabled"}}
+                    kwargs["reasoning_effort"] = self.config.thinking_effort or "high"
+                else:
+                    kwargs["temperature"] = temperature
+                    kwargs["top_p"] = top_p
+
                 async with self.semaphore:
-                    response = await self.client.chat.completions.create(
-                        model=model_name,
-                        messages=messages,
-                        temperature=temperature,
-                        max_tokens=max_tokens,
-                        top_p=top_p,
-                        response_format={"type": "json_object"},
-                        timeout=timeout
-                    )
+                    response = await self.client.chat.completions.create(**kwargs)
 
                 await self.controller.adjust(True)
 

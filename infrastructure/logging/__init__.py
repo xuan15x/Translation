@@ -21,12 +21,7 @@ from .log_config import (
 )
 
 from .formatter import (
-    ColorFormatter,
-    GUILogHandler
-)
-
-from .gui_log_controller import (
-    GUILogController
+    ColorFormatter
 )
 
 from .slice import (
@@ -59,8 +54,6 @@ __all__ = [
 
     # 格式化相关
     'ColorFormatter',
-    'GUILogHandler',
-    'GUILogController',
 
     # 切片相关
     'LogCategory',

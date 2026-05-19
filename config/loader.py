@@ -3,8 +3,11 @@
 提供便捷的配置加载和管理功能
 """
 import os
+import logging
 from typing import Any, Dict, Optional, Type, TypeVar
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 # 类型变量用于 dataclass
 T = TypeVar('T')
@@ -52,16 +55,16 @@ class ConfigLoader:
                 from data_access.config_persistence import ConfigPersistence
                 persistence = ConfigPersistence(self.config_file)
                 self._config_cache = persistence.load()
-                print(f"✅ 已加载配置文件：{self.config_file}")
+                logger.info("✅ 已加载配置文件：%s", self.config_file)
 
                 # 自动检查配置
                 self._auto_check_config()
 
             except Exception as e:
-                print(f"⚠️  配置文件加载失败：{e}，使用默认配置")
+                logger.warning("⚠️  配置文件加载失败：%s，使用默认配置", e)
                 self._load_default_config()
         else:
-            print("ℹ️  未找到配置文件，使用默认配置")
+            logger.info("ℹ️  未找到配置文件，使用默认配置")
             self._load_default_config()
 
     def _load_default_config(self) -> None:
@@ -121,17 +124,16 @@ class ConfigLoader:
             if not passed:
                 errors = [r for r in results if r.level.value == 'error']
                 if errors:
-                    print("\n⚠️  配置存在严重问题:")
-                    for error in errors[:3]:  # 只显示前 3 个错误
-                        print(f"  ❌ {error.key}: {error.message}")
+                    logger.warning("⚠️  配置存在严重问题:")
+                    for error in errors[:3]:
+                        logger.error("  ❌ %s: %s", error.key, error.message)
                     
                     warnings = [r for r in results if r.level.value == 'warning']
                     if warnings:
-                        print(f"\n还有 {len(warnings)} 个警告，运行以下命令查看详情:")
-                        print(f"  python scripts/check_config.py check {self.config_file}")
+                        logger.warning("还有 %d 个警告，运行以下命令查看详情:", len(warnings))
+                        logger.warning("  python scripts/check_config.py check %s", self.config_file)
         except Exception as e:
-            # 检查过程不影响主流程
-            print(f"⚠️  配置检查异常：{e}")
+            logger.warning("⚠️  配置检查异常：%s", e)
     
     def save(self, output_path: Optional[str] = None) -> None:
         """
@@ -148,7 +150,7 @@ class ConfigLoader:
 
         persistence = ConfigPersistence(path)
         persistence.save(self._config_cache)
-        print(f"💾 配置已保存：{path}")
+        logger.info("💾 配置已保存：%s", path)
 
     def to_dataclass(self, config_class: Type[T]) -> T:
         """
@@ -220,14 +222,6 @@ class ConfigLoader:
             'log_level': self.get('log_level', 'INFO'),
             'log_granularity': self.get('log_granularity', 'normal'),
             'log_max_lines': self.get('log_max_lines', 1000),
-        }
-
-    def get_gui_config(self) -> Dict[str, Any]:
-        """获取 GUI 相关配置"""
-        return {
-            'window_title': self.get('gui_window_title', 'AI 智能翻译工作台 v3.0'),
-            'window_width': self.get('gui_window_width', 950),
-            'window_height': self.get('gui_window_height', 800),
         }
 
     def get_prompts(self) -> Dict[str, str]:

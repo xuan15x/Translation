@@ -43,7 +43,7 @@ class ErrorCategory(Enum):
 ERROR_SOLUTIONS = {
     'AUTHENTICATION_ERROR_001': {
         'title': 'API 密钥配置无效',
-        'solution': '请在配置文件或 GUI 界面中设置有效的 API 密钥',
+        'solution': '请在 config.json 中设置有效的 API 密钥',
         'docs_url': 'https://docs.example.com/config#api-key'
     },
     'VALIDATION_ERROR_001': {

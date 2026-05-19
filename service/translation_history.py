@@ -490,7 +490,7 @@ class TranslationHistoryManager:
                 self.add_record(record)
                 count += 1
             except Exception as e:
-                print(f"导入记录失败：{e}")
+                logger.error("导入记录失败：%s", e)
         
         return count
     
